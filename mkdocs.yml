@@ -1,0 +1,20 @@
+site_name: IN4IT VPN Server
+nav:
+  - Home: 'index.md'
+  - 'User Guide':
+    - 'Installation': 'install.md'
+    - 'Quick Start': 'quickstart.md'
+    - Upgrade: 'upgrade.md'
+    - FAQ: faq.md
+  - 'Authentication & Provisioning':
+    - 'OpenID Connect (OIDC)': 'oidc.md'
+    - 'SAML': 'saml.md'
+    - 'Provisioning (SCIM)': 'scim.md'
+  - About:
+    - 'Release Notes': 'release-notes.md'
+theme:
+  name: readthedocs
+  highlightjs: true
+  hljs_languages:
+    - yaml
+    - rust

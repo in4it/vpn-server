@@ -1,0 +1,38 @@
+package commands
+
+import (
+	"fmt"
+
+	"github.com/in4it/wireguard-server/pkg/rest"
+	localstorage "github.com/in4it/wireguard-server/pkg/storage/local"
+	"github.com/in4it/wireguard-server/pkg/users"
+)
+
+func ResetAdminMFA(appDir string) error {
+	localstorage, err := localstorage.NewWithPath(appDir)
+	if err != nil {
+		return fmt.Errorf("config retrieval error: %s", err)
+	}
+	c, err := rest.GetConfig(localstorage)
+	if err != nil {
+		return fmt.Errorf("config retrieval error: %s", err)
+	}
+	c.UserStore, err = users.NewUserStore(localstorage, -1)
+	if err != nil {
+		return fmt.Errorf("userstore initialization error: %s", err)
+	}
+	if !c.UserStore.LoginExists("admin") {
+		return fmt.Errorf("admin user doesn't exist")
+	}
+	user, err := c.UserStore.GetUserByLogin("admin")
+	if err != nil {
+		return fmt.Errorf("GetUserByLogin error: %s", err)
+	}
+	user.Factors = []users.Factor{}
+
+	err = c.UserStore.UpdateUser(user)
+	if err != nil {
+		return fmt.Errorf("UpdateUser error: %s", err)
+	}
+	return nil
+}

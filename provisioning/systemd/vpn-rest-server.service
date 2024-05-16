@@ -1,0 +1,15 @@
+[Unit]
+Description=vpn rest server
+StartLimitIntervalSec=500
+StartLimitBurst=5
+
+[Service]
+ExecStart=/vpn/rest-server
+User=vpn
+WorkingDirectory=/vpn
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
+
