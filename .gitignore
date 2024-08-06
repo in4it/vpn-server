@@ -17,3 +17,4 @@
 /pkg/configmanager/resources/*
 /pkg/rest/resources/*
 /provisioning/whitelist.pkr.hcl
+.env

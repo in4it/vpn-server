@@ -1,6 +1,8 @@
 # Welcome to VPN Server
 
-VPN Server is a WireGuard® based VPN Server. You can install it using the AWS MarketPlace. Once installed, use the quickstart to get started.
+To ask questions, report issues, or submit PRs, check out the GitHub repository at [https://github.com/in4it/vpn-server](https://github.com/in4it/vpn-server).
+
+VPN Server is a WireGuard® based VPN Server. You can install the VPN Server using the AWS MarketPlace, Azure Marketplace, DigitalOcean Marketplace, or manually. Once installed, use the quickstart to get started.
 
 WireGuard® has the following benefits (from [https://www.wireguard.com/](https://www.wireguard.com/)):
 
@@ -10,4 +12,4 @@ WireGuard® has the following benefits (from [https://www.wireguard.com/](https:
 * Aims to be faster, simpler, leaner, and more useful than IPSec
 * Intends to be considerably more performant than OpenVPN
 
-If you have any questions or issues, feel free to email us at [support@in4it.com](mailto:support@in4it.com) or [schedule a call](https://calendly.com/in4itio/in4it-support)
+You can also contact us directly at [support@in4it.com](mailto:support@in4it.com) or [schedule a call](https://calendly.com/in4itio/in4it-support).

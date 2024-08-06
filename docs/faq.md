@@ -1,7 +1,10 @@
 # FAQ
 
-## How can I check whether the VPN works
+## How can I report a bug or get help
+You can ask help or report an issue at [https://github.com/in4it/vpn-server](https://github.com/in4it/vpn-server).
 
+
+## How can I check whether the VPN works
 You can ping the VPN server using the VPN IP address. In a terminal, enter the command:
 
 ```
