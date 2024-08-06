@@ -12,6 +12,7 @@ nav:
     - 'Provisioning (SCIM)': 'scim.md'
   - About:
     - 'Release Notes': 'release-notes.md'
+    - 'GitHub Project Page': 'https://github.com/in4it/vpn-server'
 theme:
   name: readthedocs
   highlightjs: true

@@ -1,5 +1,11 @@
 # Release Notes
 
+## Version v1.0.39
+* DigitalOcean marketplace release
+
+## Version v1.0.38
+* General bugfixes
+
 ## Version v1.0.37
 * SAML Support for authentication
 * SCIM Support for provisioning
@@ -8,7 +14,7 @@
 * An administrator will now be alerted when there is a new version of the VPN Server available. An upgrade procedure to the latest version can be started from the admin web UI. 
 * Minor bugfixes
 
-Upgrade instructions can be found [here](/upgrade)
+Upgrade instructions can be found [here](upgrade.md)
 
 Once upgraded to this release, new upgrades can be done through the UI.
 
