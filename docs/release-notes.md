@@ -1,5 +1,8 @@
 # Release Notes
 
+## Version v1.0.40
+* GCP marketplace release
+
 ## Version v1.0.39
 * DigitalOcean marketplace release
 

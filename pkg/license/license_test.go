@@ -347,6 +347,7 @@ func TestGetMaxUsersDigitalOceanBYOL(t *testing.T) {
 
 func TestGetLicenseKey(t *testing.T) {
 	dropletID := "1234567890"
+	projectID := "googleproject-12356"
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.RequestURI == "/metadata/v1/interfaces/private/0/type" {
 			w.Write([]byte(`private`))
@@ -354,13 +355,10 @@ func TestGetLicenseKey(t *testing.T) {
 		}
 		if r.RequestURI == "/metadata/v1/id" {
 			w.Write([]byte(dropletID))
-
 			return
 		}
-		h := sha256.New()
-		h.Write([]byte(dropletID))
-		if r.RequestURI == fmt.Sprintf("/license-1234556-license-%x", h.Sum(nil)) {
-			w.Write([]byte(`{"users": 50}`))
+		if r.RequestURI == "/computeMetadata/v1/project/project-id" {
+			w.Write([]byte(projectID))
 			return
 		}
 		if r.RequestURI == "/metadata/versions" {
@@ -400,6 +398,10 @@ func TestGetLicenseKey(t *testing.T) {
 	key = GetLicenseKey(&testingmocks.MockMemoryStorage{}, "digitalocean")
 	if key == "" {
 		t.Fatalf("digitalocean key is empty")
+	}
+	key = GetLicenseKey(&testingmocks.MockMemoryStorage{}, "gcp")
+	if key == "" {
+		t.Fatalf("gcp key is empty")
 	}
 }
 func TestGetLicenseKeyNoCloudProvider(t *testing.T) {

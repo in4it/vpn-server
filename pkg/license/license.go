@@ -36,6 +36,10 @@ func guessInfrastructure() string {
 		return "digitalocean"
 	}
 
+	if isOnGCP(client) {
+		return "gcp"
+	}
+
 	return "" // no metadata server found
 }
 
@@ -52,6 +56,8 @@ func GetInstanceType() (string, string) {
 		return "aws", getAWSInstanceType(client)
 	case "digitalocean":
 		return "digitalocean", "droplet"
+	case "gcp":
+		return "gcp", "instance"
 	default:
 		return "", ""
 	}
@@ -109,7 +115,14 @@ func GetLicenseKey(storage storage.ReadWriter, cloudType string) string {
 	case "digitalocean":
 		licenseKey, err := getDigitalOceanLicenseKey(storage, client)
 		if err != nil {
-			logging.DebugLog(fmt.Errorf("getAWSLicense error: %s", err))
+			logging.DebugLog(fmt.Errorf("getDigitalOceanLicense error: %s", err))
+			return ""
+		}
+		return licenseKey
+	case "gcp":
+		licenseKey, err := getGCPLicenseKey(storage, client)
+		if err != nil {
+			logging.DebugLog(fmt.Errorf("getGCPLicenseKey error: %s", err))
 			return ""
 		}
 		return licenseKey
