@@ -18,5 +18,6 @@ jobs:
       - name: Go generate
         run: |
           go generate ./...
+          touch pkg/rest/static/placeholder # we're not building frontend, so we put a placeholder
       - name: Test
         run: make test
