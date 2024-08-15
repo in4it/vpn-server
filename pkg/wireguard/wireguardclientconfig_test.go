@@ -10,6 +10,7 @@ import (
 	"net/netip"
 	"strings"
 	"testing"
+	"time"
 
 	testingmocks "github.com/in4it/wireguard-server/pkg/testing/mocks"
 )
@@ -52,9 +53,20 @@ func TestGetConfigNumberFromConnectionFile(t *testing.T) {
 }
 
 func TestWriteConfig(t *testing.T) {
-	l, err := net.Listen("tcp", CONFIGMANAGER_URI)
-	if err != nil {
-		t.Fatal(err)
+	var (
+		l   net.Listener
+		err error
+	)
+	for {
+		l, err = net.Listen("tcp", CONFIGMANAGER_URI)
+		if err != nil {
+			if !strings.HasSuffix(err.Error(), "address already in use") {
+				t.Fatal(err)
+			}
+			time.Sleep(1 * time.Second)
+		} else {
+			break
+		}
 	}
 
 	ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -113,9 +125,20 @@ func TestWriteConfig(t *testing.T) {
 }
 
 func TestWriteConfigMultipleClients(t *testing.T) {
-	l, err := net.Listen("tcp", CONFIGMANAGER_URI)
-	if err != nil {
-		t.Fatal(err)
+	var (
+		l   net.Listener
+		err error
+	)
+	for {
+		l, err = net.Listen("tcp", CONFIGMANAGER_URI)
+		if err != nil {
+			if !strings.HasSuffix(err.Error(), "address already in use") {
+				t.Fatal(err)
+			}
+			time.Sleep(1 * time.Second)
+		} else {
+			break
+		}
 	}
 
 	ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -176,9 +199,20 @@ func TestWriteConfigMultipleClients(t *testing.T) {
 }
 
 func TestCreateAndDeleteAllClientConfig(t *testing.T) {
-	l, err := net.Listen("tcp", CONFIGMANAGER_URI)
-	if err != nil {
-		t.Fatal(err)
+	var (
+		l   net.Listener
+		err error
+	)
+	for {
+		l, err = net.Listen("tcp", CONFIGMANAGER_URI)
+		if err != nil {
+			if !strings.HasSuffix(err.Error(), "address already in use") {
+				t.Fatal(err)
+			}
+			time.Sleep(1 * time.Second)
+		} else {
+			break
+		}
 	}
 
 	ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -253,9 +287,20 @@ func TestCreateAndDeleteAllClientConfig(t *testing.T) {
 	}
 }
 func TestCreateAndDeleteClientConfig(t *testing.T) {
-	l, err := net.Listen("tcp", CONFIGMANAGER_URI)
-	if err != nil {
-		t.Fatal(err)
+	var (
+		l   net.Listener
+		err error
+	)
+	for {
+		l, err = net.Listen("tcp", CONFIGMANAGER_URI)
+		if err != nil {
+			if !strings.HasSuffix(err.Error(), "address already in use") {
+				t.Fatal(err)
+			}
+			time.Sleep(1 * time.Second)
+		} else {
+			break
+		}
 	}
 
 	ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -331,9 +376,20 @@ func TestCreateAndDeleteClientConfig(t *testing.T) {
 }
 
 func TestCreateAndDisableAllClientConfig(t *testing.T) {
-	l, err := net.Listen("tcp", CONFIGMANAGER_URI)
-	if err != nil {
-		t.Fatal(err)
+	var (
+		l   net.Listener
+		err error
+	)
+	for {
+		l, err = net.Listen("tcp", CONFIGMANAGER_URI)
+		if err != nil {
+			if !strings.HasSuffix(err.Error(), "address already in use") {
+				t.Fatal(err)
+			}
+			time.Sleep(1 * time.Second)
+		} else {
+			break
+		}
 	}
 
 	ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -444,9 +500,20 @@ func TestCreateAndDisableAllClientConfig(t *testing.T) {
 }
 
 func TestUpdateClientConfig(t *testing.T) {
-	l, err := net.Listen("tcp", CONFIGMANAGER_URI)
-	if err != nil {
-		t.Fatal(err)
+	var (
+		l   net.Listener
+		err error
+	)
+	for {
+		l, err = net.Listen("tcp", CONFIGMANAGER_URI)
+		if err != nil {
+			if !strings.HasSuffix(err.Error(), "address already in use") {
+				t.Fatal(err)
+			}
+			time.Sleep(1 * time.Second)
+		} else {
+			break
+		}
 	}
 
 	ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
