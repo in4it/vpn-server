@@ -15,5 +15,8 @@ jobs:
       - name: Install dependencies
         run: |
           go get ./...
+      - name: Go generate
+        run: |
+          go generate ./...
       - name: Test
         run: make test
