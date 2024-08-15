@@ -1,0 +1,23 @@
+name: Go test
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Go 1.21.x
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21.x'
+      - name: Install dependencies
+        run: |
+          go get ./...
+      - name: Go generate
+        run: |
+          go generate ./...
+          touch pkg/rest/static/placeholder # we're not building frontend, so we put a placeholder
+      - name: Test
+        run: make test
