@@ -27,6 +27,7 @@ export function Upgrade() {
         if(upgradeStatus === "upgrading") {
           setUpgradeStatus("completed")
           setMessage("")
+          queryClient.invalidateQueries({ queryKey: ['version'] })
         }
         return res.json()
         }
