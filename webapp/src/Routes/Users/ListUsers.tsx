@@ -17,6 +17,11 @@ type UserIDAndPassword = {
   password: string;
 }
 
+type Status = {
+  status: string;
+  color: string;
+}
+
 export function ListUsers({localAuthDisabled}:Props) {
     const [opened, { open, close }] = useDisclosure(false);
     const [newPassword, setNewPassword] = useState<string>();
@@ -89,12 +94,7 @@ export function ListUsers({localAuthDisabled}:Props) {
         saml: 'teal',
         provisioned: 'grape',
     };
-    const userStatus: Record<string, string> = {
-        active: 'green',
-        suspended: 'red',
-        tokenExpired: 'amber',
-        localAuthDisabled: 'yellow'
-    };
+
     const rolesData = ["user", "admin"];
 
     const openPasswordModal = (id:string) => {
@@ -105,6 +105,16 @@ export function ListUsers({localAuthDisabled}:Props) {
     const formatDate = (dateInput:string) => {
       const date = new Date(dateInput)
       return date.getFullYear() + "-" + (date.getMonth()+1).toString().padStart(2, '0') + "-" + date.getDate().toString().padStart(2, '0') + " " + date.getHours().toString().padStart(2, '0') + ":" + date.getMinutes().toString().padStart(2, '0') + ":" + date.getSeconds().toString().padStart(2, '0')
+    }
+
+    const getStatus = (item:User) : Status => {
+      if(item.suspended) {
+        return {status: "Suspended", color: "red"} 
+      }
+      if (localAuthDisabled && item.oidcID == "" && !item.provisioned) {
+        return {status: "Local Auth Disabled", color: "yellow"} 
+      }
+      return {status: "Active", color: "green"}
     }
       
     const rows = data.map((item:User) => (
@@ -148,8 +158,8 @@ export function ListUsers({localAuthDisabled}:Props) {
               : null}
             </Table.Td>
             <Table.Td>
-              <Badge color={userStatus[item.suspended ? "suspended" : localAuthDisabled && item.oidcID == "" ? "localAuthDisabled" : "active"]} variant="light">
-                {item.suspended ? "Suspended" : localAuthDisabled && item.oidcID == "" ? "Local Auth Disabled" : "Active"}
+              <Badge color={getStatus(item).color} variant="light">
+                {getStatus(item).status}
               </Badge>
             </Table.Td>
             <Table.Td>

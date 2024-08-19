@@ -8,7 +8,6 @@ import { useAuthContext } from "../../Auth/Auth";
 import { useForm } from '@mantine/form';
 import axios, { AxiosError } from "axios";
 
-
 type SetupRequest = {
   hostname: string;
   enableTLS: boolean;
@@ -130,13 +129,14 @@ export function Setup() {
               </div>
             </UnstyledButton>
             <Space h="md" />
-            <UnstyledButton className={classes.button} onClick={() => form.setFieldValue("redirectToHttps", !form.getValues().redirectToHttps )}>
+            <UnstyledButton className={classes.button} onClick={() => window.location.protocol === "https:" ? form.setFieldValue("redirectToHttps", !form.getValues().redirectToHttps) : null }>
               <Checkbox
                 tabIndex={-1}
                 size="md"
                 mr="xl"
                 styles={{ input: { cursor: 'pointer' } }}
                 aria-hidden
+                disabled={ window.location.protocol === "https:" ? false : true }
                 key={form.key('redirectToHttps')}
                 {...form.getInputProps('redirectToHttps', { type: 'checkbox' })}
               />
@@ -147,7 +147,7 @@ export function Setup() {
                 <Text fz="sm" c="dimmed">
                   Redirect http requests to https.
                   Not needed when terminating TLS on an external LoadBalancer.
-                  Recommended once TLS is activated and working.
+                  Can only be enabled once this page is requested through https.
                 </Text>
               </div>
             </UnstyledButton>
