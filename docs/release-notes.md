@@ -1,5 +1,10 @@
 # Release Notes
 
+## Version v1.0.41
+* UI: axios version bump
+* UI: disable https forwarding when request is served over http
+* UI: general improvements
+
 ## Version v1.0.40
 * GCP marketplace release
 
