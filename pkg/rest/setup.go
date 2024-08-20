@@ -4,12 +4,14 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"net/netip"
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/in4it/wireguard-server/pkg/auth/oidc"
@@ -369,6 +371,44 @@ func (c *Context) templateSetupHandler(w http.ResponseWriter, r *http.Request) {
 	default:
 		c.returnError(w, fmt.Errorf("method not supported"), http.StatusBadRequest)
 	}
+}
+
+func (c *Context) restartVPNHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		c.returnError(w, fmt.Errorf("unsupported method"), http.StatusBadRequest)
+		return
+	}
+	client := http.Client{
+		Timeout: 10 * time.Second,
+	}
+	req, err := http.NewRequest(r.Method, "http://"+wireguard.CONFIGMANAGER_URI+"/restart-vpn", nil)
+	if err != nil {
+		c.returnError(w, fmt.Errorf("restart request error: %s", err), http.StatusBadRequest)
+		return
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		c.returnError(w, fmt.Errorf("restart error: %s", err), http.StatusBadRequest)
+		return
+	}
+	if resp.StatusCode != http.StatusAccepted {
+		bodyBytes, err := io.ReadAll(resp.Body)
+		if err != nil {
+			c.returnError(w, fmt.Errorf("restart error: got status code: %d. Response: %s", resp.StatusCode, bodyBytes), http.StatusBadRequest)
+			return
+		}
+		c.returnError(w, fmt.Errorf("restart error: got status code: %d. Couldn't get response", resp.StatusCode), http.StatusBadRequest)
+		return
+	}
+
+	defer resp.Body.Close()
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		c.returnError(w, fmt.Errorf("body read error: %s", err), http.StatusBadRequest)
+		return
+	}
+
+	c.write(w, bodyBytes)
 }
 
 func (c *Context) scimSetupHandler(w http.ResponseWriter, r *http.Request) {
