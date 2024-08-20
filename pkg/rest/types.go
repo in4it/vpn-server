@@ -99,8 +99,6 @@ type GeneralSetupRequest struct {
 	RedirectToHttps        bool   `json:"redirectToHttps"`
 	DisableLocalAuth       bool   `json:"disableLocalAuth"`
 	EnableOIDCTokenRenewal bool   `json:"enableOIDCTokenRenewal"`
-	Routes                 string `json:"routes"`
-	VPNEndpoint            string `json:"vpnEndpoint"`
 }
 
 type VPNSetupRequest struct {
@@ -108,10 +106,15 @@ type VPNSetupRequest struct {
 	VPNEndpoint         string `json:"vpnEndpoint"`
 	AddressRange        string `json:"addressRange"`
 	ClientAddressPrefix string `json:"clientAddressPrefix"`
-	Port                int    `json:"port"`
+	Port                string `json:"port"`
 	ExternalInterface   string `json:"externalInterface"`
 	Nameservers         string `json:"nameservers"`
 	DisableNAT          bool   `json:"disableNAT"`
+}
+
+type TemplateSetupRequest struct {
+	ClientTemplate string `json:"clientTemplate"`
+	ServerTemplate string `json:"serverTemplate"`
 }
 
 type NewConnectionResponse struct {

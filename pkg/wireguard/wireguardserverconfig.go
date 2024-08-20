@@ -23,7 +23,7 @@ func WriteWireGuardServerConfig(storage storage.Iface) error {
 	return nil
 }
 
-func generateWireGuardServerConfig(storage storage.Iface) ([]byte, error) {
+func GetServerTemplate(storage storage.Iface) ([]byte, error) {
 	templatefile := storage.ConfigPath(path.Join(WIREGUARD_TEMPLATE_DIR, WIREGUARD_TEMPLATE_SERVER))
 	err := storage.EnsurePath(storage.ConfigPath(WIREGUARD_TEMPLATE_DIR))
 	if err != nil {
@@ -45,6 +45,25 @@ func generateWireGuardServerConfig(storage storage.Iface) ([]byte, error) {
 		}
 	}
 
+	templateContents, err := storage.ReadFile(templatefile)
+	if err != nil {
+		return nil, fmt.Errorf("cannot read template file (%s): %s", templatefile, err)
+	}
+	return templateContents, nil
+}
+
+func WriteServerTemplate(storage storage.Iface, body []byte) error {
+	templatefile := storage.ConfigPath(path.Join(WIREGUARD_TEMPLATE_DIR, WIREGUARD_TEMPLATE_SERVER))
+
+	err := storage.WriteFile(templatefile, body)
+	if err != nil {
+		return fmt.Errorf("could not write template (%s): %s", templatefile, err)
+	}
+
+	return nil
+}
+
+func generateWireGuardServerConfig(storage storage.Iface) ([]byte, error) {
 	vpnConfig, err := GetVPNConfig(storage)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get vpn config: %s", err)
@@ -61,11 +80,11 @@ func generateWireGuardServerConfig(storage storage.Iface) ([]byte, error) {
 		ExternalInterface: vpnConfig.ExternalInterface,
 	}
 
-	templateContents, err := storage.ReadFile(templatefile)
+	templateContents, err := GetServerTemplate(storage)
 	if err != nil {
-		return nil, fmt.Errorf("cannot read template file (%s): %s", templatefile, err)
+		return nil, fmt.Errorf("cannot get template file: %s", err)
 	}
-	tmpl, err := template.New(path.Base(templatefile)).Parse(string(templateContents))
+	tmpl, err := template.New(WIREGUARD_TEMPLATE_SERVER).Parse(string(templateContents))
 	if err != nil {
 		return nil, fmt.Errorf("could not parse client template: %s", err)
 	}

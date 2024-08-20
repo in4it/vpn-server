@@ -159,9 +159,7 @@ func getPeerConfig(storage storage.Iface, connectionID string) (PeerConfig, erro
 	return peerConfig, nil
 }
 
-func GenerateNewClientConfig(storage storage.Iface, connectionID, userID string) ([]byte, error) {
-	clientConfigMutex.Lock()
-	defer clientConfigMutex.Unlock()
+func GetClientTemplate(storage storage.Iface) ([]byte, error) {
 	filename := storage.ConfigPath("templates/client.tmpl")
 	err := storage.EnsurePath(storage.ConfigPath("templates"))
 	if err != nil {
@@ -173,6 +171,25 @@ func GenerateNewClientConfig(storage storage.Iface, connectionID, userID string)
 			return nil, fmt.Errorf("could not create initial client template: %s", err)
 		}
 	}
+	data, err := storage.ReadFile(filename)
+	if err != nil {
+		return nil, fmt.Errorf("could not read client template: %s", err)
+	}
+	return data, err
+}
+
+func WriteClientTemplate(storage storage.Iface, body []byte) error {
+	filename := storage.ConfigPath("templates/client.tmpl")
+	err := storage.WriteFile(filename, body)
+	if err != nil {
+		return fmt.Errorf("could not write client template: %s", err)
+	}
+	return nil
+}
+
+func GenerateNewClientConfig(storage storage.Iface, connectionID, userID string) ([]byte, error) {
+	clientConfigMutex.Lock()
+	defer clientConfigMutex.Unlock()
 
 	// parse template
 	privateKey, publicKey, err := GenerateKeys()
@@ -208,12 +225,12 @@ func GenerateNewClientConfig(storage storage.Iface, connectionID, userID string)
 		AllowedIPs:      peerConfig.ClientAllowedIPs,
 	}
 
-	templatefileContents, err := storage.ReadFile(filename)
+	templatefileContents, err := GetClientTemplate(storage)
 	if err != nil {
-		return nil, fmt.Errorf("could not read client template: %s", err)
+		return nil, fmt.Errorf("could not get client template: %s", err)
 	}
 
-	tmpl, err := template.New(path.Base(filename)).Funcs(template.FuncMap{"StringsJoin": strings.Join}).Parse(string(templatefileContents))
+	tmpl, err := template.New("client.tmpl").Funcs(template.FuncMap{"StringsJoin": strings.Join}).Parse(string(templatefileContents))
 	if err != nil {
 		return nil, fmt.Errorf("could not parse client template: %s", err)
 	}

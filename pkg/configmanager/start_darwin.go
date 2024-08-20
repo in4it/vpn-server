@@ -13,3 +13,8 @@ func startVPN(storage storage.Iface) error {
 	fmt.Printf("Warning: startVPN is not implemented in darwin\n")
 	return nil
 }
+
+func stopVPN(storage storage.Iface) error {
+	fmt.Printf("Warning: startVPN is not implemented in darwin\n")
+	return nil
+}

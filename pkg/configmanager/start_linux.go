@@ -17,3 +17,7 @@ func startVPN(storage storage.Iface) error {
 	}
 	return wireguard.StartVPN()
 }
+
+func stopVPN(storage storage.Iface) error {
+	return wireguard.StopVPN()
+}

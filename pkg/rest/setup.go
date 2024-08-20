@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/netip"
 	"reflect"
+	"strconv"
 	"strings"
 
 	"github.com/google/uuid"
@@ -169,7 +170,7 @@ func (c *Context) vpnSetupHandler(w http.ResponseWriter, r *http.Request) {
 			VPNEndpoint:         vpnConfig.Endpoint,
 			AddressRange:        vpnConfig.AddressRange.String(),
 			ClientAddressPrefix: vpnConfig.ClientAddressPrefix,
-			Port:                vpnConfig.Port,
+			Port:                strconv.Itoa(vpnConfig.Port),
 			ExternalInterface:   vpnConfig.ExternalInterface,
 			Nameservers:         strings.Join(vpnConfig.Nameservers, ","),
 			DisableNAT:          vpnConfig.DisableNAT,
@@ -196,10 +197,12 @@ func (c *Context) vpnSetupHandler(w http.ResponseWriter, r *http.Request) {
 				if strings.TrimSpace(network) == "::/0" {
 					validatedNetworks = append(validatedNetworks, "::/0")
 				} else {
-					_, ipnet, err := net.ParseCIDR(network)
-					if err == nil {
-						validatedNetworks = append(validatedNetworks, ipnet.String())
+					_, ipnet, err := net.ParseCIDR(strings.TrimSpace(network))
+					if err != nil {
+						c.returnError(w, fmt.Errorf("client route %s in wrong format: %s", strings.TrimSpace(network), err), http.StatusBadRequest)
+						return
 					}
+					validatedNetworks = append(validatedNetworks, ipnet.String())
 				}
 			}
 			vpnConfig.ClientRoutes = validatedNetworks
@@ -227,8 +230,13 @@ func (c *Context) vpnSetupHandler(w http.ResponseWriter, r *http.Request) {
 			writeVPNConfig = true
 			rewriteClientConfigs = true
 		}
-		if setupRequest.Port != vpnConfig.Port {
-			vpnConfig.Port = setupRequest.Port
+		port, err := strconv.Atoi(setupRequest.Port)
+		if err != nil {
+			c.returnError(w, fmt.Errorf("port in wrong format: %s", err), http.StatusBadRequest)
+			return
+		}
+		if port != vpnConfig.Port {
+			vpnConfig.Port = port
 			writeVPNConfig = true
 			rewriteClientConfigs = true
 			rewriteServerConfig = true
@@ -239,7 +247,7 @@ func (c *Context) vpnSetupHandler(w http.ResponseWriter, r *http.Request) {
 			nameservers[k] = strings.TrimSpace(nameservers[k])
 		}
 		if !reflect.DeepEqual(nameservers, vpnConfig.Nameservers) {
-			vpnConfig.ExternalInterface = setupRequest.ExternalInterface
+			vpnConfig.Nameservers = nameservers
 			writeVPNConfig = true
 			rewriteClientConfigs = true
 		}
@@ -274,11 +282,85 @@ func (c *Context) vpnSetupHandler(w http.ResponseWriter, r *http.Request) {
 			// rewrite server config
 			err = wireguard.WriteWireGuardServerConfig(c.Storage.Client)
 			if err != nil {
-				c.returnError(w, fmt.Errorf("could not update client vpn configs: %s", err), http.StatusBadRequest)
+				c.returnError(w, fmt.Errorf("could not write wireguard server config: %s", err), http.StatusBadRequest)
 				return
 			}
 		}
 		out, err := json.Marshal(setupRequest)
+		if err != nil {
+			c.returnError(w, fmt.Errorf("could not marshal SetupRequest: %s", err), http.StatusBadRequest)
+			return
+		}
+		c.write(w, out)
+	default:
+		c.returnError(w, fmt.Errorf("method not supported"), http.StatusBadRequest)
+	}
+}
+
+func (c *Context) templateSetupHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		clientTemplate, err := wireguard.GetClientTemplate(c.Storage.Client)
+		if err != nil {
+			c.returnError(w, fmt.Errorf("could not retrieve client template: %s", err), http.StatusBadRequest)
+			return
+		}
+		serverTemplate, err := wireguard.GetServerTemplate(c.Storage.Client)
+		if err != nil {
+			c.returnError(w, fmt.Errorf("could not retrieve server template: %s", err), http.StatusBadRequest)
+			return
+		}
+		setupRequest := TemplateSetupRequest{
+			ClientTemplate: string(clientTemplate),
+			ServerTemplate: string(serverTemplate),
+		}
+		out, err := json.Marshal(setupRequest)
+		if err != nil {
+			c.returnError(w, fmt.Errorf("could not marshal SetupRequest: %s", err), http.StatusBadRequest)
+			return
+		}
+		c.write(w, out)
+	case http.MethodPost:
+		var templateSetupRequest TemplateSetupRequest
+		decoder := json.NewDecoder(r.Body)
+		decoder.Decode(&templateSetupRequest)
+		clientTemplate, err := wireguard.GetClientTemplate(c.Storage.Client)
+		if err != nil {
+			c.returnError(w, fmt.Errorf("could not retrieve client template: %s", err), http.StatusBadRequest)
+			return
+		}
+		serverTemplate, err := wireguard.GetServerTemplate(c.Storage.Client)
+		if err != nil {
+			c.returnError(w, fmt.Errorf("could not retrieve server template: %s", err), http.StatusBadRequest)
+			return
+		}
+		if string(clientTemplate) != templateSetupRequest.ClientTemplate {
+			err = wireguard.WriteClientTemplate(c.Storage.Client, []byte(templateSetupRequest.ClientTemplate))
+			if err != nil {
+				c.returnError(w, fmt.Errorf("WriteClientTemplate error: %s", err), http.StatusBadRequest)
+				return
+			}
+			// rewrite client configs
+			err = wireguard.UpdateClientsConfig(c.Storage.Client)
+			if err != nil {
+				c.returnError(w, fmt.Errorf("could not update client vpn configs: %s", err), http.StatusBadRequest)
+				return
+			}
+		}
+		if string(serverTemplate) != templateSetupRequest.ServerTemplate {
+			err = wireguard.WriteServerTemplate(c.Storage.Client, []byte(templateSetupRequest.ServerTemplate))
+			if err != nil {
+				c.returnError(w, fmt.Errorf("WriteServerTemplate error: %s", err), http.StatusBadRequest)
+				return
+			}
+			// rewrite server config
+			err = wireguard.WriteWireGuardServerConfig(c.Storage.Client)
+			if err != nil {
+				c.returnError(w, fmt.Errorf("could not write wireguard server config: %s", err), http.StatusBadRequest)
+				return
+			}
+		}
+		out, err := json.Marshal(templateSetupRequest)
 		if err != nil {
 			c.returnError(w, fmt.Errorf("could not marshal SetupRequest: %s", err), http.StatusBadRequest)
 			return

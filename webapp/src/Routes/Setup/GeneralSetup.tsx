@@ -8,6 +8,10 @@ import { useAuthContext } from "../../Auth/Auth";
 import { useForm } from '@mantine/form';
 import axios, { AxiosError } from "axios";
 
+type GeneralSetupError = {
+    error: string;
+}
+
 type GeneralSetupRequest = {
   hostname: string;
   enableTLS: boolean;
@@ -47,7 +51,7 @@ export function GeneralSetup() {
     const alertIcon = <IconInfoCircle />;
     const setupMutation = useMutation({
       mutationFn: (setupRequest: GeneralSetupRequest) => {
-        return axios.post(AppSettings.url + '/setup', setupRequest, {
+        return axios.post(AppSettings.url + '/setup/general', setupRequest, {
           headers: {
               "Authorization": "Bearer " + authInfo.token
           },
@@ -56,9 +60,15 @@ export function GeneralSetup() {
       onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: ['users'] })
           setSaved(true)
+          setSaveError("")
       },
       onError: (error:AxiosError) => {
-          setSaveError("Error: "+ error.message)
+        const errorMessage = error.response?.data as GeneralSetupError
+        if(errorMessage?.error === undefined) {
+            setSaveError("Error: "+ error.message)
+        } else {
+            setSaveError("Error: "+ errorMessage.error)
+        }
       }
     })
 
@@ -90,8 +100,9 @@ export function GeneralSetup() {
 
     return (
         <Container my={40} size="40rem">
-          {saved ? <Alert variant="light" color="green" title="Update!" icon={alertIcon}>Settings Saved!</Alert> : null}
-          {saveError !== "" ? saveError : null}
+          {saved && saveError === "" ? <Alert variant="light" color="green" title="Update!" icon={alertIcon}>Settings Saved!</Alert> : null}
+          {saveError !== "" ? <Alert variant="light" color="red" title="Error!" icon={alertIcon} style={{marginTop: 10}}>{saveError}</Alert> : null}
+
           <form onSubmit={form.onSubmit((values: GeneralSetupRequest) => setupMutation.mutate(values))}>
           <TextInput
           rightSection={hostnameTooltip}

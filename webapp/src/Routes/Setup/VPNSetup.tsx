@@ -4,17 +4,22 @@ import { useEffect, useState } from "react";
 import classes from './Setup.module.css';
 import { IconInfoCircle } from "@tabler/icons-react";
 import { AppSettings } from "../../Constants/Constants";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useAuthContext } from "../../Auth/Auth";
 import { useForm } from '@mantine/form';
 import axios, { AxiosError } from "axios";
+
+
+type VPNSetupError = {
+    error: string;
+}
 
 type VPNSetupRequest = {
     routes: string;
     vpnEndpoint: string;
     addressRange: string,
     clientAddressPrefix: string,
-    port: number,
+    port: string,
     externalInterface: string,
     nameservers: string,
     disableNAT: boolean,
@@ -23,7 +28,6 @@ export function VPNSetup() {
     const [saved, setSaved] = useState(false)
     const [saveError, setSaveError] = useState("")
     const {authInfo} = useAuthContext();
-    const queryClient = useQueryClient()
     const { isPending, error, data, isSuccess } = useQuery({
       queryKey: ['vpn-setup'],
       queryFn: () =>
@@ -45,7 +49,7 @@ export function VPNSetup() {
         vpnEndpoint: "",
         addressRange: "",
         clientAddressPrefix: "",
-        port: 0,
+        port: "",
         externalInterface: "",
         nameservers: "",
         disableNAT: false,   
@@ -53,18 +57,23 @@ export function VPNSetup() {
     });
     const setupMutation = useMutation({
       mutationFn: (setupRequest: VPNSetupRequest) => {
-        return axios.post(AppSettings.url + '/setup', setupRequest, {
+        return axios.post(AppSettings.url + '/setup/vpn', setupRequest, {
           headers: {
               "Authorization": "Bearer " + authInfo.token
           },
         })
       },
       onSuccess: () => {
-          queryClient.invalidateQueries({ queryKey: ['users'] })
           setSaved(true)
+          setSaveError("")
       },
       onError: (error:AxiosError) => {
-          setSaveError("Error: "+ error.message)
+        const errorMessage = error.response?.data as VPNSetupError
+        if(errorMessage?.error === undefined) {
+            setSaveError("Error: "+ error.message)
+        } else {
+            setSaveError("Error: "+ errorMessage.error)
+        }      
       }
     })
 
@@ -83,8 +92,8 @@ export function VPNSetup() {
     return (
         <Container my={40} size="40rem">
             <Alert variant="light" color="blue" title="Note!" icon={alertIcon}>Changes to Address Range, Port, External Interface, or NAT will need a wireguard reload. You can click the "Reload Wireguard" button at the bottom after submitting the changes. This will disconnect active VPN clients.</Alert>
-            {saved ? <Alert variant="light" color="green" title="Update!" icon={alertIcon}>Settings Saved!</Alert> : null}
-            {saveError !== "" ? saveError : null}
+            {saved && saveError === "" ? <Alert variant="light" color="green" title="Update!" icon={alertIcon} style={{marginTop: 10}}>Settings Saved!</Alert> : null}
+            {saveError !== "" ? <Alert variant="light" color="red" title="Error!" icon={alertIcon} style={{marginTop: 10}}>{saveError}</Alert> : null}
 
             <form onSubmit={form.onSubmit((values: VPNSetupRequest) => setupMutation.mutate(values))}>
                 <InputWrapper

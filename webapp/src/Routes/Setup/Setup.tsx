@@ -3,6 +3,7 @@ import classes from './Setup.module.css';
 import { IconFile, IconNetwork, IconSettings } from "@tabler/icons-react";
 import { GeneralSetup } from "./GeneralSetup";
 import { VPNSetup } from "./VPNSetup";
+import { TemplateSetup } from "./TemplateSetup";
 
 export function Setup() {
   const iconStyle = { width: rem(12), height: rem(12) };
@@ -31,7 +32,7 @@ export function Setup() {
             <VPNSetup />
           </Tabs.Panel>
           <Tabs.Panel value="templates" style={{marginTop: 25}}>          
-            Templates will go here
+            <TemplateSetup />
           </Tabs.Panel>
         </Tabs>
       </Container>
