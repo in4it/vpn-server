@@ -100,21 +100,14 @@ func (c *Context) contextHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Context) setupHandler(w http.ResponseWriter, r *http.Request) {
-	vpnConfig, err := wireguard.GetVPNConfig(c.Storage.Client)
-	if err != nil {
-		c.returnError(w, fmt.Errorf("could not get vpn config: %s", err), http.StatusBadRequest)
-		return
-	}
 	switch r.Method {
 	case http.MethodGet:
-		setupRequest := SetupRequest{
+		setupRequest := GeneralSetupRequest{
 			Hostname:               c.Hostname,
 			EnableTLS:              c.EnableTLS,
 			RedirectToHttps:        c.RedirectToHttps,
 			DisableLocalAuth:       c.LocalAuthDisabled,
 			EnableOIDCTokenRenewal: c.EnableOIDCTokenRenewal,
-			Routes:                 strings.Join(vpnConfig.ClientRoutes, ", "),
-			VPNEndpoint:            vpnConfig.Endpoint,
 		}
 		out, err := json.Marshal(setupRequest)
 		if err != nil {
@@ -123,7 +116,7 @@ func (c *Context) setupHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		c.write(w, out)
 	case http.MethodPost:
-		var setupRequest SetupRequest
+		var setupRequest GeneralSetupRequest
 		decoder := json.NewDecoder(r.Body)
 		decoder.Decode(&setupRequest)
 		if c.Hostname != setupRequest.Hostname {
@@ -145,6 +138,50 @@ func (c *Context) setupHandler(w http.ResponseWriter, r *http.Request) {
 			c.EnableOIDCTokenRenewal = setupRequest.EnableOIDCTokenRenewal
 			c.OIDCRenewal.SetEnabled(c.EnableOIDCTokenRenewal)
 		}
+		err := SaveConfig(c)
+		if err != nil {
+			c.returnError(w, fmt.Errorf("could not save config to disk: %s", err), http.StatusBadRequest)
+			return
+		}
+		out, err := json.Marshal(setupRequest)
+		if err != nil {
+			c.returnError(w, fmt.Errorf("could not marshal SetupRequest: %s", err), http.StatusBadRequest)
+			return
+		}
+		c.write(w, out)
+	default:
+		c.returnError(w, fmt.Errorf("method not supported"), http.StatusBadRequest)
+	}
+}
+
+func (c *Context) vpnSetupHandler(w http.ResponseWriter, r *http.Request) {
+	vpnConfig, err := wireguard.GetVPNConfig(c.Storage.Client)
+	if err != nil {
+		c.returnError(w, fmt.Errorf("could not get vpn config: %s", err), http.StatusBadRequest)
+		return
+	}
+	switch r.Method {
+	case http.MethodGet:
+		setupRequest := VPNSetupRequest{
+			Routes:              strings.Join(vpnConfig.ClientRoutes, ", "),
+			VPNEndpoint:         vpnConfig.Endpoint,
+			AddressRange:        vpnConfig.AddressRange.String(),
+			ClientAddressPrefix: vpnConfig.ClientAddressPrefix,
+			Port:                vpnConfig.Port,
+			ExternalInterface:   vpnConfig.ExternalInterface,
+			Nameservers:         strings.Join(vpnConfig.Nameservers, ","),
+			DisableNAT:          vpnConfig.DisableNAT,
+		}
+		out, err := json.Marshal(setupRequest)
+		if err != nil {
+			c.returnError(w, fmt.Errorf("could not marshal SetupRequest: %s", err), http.StatusBadRequest)
+			return
+		}
+		c.write(w, out)
+	case http.MethodPost:
+		var setupRequest VPNSetupRequest
+		decoder := json.NewDecoder(r.Body)
+		decoder.Decode(&setupRequest)
 		if strings.Join(vpnConfig.ClientRoutes, ", ") != setupRequest.Routes {
 			networks := strings.Split(setupRequest.Routes, ",")
 			validatedNetworks := []string{}
