@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/netip"
+	"reflect"
 	"strings"
 
 	"github.com/google/uuid"
@@ -179,7 +181,12 @@ func (c *Context) vpnSetupHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		c.write(w, out)
 	case http.MethodPost:
-		var setupRequest VPNSetupRequest
+		var (
+			writeVPNConfig       bool
+			rewriteClientConfigs bool
+			rewriteServerConfig  bool
+			setupRequest         VPNSetupRequest
+		)
 		decoder := json.NewDecoder(r.Body)
 		decoder.Decode(&setupRequest)
 		if strings.Join(vpnConfig.ClientRoutes, ", ") != setupRequest.Routes {
@@ -196,11 +203,66 @@ func (c *Context) vpnSetupHandler(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 			vpnConfig.ClientRoutes = validatedNetworks
+			writeVPNConfig = true
+			rewriteClientConfigs = true
+		}
+		if vpnConfig.Endpoint != setupRequest.VPNEndpoint {
+			vpnConfig.Endpoint = setupRequest.VPNEndpoint
+			writeVPNConfig = true
+			rewriteClientConfigs = true
+		}
+		addressRangeParsed, err := netip.ParsePrefix(setupRequest.AddressRange)
+		if err != nil {
+			c.returnError(w, fmt.Errorf("AddressRange in wrong format: %s", err), http.StatusBadRequest)
+			return
+		}
+		if addressRangeParsed.String() != vpnConfig.AddressRange.String() {
+			vpnConfig.AddressRange = addressRangeParsed
+			writeVPNConfig = true
+			rewriteClientConfigs = true
+			rewriteServerConfig = true
+		}
+		if setupRequest.ClientAddressPrefix != vpnConfig.ClientAddressPrefix {
+			vpnConfig.ClientAddressPrefix = setupRequest.ClientAddressPrefix
+			writeVPNConfig = true
+			rewriteClientConfigs = true
+		}
+		if setupRequest.Port != vpnConfig.Port {
+			vpnConfig.Port = setupRequest.Port
+			writeVPNConfig = true
+			rewriteClientConfigs = true
+			rewriteServerConfig = true
+		}
+
+		nameservers := strings.Split(setupRequest.Nameservers, ",")
+		for k := range nameservers {
+			nameservers[k] = strings.TrimSpace(nameservers[k])
+		}
+		if !reflect.DeepEqual(nameservers, vpnConfig.Nameservers) {
+			vpnConfig.ExternalInterface = setupRequest.ExternalInterface
+			writeVPNConfig = true
+			rewriteClientConfigs = true
+		}
+		if setupRequest.ExternalInterface != vpnConfig.ExternalInterface { // don't rewrite client config
+			vpnConfig.ExternalInterface = setupRequest.ExternalInterface
+			writeVPNConfig = true
+			rewriteServerConfig = true
+		}
+		if setupRequest.DisableNAT != vpnConfig.DisableNAT { // don't rewrite client config
+			vpnConfig.DisableNAT = setupRequest.DisableNAT
+			writeVPNConfig = true
+			rewriteServerConfig = true
+		}
+
+		// write vpn config if config has changed
+		if writeVPNConfig {
 			err = wireguard.WriteVPNConfig(c.Storage.Client, vpnConfig)
 			if err != nil {
 				c.returnError(w, fmt.Errorf("could write vpn config: %s", err), http.StatusBadRequest)
 				return
 			}
+		}
+		if rewriteClientConfigs {
 			// rewrite client configs
 			err = wireguard.UpdateClientsConfig(c.Storage.Client)
 			if err != nil {
@@ -208,25 +270,13 @@ func (c *Context) vpnSetupHandler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		}
-		if vpnConfig.Endpoint != setupRequest.VPNEndpoint {
-			vpnConfig.Endpoint = setupRequest.VPNEndpoint
-			err = wireguard.WriteVPNConfig(c.Storage.Client, vpnConfig)
-			if err != nil {
-				c.SetupCompleted = false
-				c.returnError(w, fmt.Errorf("unable to write vpn-config: %s", err), http.StatusBadRequest)
-				return
-			}
-			// rewrite client configs
-			err = wireguard.UpdateClientsConfig(c.Storage.Client)
+		if rewriteServerConfig {
+			// rewrite server config
+			err = wireguard.WriteWireGuardServerConfig(c.Storage.Client)
 			if err != nil {
 				c.returnError(w, fmt.Errorf("could not update client vpn configs: %s", err), http.StatusBadRequest)
 				return
 			}
-		}
-		err := SaveConfig(c)
-		if err != nil {
-			c.returnError(w, fmt.Errorf("could not save config to disk: %s", err), http.StatusBadRequest)
-			return
 		}
 		out, err := json.Marshal(setupRequest)
 		if err != nil {

@@ -82,6 +82,7 @@ export function VPNSetup() {
 
     return (
         <Container my={40} size="40rem">
+            <Alert variant="light" color="blue" title="Note!" icon={alertIcon}>Changes to Address Range, Port, External Interface, or NAT will need a wireguard reload. You can click the "Reload Wireguard" button at the bottom after submitting the changes. This will disconnect active VPN clients.</Alert>
             {saved ? <Alert variant="light" color="green" title="Update!" icon={alertIcon}>Settings Saved!</Alert> : null}
             {saveError !== "" ? saveError : null}
 
@@ -89,7 +90,8 @@ export function VPNSetup() {
                 <InputWrapper
                 id="input-vpn-endpoint"
                 label="VPN Endpoint to use"
-                description="Clients will connect to this hostname. Usually the same as the VPN Server Hostname above."
+                description="VPN clients will have this hostname configured in their configuration file. Usually the same as the VPN Server Hostname in the general tab."
+                style={{marginTop: 10}}
                 >
                 <TextInput
                 style={{ marginTop: 5 }}
