@@ -1,5 +1,5 @@
 #!/bin/bash
-ARCHITECTURE="amd64"
+ARCHITECTURE=$(uname -m)
 if [ -e "/usr/bin/cloud-init" ] ; then
     cloud-init status --wait
 fi
