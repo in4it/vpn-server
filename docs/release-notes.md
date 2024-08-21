@@ -1,5 +1,10 @@
 # Release Notes
 
+## Version v1.1.0
+* UI: change VPN configuration within the admin UI
+* UI: ability to reload WireGuard® configuration 
+* UI: modify client/server WireGuard® configuration files using templates
+
 ## Version v1.0.41
 * UI: axios version bump
 * UI: disable https forwarding when request is served over http
@@ -47,4 +52,4 @@ Once upgraded to this release, new upgrades can be done through the UI.
 
 * Local Users Support
 * OIDC Support
-* Wireguard® for VPN Connections
+* WireGuard® for VPN Connections

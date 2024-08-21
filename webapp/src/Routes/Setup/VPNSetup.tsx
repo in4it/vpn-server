@@ -94,7 +94,7 @@ export function VPNSetup() {
 
     return (
         <Container my={40} size="40rem">
-            <Alert variant="light" color="blue" title="Note!" icon={alertIcon}>Changes to Address Range, Port, External Interface, or NAT will need a wireguard reload. You can click the "Reload Wireguard" button in the Restart tab after submitting the changes. This will disconnect active VPN clients, and if the Address Range or Port is changed, all clients will need to download a new VPN Config.</Alert>
+            <Alert variant="light" color="blue" title="Note!" icon={alertIcon}>Changes to Address Range, Port, External Interface, or NAT will need a wireguard reload. You can click the "Reload WireGuard" button in the Restart tab after submitting the changes. This will disconnect active VPN clients, and if the Address Range or Port is changed, all clients will need to download a new VPN Config.</Alert>
             {saved && saveError === "" ? <Alert variant="light" color="green" title="Update!" icon={alertIcon} style={{marginTop: 10}}>Settings Saved!</Alert> : null}
             {saveError !== "" ? <Alert variant="light" color="red" title="Error!" icon={alertIcon} style={{marginTop: 10}}>{saveError}</Alert> : null}
 
@@ -213,7 +213,7 @@ export function VPNSetup() {
                         Disable NAT
                     </Text>
                     <Text fz="sm" c="dimmed">
-                        Packets will be routed to anywhere on the network, using Network Address Translation (NAT). If the VPN clients only need to access the VPN server and not other devices in the network, you can disable NAT.
+                        Packets will be routed to anywhere on the network, using Network Address Translation (NAT). If the VPN clients only need to access the VPN server and no other devices in the network, you can disable NAT.
                     </Text>
                     </div>
                 </UnstyledButton>
