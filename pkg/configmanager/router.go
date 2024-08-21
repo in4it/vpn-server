@@ -8,6 +8,7 @@ func (c *ConfigManager) getRouter() *http.ServeMux {
 	mux.Handle("/pubkey", http.HandlerFunc(c.getPubKey))
 	mux.Handle("/refresh-clients", http.HandlerFunc(c.refreshClients))
 	mux.Handle("/upgrade", http.HandlerFunc(c.upgrade))
+	mux.Handle("/restart-vpn", http.HandlerFunc(c.restartVpn))
 	mux.Handle("/version", http.HandlerFunc(c.version))
 
 	return mux

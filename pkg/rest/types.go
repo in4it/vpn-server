@@ -93,14 +93,28 @@ type UserInfoResponse struct {
 	UserType string `json:"userType"`
 }
 
-type SetupRequest struct {
+type GeneralSetupRequest struct {
 	Hostname               string `json:"hostname"`
 	EnableTLS              bool   `json:"enableTLS"`
 	RedirectToHttps        bool   `json:"redirectToHttps"`
 	DisableLocalAuth       bool   `json:"disableLocalAuth"`
 	EnableOIDCTokenRenewal bool   `json:"enableOIDCTokenRenewal"`
-	Routes                 string `json:"routes"`
-	VPNEndpoint            string `json:"vpnEndpoint"`
+}
+
+type VPNSetupRequest struct {
+	Routes              string `json:"routes"`
+	VPNEndpoint         string `json:"vpnEndpoint"`
+	AddressRange        string `json:"addressRange"`
+	ClientAddressPrefix string `json:"clientAddressPrefix"`
+	Port                string `json:"port"`
+	ExternalInterface   string `json:"externalInterface"`
+	Nameservers         string `json:"nameservers"`
+	DisableNAT          bool   `json:"disableNAT"`
+}
+
+type TemplateSetupRequest struct {
+	ClientTemplate string `json:"clientTemplate"`
+	ServerTemplate string `json:"serverTemplate"`
 }
 
 type NewConnectionResponse struct {

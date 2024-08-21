@@ -4,13 +4,19 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"net/netip"
 	"path"
+	"strings"
 
 	"github.com/in4it/wireguard-server/pkg/storage"
 )
 
-func getNextFreeIP(storage storage.Iface, startIP net.IP) (net.IP, error) {
+func getNextFreeIP(storage storage.Iface, addressRange netip.Prefix, addressPrefix string) (net.IP, error) {
 	ipList := []string{}
+	startIP, addressRangeParsed, err := net.ParseCIDR(addressRange.String())
+	if err != nil {
+		return nil, fmt.Errorf("cannot parse address range: %s: %s", addressRange, err)
+	}
 
 	clients, err := storage.ReadDir(storage.ConfigPath(VPN_CLIENTS_DIR))
 	if err != nil {
@@ -26,34 +32,48 @@ func getNextFreeIP(storage storage.Iface, startIP net.IP) (net.IP, error) {
 		if err != nil {
 			return nil, fmt.Errorf("cannot unmarshal %s: %s", clientFilename, err)
 		}
-		peerConfigAddress, _, err := net.ParseCIDR(peerConfig.Address)
-		if err != nil {
-			return nil, fmt.Errorf("could not parse peer config address %s: %s", peerConfig.Address, err)
-		}
-		ipList = append(ipList, peerConfigAddress.String())
+		ipList = append(ipList, peerConfig.Address)
 	}
 
-	newIP, err := getNextFreeIPFromList(startIP, ipList)
+	newIP, err := getNextFreeIPFromList(startIP, addressRangeParsed, ipList, addressPrefix)
 	if err != nil {
 		return nil, fmt.Errorf("getNextFreeIPFromList error: %s", err)
 	}
 
 	return newIP, nil
 }
-func getNextFreeIPFromList(startIP net.IP, ipList []string) (net.IP, error) {
+func getNextFreeIPFromList(startIP net.IP, addressRange *net.IPNet, ipList []string, addressPrefix string) (net.IP, error) {
 	nextIPAddress := startIP
 	for i := 0; i < 100000; i++ {
 		nextIPAddress = nextIP(nextIPAddress, 1)
 		ipExists := false
 		for _, ip := range ipList {
-			if nextIPAddress.String() == ip {
+			ipRange := ip
+			if !strings.Contains(ip, "/") {
+				ipRange += addressPrefix
+			}
+			_, ipRangeParsed, err := net.ParseCIDR(ipRange)
+			if err != nil {
+				return nil, fmt.Errorf("cannot parse IP address: %s (ip range %s)", ip, ipRange)
+			}
+			if ipRangeParsed.Contains(nextIPAddress) {
 				ipExists = true
 			}
 		}
 		if !ipExists {
-			return nextIPAddress, nil
+			if !addressRange.Contains(nextIPAddress) {
+				return nil, fmt.Errorf("next IP (%s) is not within address range (%s). Address Range might be too small", nextIPAddress.String(), addressRange.String())
+			}
+			_, ipRangeParsed, err := net.ParseCIDR(nextIPAddress.String() + addressPrefix)
+			if err != nil {
+				return nil, fmt.Errorf("cannot parse new IP address range: %s: %s", nextIPAddress.String()+addressPrefix, err)
+			}
+			if !ipRangeParsed.Contains(startIP) { // don't pick a range where the start ip is in the range
+				return nextIPAddress, nil
+			}
 		}
 	}
+
 	return nil, fmt.Errorf("couldn't determine next ip address")
 }
 

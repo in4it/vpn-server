@@ -42,6 +42,9 @@ func newVersionAvailable() (bool, string, error) {
 			if i1 > i2 {
 				return true, latestVersion, nil
 			}
+			if i1 < i2 {
+				return false, latestVersion, nil
+			}
 		}
 	}
 	return false, latestVersion, nil

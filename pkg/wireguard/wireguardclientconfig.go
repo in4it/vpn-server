@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/netip"
 	"path"
 	"slices"
 	"strconv"
@@ -49,12 +50,7 @@ func NewEmptyClientConfig(storage storage.Iface, userID string) (PeerConfig, err
 	}
 
 	// get next IP address, write in client file
-	addressRangeSplit := strings.Split(vpnConfig.AddressRange.String(), "/")
-	firstIP := net.ParseIP(addressRangeSplit[0])
-	if firstIP == nil {
-		return PeerConfig{}, fmt.Errorf("couldn't determine address range from vpn setup")
-	}
-	nextFreeIP, err := getNextFreeIP(storage, firstIP)
+	nextFreeIP, err := getNextFreeIP(storage, vpnConfig.AddressRange, vpnConfig.ClientAddressPrefix)
 	if err != nil {
 		return PeerConfig{}, fmt.Errorf("getNextFreeIP error: %s", err)
 	}
@@ -79,7 +75,7 @@ func NewEmptyClientConfig(storage storage.Iface, userID string) (PeerConfig, err
 		DNS:              strings.Join(vpnConfig.Nameservers, ", "),
 		Name:             fmt.Sprintf("connection-%d", newConfigNumber),
 		Address:          nextFreeIP.String() + vpnConfig.ClientAddressPrefix,
-		ServerAllowedIPs: []string{nextFreeIP.String() + "/32"},
+		ServerAllowedIPs: []string{nextFreeIP.String() + vpnConfig.ClientAddressPrefix},
 		ClientAllowedIPs: clientAllowedIPs,
 	}
 
@@ -130,6 +126,25 @@ func UpdateClientsConfig(storage storage.Iface) error {
 			peerConfig.DNS = strings.Join(vpnConfig.Nameservers, ", ")
 		}
 
+		addressParsed, err := netip.ParsePrefix(peerConfig.Address)
+		if err != nil {
+			return fmt.Errorf("couldn't parse existing address of vpn config %s", clientFilename)
+		}
+		if !vpnConfig.AddressRange.Contains(addressParsed.Addr()) { // client IP address is not in address range (address range might have changed)
+			nextFreeIP, err := getNextFreeIP(storage, vpnConfig.AddressRange, vpnConfig.ClientAddressPrefix)
+			if err != nil {
+				return fmt.Errorf("getNextFreeIP error: %s", err)
+			}
+			peerConfig.Address = nextFreeIP.String() + vpnConfig.ClientAddressPrefix
+			peerConfig.ServerAllowedIPs = []string{nextFreeIP.String() + "/32"}
+			rewriteFile = true
+		}
+
+		if !strings.HasSuffix(peerConfig.Address, vpnConfig.ClientAddressPrefix) {
+			rewriteFile = true
+			peerConfig.Address = addressParsed.Addr().String() + vpnConfig.ClientAddressPrefix
+		}
+
 		if rewriteFile {
 			peerConfigOut, err := json.Marshal(peerConfig)
 			if err != nil {
@@ -159,9 +174,7 @@ func getPeerConfig(storage storage.Iface, connectionID string) (PeerConfig, erro
 	return peerConfig, nil
 }
 
-func GenerateNewClientConfig(storage storage.Iface, connectionID, userID string) ([]byte, error) {
-	clientConfigMutex.Lock()
-	defer clientConfigMutex.Unlock()
+func GetClientTemplate(storage storage.Iface) ([]byte, error) {
 	filename := storage.ConfigPath("templates/client.tmpl")
 	err := storage.EnsurePath(storage.ConfigPath("templates"))
 	if err != nil {
@@ -173,6 +186,25 @@ func GenerateNewClientConfig(storage storage.Iface, connectionID, userID string)
 			return nil, fmt.Errorf("could not create initial client template: %s", err)
 		}
 	}
+	data, err := storage.ReadFile(filename)
+	if err != nil {
+		return nil, fmt.Errorf("could not read client template: %s", err)
+	}
+	return data, err
+}
+
+func WriteClientTemplate(storage storage.Iface, body []byte) error {
+	filename := storage.ConfigPath("templates/client.tmpl")
+	err := storage.WriteFile(filename, body)
+	if err != nil {
+		return fmt.Errorf("could not write client template: %s", err)
+	}
+	return nil
+}
+
+func GenerateNewClientConfig(storage storage.Iface, connectionID, userID string) ([]byte, error) {
+	clientConfigMutex.Lock()
+	defer clientConfigMutex.Unlock()
 
 	// parse template
 	privateKey, publicKey, err := GenerateKeys()
@@ -208,12 +240,12 @@ func GenerateNewClientConfig(storage storage.Iface, connectionID, userID string)
 		AllowedIPs:      peerConfig.ClientAllowedIPs,
 	}
 
-	templatefileContents, err := storage.ReadFile(filename)
+	templatefileContents, err := GetClientTemplate(storage)
 	if err != nil {
-		return nil, fmt.Errorf("could not read client template: %s", err)
+		return nil, fmt.Errorf("could not get client template: %s", err)
 	}
 
-	tmpl, err := template.New(path.Base(filename)).Funcs(template.FuncMap{"StringsJoin": strings.Join}).Parse(string(templatefileContents))
+	tmpl, err := template.New("client.tmpl").Funcs(template.FuncMap{"StringsJoin": strings.Join}).Parse(string(templatefileContents))
 	if err != nil {
 		return nil, fmt.Errorf("could not parse client template: %s", err)
 	}
