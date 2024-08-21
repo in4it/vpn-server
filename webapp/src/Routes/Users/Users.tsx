@@ -14,7 +14,7 @@ export function Users() {
     const { isPending, error, data } = useQuery({
         queryKey: ['setup'],
         queryFn: () =>
-          fetch(AppSettings.url + '/setup', {
+          fetch(AppSettings.url + '/setup/general', {
             headers: {
               "Content-Type": "application/json",
               "Authorization": "Bearer " + authInfo.token

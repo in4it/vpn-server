@@ -12,6 +12,7 @@ type RestartError = {
 
 export function Restart() {
     const [saved, setSaved] = useState(false)
+    const [pending, setPending] = useState(false)
     const [saveError, setSaveError] = useState("")
     const {authInfo} = useAuthContext();
     const alertIcon = <IconInfoCircle />;
@@ -26,8 +27,10 @@ export function Restart() {
       onSuccess: () => {
           setSaved(true)
           setSaveError("")
+          setTimeout(function() { setPending(false); }, 1000);
       },
       onError: (error:AxiosError) => {
+        setTimeout(function() { setPending(false); }, 1000);
         const errorMessage = error.response?.data as RestartError
         if(errorMessage?.error === undefined) {
             setSaveError("Error: "+ error.message)
@@ -43,7 +46,7 @@ export function Restart() {
           <Space h="md" />
           {saved && saveError === "" ? <Alert variant="light" color="green" title="Restarted!" icon={alertIcon}>VPN Restarted!</Alert> : null}
           {saveError !== "" ? <Alert variant="light" color="red" title="Error!" icon={alertIcon} style={{marginTop: 10}}>{saveError}</Alert> : null}
-            <Button type="submit" mt="md" onClick={() =>  setupMutation.mutate()}>
+            <Button type="submit" mt="md" onClick={() => { setPending(true); setupMutation.mutate() } } disabled={pending}>
               Reload WireGuard® VPN
             </Button>
         </Container>

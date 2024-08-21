@@ -96,7 +96,7 @@ export function TemplateSetup() {
             />
             <Space h="md" />
             <Textarea
-                label="VPN Server config template"
+                label="VPN Server config template (WireGuard® Configuration Reload in restart tab required to apply)"
                 key={form.key('serverTemplate')}
                 {...form.getInputProps('serverTemplate')}
                 autosize

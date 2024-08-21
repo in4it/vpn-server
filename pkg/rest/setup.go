@@ -342,12 +342,6 @@ func (c *Context) templateSetupHandler(w http.ResponseWriter, r *http.Request) {
 				c.returnError(w, fmt.Errorf("WriteServerTemplate error: %s", err), http.StatusBadRequest)
 				return
 			}
-			// rewrite server config
-			err = wireguard.WriteWireGuardServerConfig(c.Storage.Client)
-			if err != nil {
-				c.returnError(w, fmt.Errorf("could not write wireguard server config: %s", err), http.StatusBadRequest)
-				return
-			}
 		}
 		out, err := json.Marshal(templateSetupRequest)
 		if err != nil {

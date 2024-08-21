@@ -131,6 +131,11 @@ func (c *ConfigManager) restartVpn(w http.ResponseWriter, r *http.Request) {
 			returnError(w, fmt.Errorf("vpn start error: %s", err), http.StatusBadRequest)
 			return
 		}
+		err = refreshAllClientsAndServer(c.Storage)
+		if err != nil {
+			returnError(w, fmt.Errorf("could not refresh all clients: %s", err), http.StatusBadRequest)
+			return
+		}
 		w.WriteHeader(http.StatusAccepted)
 	default:
 		returnError(w, fmt.Errorf("method not supported"), http.StatusBadRequest)
