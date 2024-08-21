@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/netip"
 	"path"
 	"slices"
 	"strconv"
@@ -49,12 +50,7 @@ func NewEmptyClientConfig(storage storage.Iface, userID string) (PeerConfig, err
 	}
 
 	// get next IP address, write in client file
-	addressRangeSplit := strings.Split(vpnConfig.AddressRange.String(), "/")
-	firstIP := net.ParseIP(addressRangeSplit[0])
-	if firstIP == nil {
-		return PeerConfig{}, fmt.Errorf("couldn't determine address range from vpn setup")
-	}
-	nextFreeIP, err := getNextFreeIP(storage, firstIP)
+	nextFreeIP, err := getNextFreeIP(storage, vpnConfig.AddressRange)
 	if err != nil {
 		return PeerConfig{}, fmt.Errorf("getNextFreeIP error: %s", err)
 	}
@@ -128,6 +124,20 @@ func UpdateClientsConfig(storage storage.Iface) error {
 		if peerConfig.DNS != strings.Join(vpnConfig.Nameservers, ", ") {
 			rewriteFile = true
 			peerConfig.DNS = strings.Join(vpnConfig.Nameservers, ", ")
+		}
+
+		addressParsed, err := netip.ParsePrefix(peerConfig.Address)
+		if err != nil {
+			return fmt.Errorf("couldn't parse existing address of vpn config %s", clientFilename)
+		}
+		if !vpnConfig.AddressRange.Contains(addressParsed.Addr()) { // client IP address is not in address range (address range might have changed)
+			nextFreeIP, err := getNextFreeIP(storage, vpnConfig.AddressRange)
+			if err != nil {
+				return fmt.Errorf("getNextFreeIP error: %s", err)
+			}
+			peerConfig.Address = nextFreeIP.String() + vpnConfig.ClientAddressPrefix
+			peerConfig.ServerAllowedIPs = []string{nextFreeIP.String() + "/32"}
+			rewriteFile = true
 		}
 
 		if rewriteFile {

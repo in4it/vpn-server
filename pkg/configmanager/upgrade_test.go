@@ -145,3 +145,66 @@ func TestNewVersionAvailableBogus2(t *testing.T) {
 		t.Fatalf("expected new version not to be available: %s", version)
 	}
 }
+func TestNewVersionAvailableHigherVersionMajor(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		if req.URL.RequestURI() == "/latest" {
+			currentVersionSplit := strings.Split(getVersion(), ".")
+			if len(currentVersionSplit) != 3 {
+				t.Fatalf("unsupported current version: %s", getVersion())
+			}
+			i, err := strconv.Atoi(currentVersionSplit[1])
+			if err != nil {
+				t.Fatalf("unsupported current version: %s", getVersion())
+			}
+			i++
+			newVersion := strings.Join([]string{currentVersionSplit[0], strconv.Itoa(i), "0"}, ".")
+			w.Write([]byte(newVersion))
+			return
+		}
+		w.WriteHeader(http.StatusNotFound)
+	}))
+
+	defer server.Close()
+
+	BINARIES_URL = server.URL
+
+	available, version, err := newVersionAvailable()
+	if err != nil {
+		t.Fatalf("error: %s", err)
+	}
+	if !available {
+		t.Fatalf("expected new version expected to be available: %s", version)
+	}
+}
+
+func TestNewVersionNotAvailableHigherVersionMajor(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		if req.URL.RequestURI() == "/latest" {
+			currentVersionSplit := strings.Split(getVersion(), ".")
+			if len(currentVersionSplit) != 3 {
+				t.Fatalf("unsupported current version: %s", getVersion())
+			}
+			i, err := strconv.Atoi(currentVersionSplit[1])
+			if err != nil {
+				t.Fatalf("unsupported current version: %s", getVersion())
+			}
+			i--
+			newVersion := strings.Join([]string{currentVersionSplit[0], strconv.Itoa(i), "99"}, ".")
+			w.Write([]byte(newVersion))
+			return
+		}
+		w.WriteHeader(http.StatusNotFound)
+	}))
+
+	defer server.Close()
+
+	BINARIES_URL = server.URL
+
+	available, version, err := newVersionAvailable()
+	if err != nil {
+		t.Fatalf("error: %s", err)
+	}
+	if available {
+		t.Fatalf("expected new version expected not to be available: %s (current version: %s)", version, getVersion())
+	}
+}

@@ -59,8 +59,10 @@ export function GeneralSetup() {
       },
       onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: ['users'] })
+          queryClient.invalidateQueries({ queryKey: ['general-setup'] })
           setSaved(true)
           setSaveError("")
+          window.scrollTo(0, 0)
       },
       onError: (error:AxiosError) => {
         const errorMessage = error.response?.data as GeneralSetupError

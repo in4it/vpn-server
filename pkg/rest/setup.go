@@ -187,7 +187,6 @@ func (c *Context) vpnSetupHandler(w http.ResponseWriter, r *http.Request) {
 		var (
 			writeVPNConfig       bool
 			rewriteClientConfigs bool
-			rewriteServerConfig  bool
 			setupRequest         VPNSetupRequest
 		)
 		decoder := json.NewDecoder(r.Body)
@@ -225,7 +224,6 @@ func (c *Context) vpnSetupHandler(w http.ResponseWriter, r *http.Request) {
 			vpnConfig.AddressRange = addressRangeParsed
 			writeVPNConfig = true
 			rewriteClientConfigs = true
-			rewriteServerConfig = true
 		}
 		if setupRequest.ClientAddressPrefix != vpnConfig.ClientAddressPrefix {
 			vpnConfig.ClientAddressPrefix = setupRequest.ClientAddressPrefix
@@ -241,7 +239,6 @@ func (c *Context) vpnSetupHandler(w http.ResponseWriter, r *http.Request) {
 			vpnConfig.Port = port
 			writeVPNConfig = true
 			rewriteClientConfigs = true
-			rewriteServerConfig = true
 		}
 
 		nameservers := strings.Split(setupRequest.Nameservers, ",")
@@ -256,12 +253,10 @@ func (c *Context) vpnSetupHandler(w http.ResponseWriter, r *http.Request) {
 		if setupRequest.ExternalInterface != vpnConfig.ExternalInterface { // don't rewrite client config
 			vpnConfig.ExternalInterface = setupRequest.ExternalInterface
 			writeVPNConfig = true
-			rewriteServerConfig = true
 		}
 		if setupRequest.DisableNAT != vpnConfig.DisableNAT { // don't rewrite client config
 			vpnConfig.DisableNAT = setupRequest.DisableNAT
 			writeVPNConfig = true
-			rewriteServerConfig = true
 		}
 
 		// write vpn config if config has changed
@@ -277,14 +272,6 @@ func (c *Context) vpnSetupHandler(w http.ResponseWriter, r *http.Request) {
 			err = wireguard.UpdateClientsConfig(c.Storage.Client)
 			if err != nil {
 				c.returnError(w, fmt.Errorf("could not update client vpn configs: %s", err), http.StatusBadRequest)
-				return
-			}
-		}
-		if rewriteServerConfig {
-			// rewrite server config
-			err = wireguard.WriteWireGuardServerConfig(c.Storage.Client)
-			if err != nil {
-				c.returnError(w, fmt.Errorf("could not write wireguard server config: %s", err), http.StatusBadRequest)
 				return
 			}
 		}

@@ -4,13 +4,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"net/netip"
 	"path"
 
 	"github.com/in4it/wireguard-server/pkg/storage"
 )
 
-func getNextFreeIP(storage storage.Iface, startIP net.IP) (net.IP, error) {
+func getNextFreeIP(storage storage.Iface, addressRange netip.Prefix) (net.IP, error) {
 	ipList := []string{}
+	startIP := net.IP(addressRange.Addr().AsSlice())
 
 	clients, err := storage.ReadDir(storage.ConfigPath(VPN_CLIENTS_DIR))
 	if err != nil {
@@ -36,6 +38,15 @@ func getNextFreeIP(storage storage.Iface, startIP net.IP) (net.IP, error) {
 	newIP, err := getNextFreeIPFromList(startIP, ipList)
 	if err != nil {
 		return nil, fmt.Errorf("getNextFreeIPFromList error: %s", err)
+	}
+
+	newIPAddress, err := netip.ParseAddr(newIP.String())
+	if err != nil {
+		return nil, fmt.Errorf("couldn't parse newIP: %s", newIP.String())
+	}
+
+	if !addressRange.Contains(newIPAddress) {
+		return nil, fmt.Errorf("newly allocated IP (%s) is not within address range (%s). Address Range might be too small", newIPAddress.String(), addressRange.String())
 	}
 
 	return newIP, nil

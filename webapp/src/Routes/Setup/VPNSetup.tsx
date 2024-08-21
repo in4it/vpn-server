@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import classes from './Setup.module.css';
 import { IconInfoCircle } from "@tabler/icons-react";
 import { AppSettings } from "../../Constants/Constants";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuthContext } from "../../Auth/Auth";
 import { useForm } from '@mantine/form';
 import axios, { AxiosError } from "axios";
@@ -28,6 +28,7 @@ export function VPNSetup() {
     const [saved, setSaved] = useState(false)
     const [saveError, setSaveError] = useState("")
     const {authInfo} = useAuthContext();
+    const queryClient = useQueryClient()
     const { isPending, error, data, isSuccess } = useQuery({
       queryKey: ['vpn-setup'],
       queryFn: () =>
@@ -66,6 +67,8 @@ export function VPNSetup() {
       onSuccess: () => {
           setSaved(true)
           setSaveError("")
+          queryClient.invalidateQueries({ queryKey: ['vpn-setup'] })
+          window.scrollTo(0, 0)
       },
       onError: (error:AxiosError) => {
         const errorMessage = error.response?.data as VPNSetupError
@@ -91,7 +94,7 @@ export function VPNSetup() {
 
     return (
         <Container my={40} size="40rem">
-            <Alert variant="light" color="blue" title="Note!" icon={alertIcon}>Changes to Address Range, Port, External Interface, or NAT will need a wireguard reload. You can click the "Reload Wireguard" button at the bottom after submitting the changes. This will disconnect active VPN clients.</Alert>
+            <Alert variant="light" color="blue" title="Note!" icon={alertIcon}>Changes to Address Range, Port, External Interface, or NAT will need a wireguard reload. You can click the "Reload Wireguard" button at the bottom after submitting the changes. This will disconnect active VPN clients, and if the Address Range or Port is changed, all clients will need to download a new VPN Config.</Alert>
             {saved && saveError === "" ? <Alert variant="light" color="green" title="Update!" icon={alertIcon} style={{marginTop: 10}}>Settings Saved!</Alert> : null}
             {saveError !== "" ? <Alert variant="light" color="red" title="Error!" icon={alertIcon} style={{marginTop: 10}}>{saveError}</Alert> : null}
 

@@ -2,7 +2,7 @@ import { Container, Button, Alert, Textarea, Space } from "@mantine/core";
 import { useEffect, useState } from "react";
 import { IconInfoCircle } from "@tabler/icons-react";
 import { AppSettings } from "../../Constants/Constants";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuthContext } from "../../Auth/Auth";
 import { useForm } from '@mantine/form';
 import axios, { AxiosError } from "axios";
@@ -19,6 +19,7 @@ export function TemplateSetup() {
     const [saved, setSaved] = useState(false)
     const [saveError, setSaveError] = useState("")
     const {authInfo} = useAuthContext();
+    const queryClient = useQueryClient()
     const { isPending, error, data, isSuccess } = useQuery({
       queryKey: ['templates-setup'],
       queryFn: () =>
@@ -52,6 +53,8 @@ export function TemplateSetup() {
       onSuccess: () => {
           setSaved(true)
           setSaveError("")
+          queryClient.invalidateQueries({ queryKey: ['templates-setup'] })
+          window.scrollTo(0, 0)
       },
       onError: (error:AxiosError) => {
         const errorMessage = error.response?.data as TemplateSetupError

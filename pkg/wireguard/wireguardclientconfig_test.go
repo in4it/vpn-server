@@ -581,3 +581,109 @@ func TestUpdateClientConfig(t *testing.T) {
 	}
 
 }
+
+func TestUpdateClientConfigNewAddressRange(t *testing.T) {
+	var (
+		l   net.Listener
+		err error
+	)
+	for {
+		l, err = net.Listen("tcp", CONFIGMANAGER_URI)
+		if err != nil {
+			if !strings.HasSuffix(err.Error(), "address already in use") {
+				t.Fatal(err)
+			}
+			time.Sleep(1 * time.Second)
+		} else {
+			break
+		}
+	}
+
+	ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodPost:
+			if r.RequestURI == "/refresh-clients" {
+				w.WriteHeader(http.StatusAccepted)
+				w.Write([]byte("OK"))
+				return
+			}
+			w.WriteHeader(http.StatusBadRequest)
+		default:
+			w.WriteHeader(http.StatusBadRequest)
+		}
+	}))
+
+	ts.Listener.Close()
+	ts.Listener = l
+	ts.Start()
+	defer ts.Close()
+	defer l.Close()
+
+	storage := &testingmocks.MockMemoryStorage{}
+
+	// first create a new vpn config
+	vpnconfig, err := CreateNewVPNConfig(storage)
+	if err != nil {
+		t.Fatalf("CreateNewVPNConfig error: %s", err)
+	}
+	prefix, err := netip.ParsePrefix(DEFAULT_VPN_PREFIX)
+	if err != nil {
+		t.Errorf("ParsePrefix error: %s", err)
+	}
+	if vpnconfig.AddressRange.String() != prefix.String() {
+		t.Fatalf("wrong AddressRange: %s vs %s", vpnconfig.AddressRange.String(), prefix.String())
+	}
+	// generate the peerconfig
+	peerConfig, err := NewEmptyClientConfig(storage, "2-2-2-2")
+	if err != nil {
+		t.Fatalf("NewEmptyClientConfig error: %s", err)
+	}
+
+	if peerConfig.ClientAllowedIPs[0] != "0.0.0.0/0" {
+		t.Fatalf("wrong client allowed ips")
+	}
+
+	newClientRoutes := []string{"1.2.3.4/32"}
+	vpnconfig.ClientRoutes = newClientRoutes
+	vpnconfig.AddressRange, err = netip.ParsePrefix("10.190.190.1/21")
+	if err != nil {
+		t.Fatalf("can't parse new ip range")
+	}
+	err = WriteVPNConfig(storage, vpnconfig)
+	if err != nil {
+		t.Fatalf("WriteVPNConfig error: %s", err)
+	}
+	err = UpdateClientsConfig(storage)
+	if err != nil {
+		t.Fatalf("UpdateClientsConfig error: %s", err)
+	}
+
+	peerConfigCurrent, err := getPeerConfig(storage, "2-2-2-2-1")
+	if err != nil {
+		t.Fatalf("getPeerConfig error: %s", err)
+	}
+
+	if peerConfigCurrent.ServerAllowedIPs[0] != "10.190.190.2/32" {
+		t.Fatalf("expected different server allowed IP. Got: %s", strings.Join(peerConfigCurrent.ServerAllowedIPs, ", "))
+	}
+	if peerConfigCurrent.Address != "10.190.190.2/32" {
+		t.Fatalf("expected different client config address. Got: %s", peerConfigCurrent.Address)
+	}
+
+	peerConfig, err = NewEmptyClientConfig(storage, "2-2-2-2")
+	if err != nil {
+		t.Fatalf("NewEmptyClientConfig error: %s", err)
+	}
+
+	if peerConfig.ClientAllowedIPs[0] != "1.2.3.4/32" {
+		t.Fatalf("wrong client allowed ips")
+	}
+
+	if peerConfig.ServerAllowedIPs[0] != "10.190.190.3/32" {
+		t.Fatalf("expected different server allowed IP. Got: %s", strings.Join(peerConfig.ServerAllowedIPs, ", "))
+	}
+	if peerConfig.Address != "10.190.190.3/32" {
+		t.Fatalf("expected different client config address. Got: %s", peerConfig.Address)
+	}
+
+}

@@ -1,6 +1,6 @@
 import { Container, Tabs, Title, rem } from "@mantine/core";
 import classes from './Setup.module.css';
-import { IconFile, IconNetwork, IconRestore, IconRewindBackward10, IconSettings } from "@tabler/icons-react";
+import { IconFile, IconNetwork, IconRestore, IconSettings } from "@tabler/icons-react";
 import { GeneralSetup } from "./GeneralSetup";
 import { VPNSetup } from "./VPNSetup";
 import { TemplateSetup } from "./TemplateSetup";
