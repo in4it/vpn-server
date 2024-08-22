@@ -13,3 +13,6 @@ You can create a first user on the user page. The `admin` user cannot create VPN
 * Create a new connection on the Connections page
 * Download the configuration
 * Import the configuration in a WireGuard® Client. See [https://www.wireguard.com/install/](https://www.wireguard.com/install/) for WireGuard® clients.
+
+# Access for existing users in Identity Providers
+To allow access for users created in Active Directory, Okta, Onelogin, or other Identity Providers, navigate to the [OIDC](oidc.md), [SAML](saml.md), or [Provisioning (SCIM)](scim.md) pages to setup an IdP connection.
