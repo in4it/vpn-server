@@ -5,6 +5,8 @@
 * UI: ability to reload WireGuard® configuration 
 * UI: modify client/server WireGuard® configuration files using templates
 
+Note: after upgrading, make sure to close any old browser tab to ensure the new UI version is loaded.
+
 ## Version v1.0.41
 * UI: axios version bump
 * UI: disable https forwarding when request is served over http

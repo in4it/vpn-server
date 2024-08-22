@@ -4,6 +4,7 @@ nav:
   - 'User Guide':
     - 'Installation': 'install.md'
     - 'Quick Start': 'quickstart.md'
+    - 'TLS (https)': 'tls.md'
     - Upgrade: 'upgrade.md'
     - FAQ: faq.md
   - 'Authentication & Provisioning':
