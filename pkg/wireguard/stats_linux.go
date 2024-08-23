@@ -25,6 +25,11 @@ func RunStats(storage storage.Iface) {
 		logging.ErrorLog(fmt.Errorf("could not create stats path: %s. Stats disabled", err))
 		return
 	}
+	err = storage.EnsureOwnership(storage.ConfigPath(VPN_STATS_DIR), "vpn")
+	if err != nil {
+		logging.ErrorLog(fmt.Errorf("could not ensure ownership of stats path: %s. Stats disabled", err))
+		return
+	}
 	for {
 		err := runStats(storage)
 		if err != nil {
@@ -49,6 +54,7 @@ func runStats(storage storage.Iface) error {
 			if stat.PublicKey == peerConfig.PublicKey {
 				user, connectionID := splitUserAndConnectionID(peerConfig.ID)
 				statsEntries = append(statsEntries, StatsEntry{
+					Timestamp:         stat.Timestamp,
 					User:              user,
 					ConnectionID:      connectionID,
 					TransmitBytes:     stat.TransmitBytes,
@@ -59,12 +65,18 @@ func runStats(storage storage.Iface) error {
 		}
 	}
 
-	statsCsv := statsToCsv(statsEntries)
+	if len(statsEntries) > 0 {
+		statsCsv := statsToCsv(statsEntries)
 
-	peerConfigPath := storage.ConfigPath(path.Join(VPN_STATS_DIR, "user-"+time.Now().Format("2006-01-02")))
-	err = storage.AppendFile(peerConfigPath, statsCsv)
-	if err != nil {
-		return fmt.Errorf("could not append stats to file (%s): %s", peerConfigPath, err)
+		statsPath := storage.ConfigPath(path.Join(VPN_STATS_DIR, "user-"+time.Now().Format("2006-01-02")) + ".log")
+		err = storage.AppendFile(statsPath, statsCsv)
+		if err != nil {
+			return fmt.Errorf("could not append stats to file (%s): %s", statsPath, err)
+		}
+		err = storage.EnsureOwnership(statsPath, "vpn")
+		if err != nil {
+			return fmt.Errorf("could not ensure ownership of stats file (%s): %s", statsPath, err)
+		}
 	}
 	return nil
 }

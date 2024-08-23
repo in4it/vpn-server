@@ -14,7 +14,11 @@ func startVPN(storage storage.Iface) error {
 	return nil
 }
 
-func stopVPN(storage storage.Iface) error {
+func stopVPN() error {
 	fmt.Printf("Warning: startVPN is not implemented in darwin\n")
 	return nil
+}
+
+func startStats(storage storage.Iface) {
+	fmt.Printf("Warning: startStats is not implemented in darwin\n")
 }

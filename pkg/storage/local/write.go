@@ -10,7 +10,7 @@ func (l *LocalStorage) WriteFile(name string, data []byte) error {
 }
 
 func (l *LocalStorage) AppendFile(name string, data []byte) error {
-	f, err := os.OpenFile("text.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
+	f, err := os.OpenFile(path.Join(l.path, name), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
 	if err != nil {
 		return err
 	}

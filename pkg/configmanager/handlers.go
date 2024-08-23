@@ -120,7 +120,7 @@ func (c *ConfigManager) version(w http.ResponseWriter, r *http.Request) {
 func (c *ConfigManager) restartVpn(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
-		err := stopVPN(c.Storage)
+		err := stopVPN()
 		if err != nil { // don't exit, as the VPN might be down already.
 			fmt.Println("========= Warning =========")
 			fmt.Printf("Warning: vpn stop error: %s\n", err)

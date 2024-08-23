@@ -174,3 +174,23 @@ type SAMLSetup struct {
 	MetadataURL    string `json:"metadataURL,omitempty"`
 	RegenerateCert bool   `json:"regenerateCert,omitempty"`
 }
+
+type UserStatsResponse struct {
+	ReceiveBytes  UserStatsData `json:"receivedBytes"`
+	TransmitBytes UserStatsData `json:"transmitBytes"`
+}
+type UserStatsData struct {
+	Datasets []UserStatsDataset `json:"datasets"`
+}
+type UserStatsDataset struct {
+	Label       string               `json:"label"`
+	Data        []UserStatsDataPoint `json:"data"`
+	Fill        bool                 `json:"fill"`
+	BorderColor string               `json:"borderColor"`
+	Tension     float64              `json:"tension"`
+}
+
+type UserStatsDataPoint struct {
+	X string `json:"x"`
+	Y int64  `json:"y"`
+}
