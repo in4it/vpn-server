@@ -1,8 +1,11 @@
 #!/bin/bash
-ARCHITECTURE=$(uname -m)
+ARCHITECTURE=$(uname -m | sed s/x86_64/amd64/)
 if [ -e "/usr/bin/cloud-init" ] ; then
     cloud-init status --wait
 fi
+
+set -ex
+
 apt-get -y update
 apt-get -y -o Dpkg::Options::='--force-confdef' -o Dpkg::Options::='--force-confold' full-upgrade
 apt-get install -y -o Dpkg::Options::='--force-confdef' -o Dpkg::Options::='--force-confold' wireguard
