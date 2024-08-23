@@ -72,6 +72,13 @@ func (m *MockMemoryStorage) WriteFile(name string, data []byte) error {
 	m.Data[name] = data
 	return nil
 }
+func (m *MockMemoryStorage) AppendFile(name string, data []byte) error {
+	if m.Data == nil {
+		m.Data = make(map[string][]byte)
+	}
+	m.Data[name] = append(m.Data[name], data...)
+	return nil
+}
 
 func (m *MockMemoryStorage) GetPath() string {
 	pwd, _ := os.Executable()

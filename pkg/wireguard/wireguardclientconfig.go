@@ -161,8 +161,12 @@ func UpdateClientsConfig(storage storage.Iface) error {
 }
 
 func getPeerConfig(storage storage.Iface, connectionID string) (PeerConfig, error) {
+	return getPeerConfigByFilename(storage, fmt.Sprintf("%s.json", connectionID))
+}
+
+func getPeerConfigByFilename(storage storage.Iface, filename string) (PeerConfig, error) {
 	var peerConfig PeerConfig
-	peerConfigFilename := storage.ConfigPath(path.Join(VPN_CLIENTS_DIR, fmt.Sprintf("%s.json", connectionID)))
+	peerConfigFilename := storage.ConfigPath(path.Join(VPN_CLIENTS_DIR, filename))
 	peerConfigBytes, err := storage.ReadFile(peerConfigFilename)
 	if err != nil {
 		return peerConfig, fmt.Errorf("cannot read connection config: %s", err)
@@ -172,6 +176,24 @@ func getPeerConfig(storage storage.Iface, connectionID string) (PeerConfig, erro
 		return peerConfig, fmt.Errorf("cannot unmarshal peer config: %s", err)
 	}
 	return peerConfig, nil
+}
+
+func GetAllPeerConfigs(storage storage.Iface) ([]PeerConfig, error) {
+	peerConfigPath := storage.ConfigPath(VPN_CLIENTS_DIR)
+
+	entries, err := storage.ReadDir(peerConfigPath)
+	if err != nil {
+		return []PeerConfig{}, fmt.Errorf("can not list clients from dir %s: %s", peerConfigPath, err)
+	}
+	peerConfigs := make([]PeerConfig, len(entries))
+	for k, entry := range entries {
+		peerConfig, err := getPeerConfigByFilename(storage, entry)
+		if err != nil {
+			return peerConfigs, fmt.Errorf("cnanot get peer config (%s): %s", entry, err)
+		}
+		peerConfigs[k] = peerConfig
+	}
+	return peerConfigs, nil
 }
 
 func GetClientTemplate(storage storage.Iface) ([]byte, error) {
