@@ -35,7 +35,7 @@ test:
 	go test ./...
 
 install-aws:
-	cd provisioning && AWS_PROFILE=in4it-vpn-server packer build -var-file=whitelist.pkr.hcl packer-amd64.pkr.hcl
+	cd provisioning && AWS_PROFILE=in4it-vpn-server AWS_REGION=us-east-1 packer build -var-file=whitelist.pkr.hcl packer-amd64.pkr.hcl
 
 install-gcp:
 	cd provisioning && packer build packer-gcp-amd64.pkr.hcl
