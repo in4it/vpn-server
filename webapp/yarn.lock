@@ -348,10 +348,10 @@
   resolved "https://registry.npmjs.org/@kurkle/color/-/color-0.3.2.tgz"
   integrity sha512-fuscdXJ9G1qb7W8VdHi+IwRqij3lBkosAm4ydQtEmbY58OzHXqQhvlxqEkoz0yssNVn38bcpRWgA9PP+OGoisw==
 
-"@mantine/core@^7.9.2":
-  version "7.10.1"
-  resolved "https://registry.npmjs.org/@mantine/core/-/core-7.10.1.tgz"
-  integrity sha512-l9ypojKN3PjwO1CSLIsqxi7mA25+7w+xc71Q+JuCCREI0tuGwkZsKbIOpuTATIJOjPh8ycLiW7QxX1LYsRTq6w==
+"@mantine/core@^7.9.2", "@mantine/core@7.12.1":
+  version "7.12.1"
+  resolved "https://registry.npmjs.org/@mantine/core/-/core-7.12.1.tgz"
+  integrity sha512-PXKIDaT1fpNB77dPQIcdFGM2NRnfmsJSVx3uuBccngBQWMIWI0wPyiO1Y26DK4LQrbrypeb+TS+Zxpgx6RoiCA==
   dependencies:
     "@floating-ui/react" "^0.26.9"
     clsx "^2.1.1"
@@ -359,6 +359,13 @@
     react-remove-scroll "^2.5.7"
     react-textarea-autosize "8.5.3"
     type-fest "^4.12.0"
+
+"@mantine/dates@^7.12.1":
+  version "7.12.1"
+  resolved "https://registry.npmjs.org/@mantine/dates/-/dates-7.12.1.tgz"
+  integrity sha512-+Dg5ZGoYPWYRWPY7HagLeW36ayVjKQIkTpdNvgGDwh5YpaFy5cHd6LK6USKUshTsRPuzM3oUKwXIBK8hsigMyA==
+  dependencies:
+    clsx "^2.1.1"
 
 "@mantine/form@^7.10.0":
   version "7.10.1"
@@ -368,10 +375,10 @@
     fast-deep-equal "^3.1.3"
     klona "^2.0.6"
 
-"@mantine/hooks@^7.9.2", "@mantine/hooks@7.10.1":
-  version "7.10.1"
-  resolved "https://registry.npmjs.org/@mantine/hooks/-/hooks-7.10.1.tgz"
-  integrity sha512-0EH9WBWUdtQLGU3Ak+csQ77EtUxI6pPNfwZdRJQWcaA3f8SFOLo9h9CGxiikFExerhvuCeUlaTf3s+TB9Op/rw==
+"@mantine/hooks@^7.9.2", "@mantine/hooks@7.12.1":
+  version "7.12.1"
+  resolved "https://registry.npmjs.org/@mantine/hooks/-/hooks-7.12.1.tgz"
+  integrity sha512-YPA3qiMHJkWID5+YzakBaLvjHtX3Fg3PdPY49iIb/CaWM9+lrJ+77TOVS7bsY7ZTBHXUfzft1/6Woqt3xSuweA==
 
 "@nodelib/fs.scandir@2.1.5":
   version "2.1.5"
@@ -898,6 +905,11 @@ date-fns@^3.6.0, date-fns@>=2.0.0:
   version "3.6.0"
   resolved "https://registry.npmjs.org/date-fns/-/date-fns-3.6.0.tgz"
   integrity sha512-fRHTG8g/Gif+kSh50gaGEdToemgfj74aRX3swtiouboip5JDLAyDE9F11nHMIcvOaXeOC6D7SpNhi7uFyB7Uww==
+
+dayjs@>=1.0.0:
+  version "1.11.13"
+  resolved "https://registry.npmjs.org/dayjs/-/dayjs-1.11.13.tgz"
+  integrity sha512-oaMBel6gjolK862uaPQOVTA7q3TZhuSvuMQAAglQDOWYO9A91IrAOUJEyKVlqJlHE0vq5p5UXxzdPfMH/x6xNg==
 
 debug@^4.1.0, debug@^4.3.1, debug@^4.3.2, debug@^4.3.4, debug@^4.3.5:
   version "4.3.5"
@@ -1479,9 +1491,9 @@ merge2@^1.3.0, merge2@^1.4.1:
   integrity sha512-8q7VEgMJW4J8tcfVPy8g09NcQwZdbwFEqhe/WZkoIzjn/3TGDwtOCYtXGxA3O8tPzpczCCDgv+P2P5y00ZJOOg==
 
 micromatch@^4.0.4:
-  version "4.0.7"
-  resolved "https://registry.npmjs.org/micromatch/-/micromatch-4.0.7.tgz"
-  integrity sha512-LPP/3KorzCwBxfeUuZmaR6bG2kdeHSbe0P2tY3FLRU4vYrjYz5hI4QZwV0njUx3jeuKe67YukQ1LSPZBKDqO/Q==
+  version "4.0.8"
+  resolved "https://registry.npmjs.org/micromatch/-/micromatch-4.0.8.tgz"
+  integrity sha512-PXwfBhYu0hBCPw8Dn0E+WDYb7af3dSLVWKi3HGv84IdF4TyFoC0ysxFd0Goxw7nSv4T/PzEJQxsYsEiFCKo2BA==
   dependencies:
     braces "^3.0.3"
     picomatch "^2.3.1"

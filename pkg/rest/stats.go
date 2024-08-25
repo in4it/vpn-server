@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"path"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -15,6 +16,13 @@ import (
 )
 
 func (c *Context) userStatsHandler(w http.ResponseWriter, r *http.Request) {
+	// get all users
+	users := c.UserStore.ListUsers()
+	userMap := make(map[string]string)
+	for _, user := range users {
+		userMap[user.ID] = user.Login
+	}
+	// calculate stats
 	var userStatsResponse UserStatsResponse
 	statsFile := c.Storage.Client.ConfigPath(path.Join(wireguard.VPN_STATS_DIR, "user-"+time.Now().Format("2006-01-02")) + ".log")
 	if !c.Storage.Client.FileExists(statsFile) { // file does not exist so just return empty response
@@ -85,17 +93,32 @@ func (c *Context) userStatsHandler(w http.ResponseWriter, r *http.Request) {
 		Datasets: []UserStatsDataset{},
 	}
 	for userID, data := range receiveBytesData {
+		login, ok := userMap[userID]
+		if !ok {
+			login = "unknown"
+		}
 		userStatsResponse.ReceiveBytes.Datasets = append(userStatsResponse.ReceiveBytes.Datasets, UserStatsDataset{
-			Label: userID,
-			Data:  data,
+			BorderColor: getColor(len(userStatsResponse.ReceiveBytes.Datasets)),
+			Label:       login,
+			Data:        data,
+			Tension:     0.1,
 		})
 	}
 	for userID, data := range transmitBytesData {
+		login, ok := userMap[userID]
+		if !ok {
+			login = "unknown"
+		}
 		userStatsResponse.TransmitBytes.Datasets = append(userStatsResponse.TransmitBytes.Datasets, UserStatsDataset{
-			Label: userID,
-			Data:  data,
+			BorderColor: getColor(len(userStatsResponse.TransmitBytes.Datasets)),
+			Label:       login,
+			Data:        data,
+			Tension:     0.1,
 		})
 	}
+
+	sort.Sort(userStatsResponse.ReceiveBytes.Datasets)
+	sort.Sort(userStatsResponse.TransmitBytes.Datasets)
 
 	out, err := json.Marshal(userStatsResponse)
 	if err != nil {
@@ -103,4 +126,15 @@ func (c *Context) userStatsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	c.write(w, out)
+}
+
+func getColor(i int) string {
+	colors := []string{
+		"#DEEFB7",
+		"#98DFAF",
+		"#5FB49C",
+		"#414288",
+		"#682D63",
+	}
+	return colors[i%len(colors)]
 }

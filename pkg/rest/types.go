@@ -180,8 +180,9 @@ type UserStatsResponse struct {
 	TransmitBytes UserStatsData `json:"transmitBytes"`
 }
 type UserStatsData struct {
-	Datasets []UserStatsDataset `json:"datasets"`
+	Datasets UserStatsDatasets `json:"datasets"`
 }
+type UserStatsDatasets []UserStatsDataset
 type UserStatsDataset struct {
 	Label       string               `json:"label"`
 	Data        []UserStatsDataPoint `json:"data"`
