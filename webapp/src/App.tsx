@@ -1,4 +1,5 @@
 import "@mantine/core/styles.css";
+import '@mantine/dates/styles.css';
 import { AppShell, MantineProvider } from "@mantine/core";
 import { theme } from "./theme";
 import { NavBar } from "./NavBar/NavBar";

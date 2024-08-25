@@ -184,14 +184,15 @@ type UserStatsData struct {
 }
 type UserStatsDatasets []UserStatsDataset
 type UserStatsDataset struct {
-	Label       string               `json:"label"`
-	Data        []UserStatsDataPoint `json:"data"`
-	Fill        bool                 `json:"fill"`
-	BorderColor string               `json:"borderColor"`
-	Tension     float64              `json:"tension"`
+	Label           string               `json:"label"`
+	Data            []UserStatsDataPoint `json:"data"`
+	Fill            bool                 `json:"fill"`
+	BorderColor     string               `json:"borderColor"`
+	BackgroundColor string               `json:"backgroundColor"`
+	Tension         float64              `json:"tension"`
 }
 
 type UserStatsDataPoint struct {
-	X string `json:"x"`
-	Y int64  `json:"y"`
+	X string  `json:"x"`
+	Y float64 `json:"y"`
 }

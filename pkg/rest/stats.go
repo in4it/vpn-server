@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"math"
 	"net/http"
 	"path"
 	"sort"
@@ -16,6 +17,24 @@ import (
 )
 
 func (c *Context) userStatsHandler(w http.ResponseWriter, r *http.Request) {
+	if r.PathValue("date") == "" {
+		c.returnError(w, fmt.Errorf("no date supplied"), http.StatusBadRequest)
+		return
+	}
+	date, err := time.Parse("2006-01-02", r.PathValue("date"))
+	if err != nil {
+		c.returnError(w, fmt.Errorf("invalid date: %s", err), http.StatusBadRequest)
+		return
+	}
+	unitAdjustment := int64(1)
+	switch r.FormValue("unit") {
+	case "KB":
+		unitAdjustment = 1024
+	case "MB":
+		unitAdjustment = 1024 * 1024
+	case "GB":
+		unitAdjustment = 1024 * 1024 * 1024
+	}
 	// get all users
 	users := c.UserStore.ListUsers()
 	userMap := make(map[string]string)
@@ -24,7 +43,7 @@ func (c *Context) userStatsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	// calculate stats
 	var userStatsResponse UserStatsResponse
-	statsFile := c.Storage.Client.ConfigPath(path.Join(wireguard.VPN_STATS_DIR, "user-"+time.Now().Format("2006-01-02")) + ".log")
+	statsFile := c.Storage.Client.ConfigPath(path.Join(wireguard.VPN_STATS_DIR, "user-"+date.Format("2006-01-02")+".log"))
 	if !c.Storage.Client.FileExists(statsFile) { // file does not exist so just return empty response
 		out, err := json.Marshal(userStatsResponse)
 		if err != nil {
@@ -69,14 +88,16 @@ func (c *Context) userStatsHandler(w http.ResponseWriter, r *http.Request) {
 			if _, ok := receiveBytesData[userID]; !ok {
 				receiveBytesData[userID] = []UserStatsDataPoint{}
 			}
-			receiveBytesData[userID] = append(receiveBytesData[userID], UserStatsDataPoint{X: inputSplit[0], Y: receiveBytes - receiveBytesLast[userID]})
+			value := math.Round(float64((receiveBytes-receiveBytesLast[userID])/unitAdjustment*100)) / 100
+			receiveBytesData[userID] = append(receiveBytesData[userID], UserStatsDataPoint{X: inputSplit[0], Y: value})
 		}
 		transmitBytes, err := strconv.ParseInt(inputSplit[4], 10, 64)
 		if err == nil {
 			if _, ok := transmitBytesData[userID]; !ok {
 				transmitBytesData[userID] = []UserStatsDataPoint{}
 			}
-			transmitBytesData[userID] = append(transmitBytesData[userID], UserStatsDataPoint{X: inputSplit[0], Y: transmitBytes - transmitBytesLast[userID]})
+			value := math.Round(float64((transmitBytes-transmitBytesLast[userID])/unitAdjustment*100)) / 100
+			transmitBytesData[userID] = append(transmitBytesData[userID], UserStatsDataPoint{X: inputSplit[0], Y: value})
 		}
 		receiveBytesLast[userID] = receiveBytes
 		transmitBytesLast[userID] = transmitBytes
@@ -98,10 +119,11 @@ func (c *Context) userStatsHandler(w http.ResponseWriter, r *http.Request) {
 			login = "unknown"
 		}
 		userStatsResponse.ReceiveBytes.Datasets = append(userStatsResponse.ReceiveBytes.Datasets, UserStatsDataset{
-			BorderColor: getColor(len(userStatsResponse.ReceiveBytes.Datasets)),
-			Label:       login,
-			Data:        data,
-			Tension:     0.1,
+			BorderColor:     getColor(len(userStatsResponse.ReceiveBytes.Datasets)),
+			BackgroundColor: getColor(len(userStatsResponse.ReceiveBytes.Datasets)),
+			Label:           login,
+			Data:            data,
+			Tension:         0.1,
 		})
 	}
 	for userID, data := range transmitBytesData {
@@ -110,10 +132,11 @@ func (c *Context) userStatsHandler(w http.ResponseWriter, r *http.Request) {
 			login = "unknown"
 		}
 		userStatsResponse.TransmitBytes.Datasets = append(userStatsResponse.TransmitBytes.Datasets, UserStatsDataset{
-			BorderColor: getColor(len(userStatsResponse.TransmitBytes.Datasets)),
-			Label:       login,
-			Data:        data,
-			Tension:     0.1,
+			BorderColor:     getColor(len(userStatsResponse.TransmitBytes.Datasets)),
+			BackgroundColor: getColor(len(userStatsResponse.TransmitBytes.Datasets)),
+			Label:           login,
+			Data:            data,
+			Tension:         0.1,
 		})
 	}
 
