@@ -35,6 +35,13 @@ func (c *Context) userStatsHandler(w http.ResponseWriter, r *http.Request) {
 	case "GB":
 		unitAdjustment = 1024 * 1024 * 1024
 	}
+	offset := 0
+	if r.FormValue("offset") != "" {
+		i, err := strconv.Atoi(r.FormValue("offset"))
+		if err == nil {
+			offset = i
+		}
+	}
 	// get all users
 	users := c.UserStore.ListUsers()
 	userMap := make(map[string]string)
@@ -43,22 +50,24 @@ func (c *Context) userStatsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	// calculate stats
 	var userStatsResponse UserStatsResponse
-	statsFile := c.Storage.Client.ConfigPath(path.Join(wireguard.VPN_STATS_DIR, "user-"+date.Format("2006-01-02")+".log"))
-	if !c.Storage.Client.FileExists(statsFile) { // file does not exist so just return empty response
-		out, err := json.Marshal(userStatsResponse)
-		if err != nil {
-			c.returnError(w, fmt.Errorf("user stats response marshal error: %s", err), http.StatusBadRequest)
-			return
+	statsFiles := []string{
+		c.Storage.Client.ConfigPath(path.Join(wireguard.VPN_STATS_DIR, "user-"+date.AddDate(0, 0, -1).Format("2006-01-02")+".log")),
+		c.Storage.Client.ConfigPath(path.Join(wireguard.VPN_STATS_DIR, "user-"+date.Format("2006-01-02")+".log")),
+		c.Storage.Client.ConfigPath(path.Join(wireguard.VPN_STATS_DIR, "user-"+date.AddDate(0, 0, 1).Format("2006-01-02")+".log")),
+	}
+	logData := bytes.NewBuffer([]byte{})
+	for _, statsFile := range statsFiles {
+		if c.Storage.Client.FileExists(statsFile) {
+			fileLogData, err := c.Storage.Client.ReadFile(statsFile)
+			if err != nil {
+				c.returnError(w, fmt.Errorf("readfile error: %s", err), http.StatusBadRequest)
+				return
+			}
+			logData.Write(fileLogData)
 		}
-		c.write(w, out)
-		return
 	}
-	logData, err := c.Storage.Client.ReadFile(statsFile)
-	if err != nil {
-		c.returnError(w, fmt.Errorf("readfile error: %s", err), http.StatusBadRequest)
-		return
-	}
-	scanner := bufio.NewScanner(bytes.NewReader(logData))
+
+	scanner := bufio.NewScanner(logData)
 
 	receiveBytesLast := make(map[string]int64)
 	transmitBytesLast := make(map[string]int64)
@@ -89,7 +98,13 @@ func (c *Context) userStatsHandler(w http.ResponseWriter, r *http.Request) {
 				receiveBytesData[userID] = []UserStatsDataPoint{}
 			}
 			value := math.Round(float64((receiveBytes-receiveBytesLast[userID])/unitAdjustment*100)) / 100
-			receiveBytesData[userID] = append(receiveBytesData[userID], UserStatsDataPoint{X: inputSplit[0], Y: value})
+			timestamp, err := time.Parse(wireguard.TIMESTAMP_FORMAT, inputSplit[0])
+			if err == nil {
+				timestamp = timestamp.Add(time.Duration(offset) * time.Minute)
+				if dateEqual(timestamp, date) {
+					receiveBytesData[userID] = append(receiveBytesData[userID], UserStatsDataPoint{X: timestamp.Format(wireguard.TIMESTAMP_FORMAT), Y: value})
+				}
+			}
 		}
 		transmitBytes, err := strconv.ParseInt(inputSplit[4], 10, 64)
 		if err == nil {
@@ -97,7 +112,13 @@ func (c *Context) userStatsHandler(w http.ResponseWriter, r *http.Request) {
 				transmitBytesData[userID] = []UserStatsDataPoint{}
 			}
 			value := math.Round(float64((transmitBytes-transmitBytesLast[userID])/unitAdjustment*100)) / 100
-			transmitBytesData[userID] = append(transmitBytesData[userID], UserStatsDataPoint{X: inputSplit[0], Y: value})
+			timestamp, err := time.Parse(wireguard.TIMESTAMP_FORMAT, inputSplit[0])
+			if err == nil {
+				timestamp = timestamp.Add(time.Duration(offset) * time.Minute)
+				if dateEqual(timestamp, date) {
+					transmitBytesData[userID] = append(transmitBytesData[userID], UserStatsDataPoint{X: timestamp.Format(wireguard.TIMESTAMP_FORMAT), Y: value})
+				}
+			}
 		}
 		receiveBytesLast[userID] = receiveBytes
 		transmitBytesLast[userID] = transmitBytes
@@ -160,4 +181,10 @@ func getColor(i int) string {
 		"#682D63",
 	}
 	return colors[i%len(colors)]
+}
+
+func dateEqual(date1, date2 time.Time) bool {
+	y1, m1, d1 := date1.Date()
+	y2, m2, d2 := date2.Date()
+	return y1 == y2 && m1 == m2 && d1 == d2
 }

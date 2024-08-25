@@ -44,3 +44,6 @@ PostDown = iptables -D FORWARD -i %i -j ACCEPT; iptables -D FORWARD -o %i -j ACC
 const ACTION_ADD = "add"
 const ACTION_DELETE = "delete"
 const ACTION_CLEANUP = "cleanup"
+
+// stats
+const TIMESTAMP_FORMAT = "2006-01-02T15:04:05"

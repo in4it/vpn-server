@@ -1,4 +1,4 @@
-import { Card, Center, Divider, Grid, Select, Text } from "@mantine/core";
+import { Card, Center, Grid, Select, Text } from "@mantine/core";
 import { DatePickerInput } from '@mantine/dates';
 import { useQuery } from "@tanstack/react-query";
 import { useAuthContext } from "../../Auth/Auth";
@@ -8,18 +8,17 @@ import { Chart } from 'react-chartjs-2';
 import 'chartjs-adapter-date-fns';
 import { Chart as ChartJS, LineController, LineElement, PointElement, LinearScale, Title, CategoryScale, TimeScale, ChartOptions, Legend } from 'chart.js';
 import { useState } from "react";
-  
 
 export function UserStats() {
     ChartJS.register(LineController, LineElement, PointElement, LinearScale, Title, CategoryScale, TimeScale, Legend);
-
+    const timezoneOffset = new Date().getTimezoneOffset() * -1
     const {authInfo} = useAuthContext()
     const [statsDate, setStatsDate] = useState<Date | null>(new Date());
     const [unit, setUnit] = useState<string>("MB")
     const { isPending, error, data } = useQuery({
         queryKey: ['userstats', statsDate, unit],
         queryFn: () =>
-            fetch(AppSettings.url + '/stats/user/' + format(statsDate === null ? new Date() : statsDate, "yyyy-MM-dd") + "?unit=" +unit, {
+            fetch(AppSettings.url + '/stats/user/' + format(statsDate === null ? new Date() : statsDate, "yyyy-MM-dd") + "?offset="+timezoneOffset+"&unit=" +unit, {
             headers: {
                 "Content-Type": "application/json",
                 "Authorization": "Bearer " + authInfo.token
@@ -43,12 +42,6 @@ export function UserStats() {
         scales: {
             x: {
                 type: 'time',
-                min: '00:00:00',
-                /*time: {
-                    displayFormats: {
-                        quarter: 'HHHH MM'
-                    }
-                }*/
             },
             y: {
                 min: 0
@@ -58,7 +51,13 @@ export function UserStats() {
 
     if (isPending) return ''
     if (error) return 'cannot retrieve licensed users'
-    
+
+    if(data.receivedBytes.datasets === null) {
+        data.receivedBytes.datasets = [{ data: [0], label: "no data"}]
+    }
+    if(data.transmitBytes.datasets === null) {
+        data.transmitBytes.datasets = [{ data: [0], label: "no data"}]
+    }
 
     return (
         <>

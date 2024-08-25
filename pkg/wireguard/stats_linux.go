@@ -17,7 +17,6 @@ import (
 )
 
 const RUN_STATS_INTERVAL = 5
-const TIMESTAMP_FORMAT = "2006-01-02T15:04:05"
 
 func RunStats(storage storage.Iface) {
 	err := storage.EnsurePath(storage.ConfigPath(VPN_STATS_DIR))
