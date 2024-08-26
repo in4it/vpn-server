@@ -62,7 +62,7 @@ func TestUserStatsHandler(t *testing.T) {
 	if userStatsResponse.TransmitBytes.Datasets[0].Data[1].Y != 813588 {
 		t.Fatalf("unexpected data: %f", userStatsResponse.TransmitBytes.Datasets[0].Data[1].Y)
 	}
-	if userStatsResponse.Handshakes.Datasets[0].Data[1].X != "2024-08-25T18:30:42" {
+	if userStatsResponse.Handshakes.Datasets[0].Data[0].X != "2024-08-25T18:30:42" {
 		t.Fatalf("unexpected data: %s", userStatsResponse.Handshakes.Datasets[0].Data[1].X)
 	}
 
