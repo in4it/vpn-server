@@ -51,9 +51,11 @@ func (c *Context) userStatsHandler(w http.ResponseWriter, r *http.Request) {
 	// calculate stats
 	var userStatsResponse UserStatsResponse
 	statsFiles := []string{
-		c.Storage.Client.ConfigPath(path.Join(wireguard.VPN_STATS_DIR, "user-"+date.AddDate(0, 0, -1).Format("2006-01-02")+".log")),
-		c.Storage.Client.ConfigPath(path.Join(wireguard.VPN_STATS_DIR, "user-"+date.Format("2006-01-02")+".log")),
-		c.Storage.Client.ConfigPath(path.Join(wireguard.VPN_STATS_DIR, "user-"+date.AddDate(0, 0, 1).Format("2006-01-02")+".log")),
+		path.Join(wireguard.VPN_STATS_DIR, "user-"+date.AddDate(0, 0, -1).Format("2006-01-02")+".log"),
+		path.Join(wireguard.VPN_STATS_DIR, "user-"+date.Format("2006-01-02")+".log"),
+	}
+	if !dateEqual(time.Now(), date) {
+		statsFiles = append(statsFiles, path.Join(wireguard.VPN_STATS_DIR, "user-"+date.AddDate(0, 0, 1).Format("2006-01-02")+".log"))
 	}
 	logData := bytes.NewBuffer([]byte{})
 	for _, statsFile := range statsFiles {
@@ -73,6 +75,8 @@ func (c *Context) userStatsHandler(w http.ResponseWriter, r *http.Request) {
 	transmitBytesLast := make(map[string]int64)
 	receiveBytesData := make(map[string][]UserStatsDataPoint)
 	transmitBytesData := make(map[string][]UserStatsDataPoint)
+	handshakeLast := make(map[string]time.Time)
+	handshakeData := make(map[string][]UserStatsDataPoint)
 	for scanner.Scan() { // all other entries
 		inputSplit := strings.Split(scanner.Text(), ",")
 		userID := inputSplit[1]
@@ -91,6 +95,9 @@ func (c *Context) userStatsHandler(w http.ResponseWriter, r *http.Request) {
 			} else {
 				transmitBytesLast[userID] = 0
 			}
+		}
+		if _, ok := handshakeLast[userID]; !ok {
+			handshakeLast[userID] = time.Time{}
 		}
 		receiveBytes, err := strconv.ParseInt(inputSplit[3], 10, 64)
 		if err == nil {
@@ -120,8 +127,19 @@ func (c *Context) userStatsHandler(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		}
+		handshake, err := time.Parse(wireguard.TIMESTAMP_FORMAT, inputSplit[5])
+		if err == nil {
+			if _, ok := handshakeData[userID]; !ok {
+				handshakeData[userID] = []UserStatsDataPoint{}
+			}
+			handshake = handshake.Add(time.Duration(offset) * time.Minute)
+			if dateEqual(handshake, date) && !handshake.Equal(handshakeLast[userID]) {
+				handshakeData[userID] = append(handshakeData[userID], UserStatsDataPoint{X: handshake.Format(wireguard.TIMESTAMP_FORMAT), Y: 1})
+			}
+		}
 		receiveBytesLast[userID] = receiveBytes
 		transmitBytesLast[userID] = transmitBytes
+		handshakeLast[userID] = handshake
 	}
 
 	if err := scanner.Err(); err != nil {
@@ -132,6 +150,9 @@ func (c *Context) userStatsHandler(w http.ResponseWriter, r *http.Request) {
 		Datasets: []UserStatsDataset{},
 	}
 	userStatsResponse.TransmitBytes = UserStatsData{
+		Datasets: []UserStatsDataset{},
+	}
+	userStatsResponse.Handshakes = UserStatsData{
 		Datasets: []UserStatsDataset{},
 	}
 	for userID, data := range receiveBytesData {
@@ -145,6 +166,7 @@ func (c *Context) userStatsHandler(w http.ResponseWriter, r *http.Request) {
 			Label:           login,
 			Data:            data,
 			Tension:         0.1,
+			ShowLine:        true,
 		})
 	}
 	for userID, data := range transmitBytesData {
@@ -158,11 +180,27 @@ func (c *Context) userStatsHandler(w http.ResponseWriter, r *http.Request) {
 			Label:           login,
 			Data:            data,
 			Tension:         0.1,
+			ShowLine:        true,
+		})
+	}
+	for userID, data := range handshakeData {
+		login, ok := userMap[userID]
+		if !ok {
+			login = "unknown"
+		}
+		userStatsResponse.Handshakes.Datasets = append(userStatsResponse.Handshakes.Datasets, UserStatsDataset{
+			BorderColor:     getColor(len(userStatsResponse.Handshakes.Datasets)),
+			BackgroundColor: getColor(len(userStatsResponse.Handshakes.Datasets)),
+			Label:           login,
+			Data:            data,
+			Tension:         0.1,
+			ShowLine:        false,
 		})
 	}
 
 	sort.Sort(userStatsResponse.ReceiveBytes.Datasets)
 	sort.Sort(userStatsResponse.TransmitBytes.Datasets)
+	sort.Sort(userStatsResponse.Handshakes.Datasets)
 
 	out, err := json.Marshal(userStatsResponse)
 	if err != nil {
@@ -179,6 +217,21 @@ func getColor(i int) string {
 		"#5FB49C",
 		"#414288",
 		"#682D63",
+		"#b45f5f",
+		"#b49f5f",
+		"#8ab45f",
+		"#5fb475",
+		"#5f8ab4",
+		"#755fb4",
+		"#b45fb4",
+		"#b45f75",
+		"#b45f5f",
+		"#0066cc",
+		"#cc0000",
+		"#33cc00",
+		"#00cc99",
+		"#cc00cc",
+		"#00cc99",
 	}
 	return colors[i%len(colors)]
 }

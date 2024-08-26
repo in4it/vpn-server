@@ -178,6 +178,7 @@ type SAMLSetup struct {
 type UserStatsResponse struct {
 	ReceiveBytes  UserStatsData `json:"receivedBytes"`
 	TransmitBytes UserStatsData `json:"transmitBytes"`
+	Handshakes    UserStatsData `json:"handshakes"`
 }
 type UserStatsData struct {
 	Datasets UserStatsDatasets `json:"datasets"`
@@ -190,6 +191,7 @@ type UserStatsDataset struct {
 	BorderColor     string               `json:"borderColor"`
 	BackgroundColor string               `json:"backgroundColor"`
 	Tension         float64              `json:"tension"`
+	ShowLine        bool                 `json:"showLine"`
 }
 
 type UserStatsDataPoint struct {

@@ -19,12 +19,12 @@ import (
 const RUN_STATS_INTERVAL = 5
 
 func RunStats(storage storage.Iface) {
-	err := storage.EnsurePath(storage.ConfigPath(VPN_STATS_DIR))
+	err := storage.EnsurePath(VPN_STATS_DIR)
 	if err != nil {
 		logging.ErrorLog(fmt.Errorf("could not create stats path: %s. Stats disabled", err))
 		return
 	}
-	err = storage.EnsureOwnership(storage.ConfigPath(VPN_STATS_DIR), "vpn")
+	err = storage.EnsureOwnership(VPN_STATS_DIR, "vpn")
 	if err != nil {
 		logging.ErrorLog(fmt.Errorf("could not ensure ownership of stats path: %s. Stats disabled", err))
 		return
@@ -67,7 +67,7 @@ func runStats(storage storage.Iface) error {
 	if len(statsEntries) > 0 {
 		statsCsv := statsToCsv(statsEntries)
 
-		statsPath := storage.ConfigPath(path.Join(VPN_STATS_DIR, "user-"+time.Now().Format("2006-01-02")) + ".log")
+		statsPath := path.Join(VPN_STATS_DIR, "user-"+time.Now().Format("2006-01-02")) + ".log"
 		err = storage.AppendFile(statsPath, statsCsv)
 		if err != nil {
 			return fmt.Errorf("could not append stats to file (%s): %s", statsPath, err)

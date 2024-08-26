@@ -6,11 +6,11 @@ import { AppSettings } from '../../Constants/Constants';
 import { format } from "date-fns";
 import { Chart } from 'react-chartjs-2';
 import 'chartjs-adapter-date-fns';
-import { Chart as ChartJS, LineController, LineElement, PointElement, LinearScale, Title, CategoryScale, TimeScale, ChartOptions, Legend } from 'chart.js';
+import { Chart as ChartJS, LineController, LineElement, PointElement, LinearScale, Title, CategoryScale, TimeScale, ChartOptions, Legend, Tooltip } from 'chart.js';
 import { useState } from "react";
 
 export function UserStats() {
-    ChartJS.register(LineController, LineElement, PointElement, LinearScale, Title, CategoryScale, TimeScale, Legend);
+    ChartJS.register(LineController, LineElement, PointElement, LinearScale, Title, CategoryScale, TimeScale, Legend, Tooltip);
     const timezoneOffset = new Date().getTimezoneOffset() * -1
     const {authInfo} = useAuthContext()
     const [statsDate, setStatsDate] = useState<Date | null>(new Date());
@@ -38,6 +38,12 @@ export function UserStats() {
             position: 'right' as const,
             display: true,
           },
+          tooltip: {
+            callbacks: {
+              //title: (xDatapoint) => {return "this is the data: " + xDatapoint.},
+              label: (yDatapoint) => {return " "+yDatapoint.formattedValue + " " + unit},
+            }
+          }      
         },
         scales: {
             x: {
@@ -46,7 +52,12 @@ export function UserStats() {
             y: {
                 min: 0
             }
-        }
+        },
+  
+         hover: {
+            mode: 'index',
+            intersect: false
+         }      
     }
 
     if (isPending) return ''
@@ -57,6 +68,9 @@ export function UserStats() {
     }
     if(data.transmitBytes.datasets === null) {
         data.transmitBytes.datasets = [{ data: [0], label: "no data"}]
+    }
+    if(data.handshakes.datasets === null) {
+        data.handshakes.datasets = [{ data: [0], label: "no data"}]
     }
 
     return (
@@ -96,6 +110,12 @@ export function UserStats() {
             <Text fw={500} size="lg">Data Sent by VPN</Text>
             </Center>
             <Chart type="line" data={data.transmitBytes} options={options} />
+        </Card>
+        <Card withBorder radius="md" bg="var(--mantine-color-body)" mt={20}>
+            <Center>
+            <Text fw={500} size="lg">User Handshakes</Text>
+            </Center>
+            <Chart type="line" data={data.handshakes} options={{...options, plugins: {...options.plugins, tooltip: { ...options.plugins?.tooltip, callbacks: {label: (yDatapoint) => {return " "+yDatapoint.formattedValue }} }} }} />
         </Card>
         </>
     )

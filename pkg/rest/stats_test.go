@@ -2,8 +2,10 @@ package rest
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http/httptest"
 	"path"
+	"strings"
 	"testing"
 	"time"
 
@@ -30,12 +32,13 @@ func TestUserStatsHandler(t *testing.T) {
 2024-08-23T20:09:03,3df97301-5f73-407a-a26b-91829f1e7f48,1,39928520,85171728,2024-08-23T20:08:54`
 
 	statsFile := c.Storage.Client.ConfigPath(path.Join(wireguard.VPN_STATS_DIR, "user-"+time.Now().Format("2006-01-02")) + ".log")
-	err = c.Storage.Client.WriteFile(statsFile, []byte(testData))
+	err = c.Storage.Client.WriteFile(statsFile, []byte(strings.ReplaceAll(testData, "2024-08-23", time.Now().Format("2006-01-02"))))
 	if err != nil {
 		t.Fatalf("Cannot write test file")
 	}
 
 	req := httptest.NewRequest("GET", "http://example.com/stats/user", nil)
+	req.SetPathValue("date", time.Now().Format("2006-01-02"))
 	w := httptest.NewRecorder()
 	c.userStatsHandler(w, req)
 
@@ -55,10 +58,10 @@ func TestUserStatsHandler(t *testing.T) {
 	}
 
 	if userStatsResponse.ReceiveBytes.Datasets[0].Data[1].Y != 662580 {
-		t.Fatalf("unexpected data: %d", userStatsResponse.ReceiveBytes.Datasets[0].Data[1].Y)
+		t.Fatalf("unexpected data: %f", userStatsResponse.ReceiveBytes.Datasets[0].Data[1].Y)
 	}
 	if userStatsResponse.TransmitBytes.Datasets[0].Data[1].Y != 813588 {
-		t.Fatalf("unexpected data: %d", userStatsResponse.TransmitBytes.Datasets[0].Data[1].Y)
+		t.Fatalf("unexpected data: %f", userStatsResponse.TransmitBytes.Datasets[0].Data[1].Y)
 	}
-
+	fmt.Printf("%+v\n", userStatsResponse.Handshakes)
 }
