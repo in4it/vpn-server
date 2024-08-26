@@ -7,6 +7,7 @@ import { AppSettings } from '../../Constants/Constants';
 import { useQuery } from '@tanstack/react-query';
 import { UpgradeAlert } from './UpgradeAlert';
 import { IconPaperBag } from '@tabler/icons-react';
+import { UserStats } from './UserStats';
 
 export function Home() {
   const {authInfo} = useAuthContext()
@@ -60,6 +61,7 @@ export function Home() {
       </Card.Section>
       }
     </Card>
+    <UserStats />
     </Container>
   );
 }

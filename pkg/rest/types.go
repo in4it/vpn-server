@@ -153,6 +153,7 @@ type UsersResponse struct {
 	Suspended                        bool      `json:"suspended"`
 	ConnectionsDisabledOnAuthFailure bool      `json:"connectionsDisabledOnAuthFailure"`
 	LastTokenRenewal                 time.Time `json:"lastTokenRenewal,omitempty"`
+	LastLogin                        string    `json:"lastLogin"`
 }
 
 type FactorRequest struct {
@@ -173,4 +174,28 @@ type SAMLSetup struct {
 	Enabled        bool   `json:"enabled"`
 	MetadataURL    string `json:"metadataURL,omitempty"`
 	RegenerateCert bool   `json:"regenerateCert,omitempty"`
+}
+
+type UserStatsResponse struct {
+	ReceiveBytes  UserStatsData `json:"receivedBytes"`
+	TransmitBytes UserStatsData `json:"transmitBytes"`
+	Handshakes    UserStatsData `json:"handshakes"`
+}
+type UserStatsData struct {
+	Datasets UserStatsDatasets `json:"datasets"`
+}
+type UserStatsDatasets []UserStatsDataset
+type UserStatsDataset struct {
+	Label           string               `json:"label"`
+	Data            []UserStatsDataPoint `json:"data"`
+	Fill            bool                 `json:"fill"`
+	BorderColor     string               `json:"borderColor"`
+	BackgroundColor string               `json:"backgroundColor"`
+	Tension         float64              `json:"tension"`
+	ShowLine        bool                 `json:"showLine"`
+}
+
+type UserStatsDataPoint struct {
+	X string  `json:"x"`
+	Y float64 `json:"y"`
 }

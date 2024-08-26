@@ -165,11 +165,10 @@ export function ListUsers({localAuthDisabled}:Props) {
             <Table.Td>
               <Group gap="sm">
                 <Text fz="sm" fw={500}>
+                  {item.lastLogin === "" ? "Never logged in" : (new Date(item.lastLogin)).toLocaleString() }
                   {item.oidcID == "" ? "" : 
-                    item.lastTokenRenewal == "" || item.lastTokenRenewal == "0001-01-01T00:00:00Z" ? 
-                      "never" 
-                    :
-                      item.connectionsDisabledOnAuthFailure ? "failed": formatDate(item.lastTokenRenewal)
+                    item.lastTokenRenewal !== "" && item.lastTokenRenewal !== "0001-01-01T00:00:00Z" ? 
+                      item.connectionsDisabledOnAuthFailure ? " (last OIDC refresh: failed)": " (last OIDC refresh: "+formatDate(item.lastTokenRenewal) + ")" : ""
                   }
                 </Text>
               </Group>
@@ -240,7 +239,7 @@ export function ListUsers({localAuthDisabled}:Props) {
                     <Table.Th>Role</Table.Th>
                     <Table.Th>Type</Table.Th>
                     <Table.Th>Status</Table.Th>
-                    <Table.Th>Last OIDC token refresh</Table.Th>
+                    <Table.Th>Last Login</Table.Th>
                     <Table.Th />
                     </Table.Tr>
                 </Table.Thead>

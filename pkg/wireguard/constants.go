@@ -7,6 +7,7 @@ const DEFAULT_VPN_PREFIX = "10.189.184.1/21"
 const VPN_CONFIG_NAME = "vpn-config.json"
 const IP_LIST_PATH = "config/iplist.json"
 const VPN_CLIENTS_DIR = "clients"
+const VPN_STATS_DIR = "stats"
 const VPN_SERVER_SECRETS_PATH = "secrets"
 const VPN_PRIVATE_KEY_FILENAME = "priv.key"
 const PRESHARED_KEY_FILENAME = "preshared.key"
@@ -43,3 +44,6 @@ PostDown = iptables -D FORWARD -i %i -j ACCEPT; iptables -D FORWARD -o %i -j ACC
 const ACTION_ADD = "add"
 const ACTION_DELETE = "delete"
 const ACTION_CLEANUP = "cleanup"
+
+// stats
+const TIMESTAMP_FORMAT = "2006-01-02T15:04:05"

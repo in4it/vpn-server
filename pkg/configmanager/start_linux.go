@@ -15,9 +15,15 @@ func startVPN(storage storage.Iface) error {
 	if err != nil {
 		log.Fatalf("WriteWireGuardServerConfig error: %s", err)
 	}
+
 	return wireguard.StartVPN()
 }
 
-func stopVPN(storage storage.Iface) error {
+func stopVPN() error {
 	return wireguard.StopVPN()
+}
+
+func startStats(storage storage.Iface) {
+	// run statistics go routine
+	go wireguard.RunStats(storage)
 }

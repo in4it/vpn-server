@@ -1,4 +1,5 @@
 /config/*
+/stats/*
 /templates/*
 /rest-server
 /o-rest-server

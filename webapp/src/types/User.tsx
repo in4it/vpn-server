@@ -10,4 +10,5 @@ type User = {
     suspended: boolean;
     lastTokenRenewal: string;
     connectionsDisabledOnAuthFailure: boolean;
+    lastLogin: string;
   };

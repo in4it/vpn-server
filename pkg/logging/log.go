@@ -10,13 +10,13 @@ const LOG_DEBUG = 16
 
 func DebugLog(err error) {
 	if Loglevel&LOG_DEBUG == LOG_DEBUG {
-		fmt.Println(err)
+		fmt.Println("debug: " + err.Error())
 	}
 }
 
 func ErrorLog(err error) {
 	if Loglevel&LOG_ERROR == LOG_ERROR {
-		fmt.Println("debug: " + err.Error())
+		fmt.Println("error: " + err.Error())
 	}
 }
 

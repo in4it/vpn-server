@@ -11,6 +11,7 @@ import (
 	"github.com/in4it/wireguard-server/pkg/auth/oidc"
 	oidcstore "github.com/in4it/wireguard-server/pkg/auth/oidc/store"
 	"github.com/in4it/wireguard-server/pkg/auth/saml"
+	"github.com/in4it/wireguard-server/pkg/logging"
 	"github.com/in4it/wireguard-server/pkg/rest/login"
 )
 
@@ -40,7 +41,7 @@ func (c *Context) authHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	loginResponse, err := login.Authenticate(loginReq, c.UserStore, c.JWTKeys.PrivateKey, c.JWTKeysKID)
+	loginResponse, user, err := login.Authenticate(loginReq, c.UserStore, c.JWTKeys.PrivateKey, c.JWTKeysKID)
 	if err != nil {
 		c.returnError(w, fmt.Errorf("authentication error: %s", err), http.StatusBadRequest)
 		return
@@ -55,6 +56,11 @@ func (c *Context) authHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	} else if loginResponse.Authenticated {
 		login.ClearAttemptsForLogin(c.LoginAttempts, loginReq.Login)
+		user.LastLogin = time.Now()
+		err = c.UserStore.UpdateUser(user)
+		if err != nil {
+			logging.ErrorLog(fmt.Errorf("last login update error: %s", err))
+		}
 		c.write(w, out)
 	} else {
 		// log login attempts

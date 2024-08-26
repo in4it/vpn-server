@@ -1,6 +1,8 @@
 package configmanager
 
-import "github.com/in4it/wireguard-server/pkg/storage"
+import (
+	"github.com/in4it/wireguard-server/pkg/storage"
+)
 
 type ConfigManager struct {
 	PrivateKey string

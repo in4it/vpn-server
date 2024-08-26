@@ -2,6 +2,7 @@ package wireguard
 
 import (
 	"net/netip"
+	"time"
 )
 
 type VPNClientData struct {
@@ -59,4 +60,14 @@ type PeerConfig struct {
 type RefreshClientRequest struct {
 	Action    string
 	Filenames []string `json:"filenames"`
+}
+
+// stats
+type StatsEntry struct {
+	Timestamp         time.Time
+	User              string
+	ConnectionID      string
+	LastHandshakeTime time.Time
+	ReceiveBytes      int64
+	TransmitBytes     int64
 }

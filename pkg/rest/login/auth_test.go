@@ -36,7 +36,7 @@ func TestAuthenticate(t *testing.T) {
 		t.Fatalf("private key error: %s", err)
 	}
 
-	loginResp, err := Authenticate(loginReq, &m, privateKey, "jwtKeyID")
+	loginResp, _, err := Authenticate(loginReq, &m, privateKey, "jwtKeyID")
 	if err != nil {
 		t.Fatalf("authentication error: %s", err)
 	}
@@ -70,7 +70,7 @@ func TestAuthenticateMFANoToken(t *testing.T) {
 		t.Fatalf("private key error: %s", err)
 	}
 
-	loginResp, err := Authenticate(loginReq, &m, privateKey, "jwtKeyID")
+	loginResp, _, err := Authenticate(loginReq, &m, privateKey, "jwtKeyID")
 	if err != nil {
 		t.Fatalf("authentication error: %s", err)
 	}
@@ -113,7 +113,7 @@ func TestAuthenticateMFAWithToken(t *testing.T) {
 		t.Fatalf("private key error: %s", err)
 	}
 
-	loginResp, err := Authenticate(loginReq, &m, privateKey, "jwtKeyID")
+	loginResp, _, err := Authenticate(loginReq, &m, privateKey, "jwtKeyID")
 	if err != nil {
 		t.Fatalf("authentication error: %s", err)
 	}
