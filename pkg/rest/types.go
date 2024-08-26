@@ -153,6 +153,7 @@ type UsersResponse struct {
 	Suspended                        bool      `json:"suspended"`
 	ConnectionsDisabledOnAuthFailure bool      `json:"connectionsDisabledOnAuthFailure"`
 	LastTokenRenewal                 time.Time `json:"lastTokenRenewal,omitempty"`
+	LastLogin                        string    `json:"lastLogin"`
 }
 
 type FactorRequest struct {

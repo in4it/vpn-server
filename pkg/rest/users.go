@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/in4it/wireguard-server/pkg/storage"
@@ -65,6 +66,9 @@ func (c *Context) usersHandler(w http.ResponseWriter, r *http.Request) {
 			userResponse[k].Suspended = user.Suspended
 			userResponse[k].Provisioned = user.Provisioned
 			userResponse[k].ConnectionsDisabledOnAuthFailure = user.ConnectionsDisabledOnAuthFailure
+			if !user.LastLogin.IsZero() {
+				userResponse[k].LastLogin = user.LastLogin.UTC().Format(time.RFC3339)
+			}
 			for _, oauth2Data := range c.OIDCStore.OAuth2Data {
 				if oauth2Data.ID == user.OIDCID {
 					userResponse[k].LastTokenRenewal = oauth2Data.LastTokenRenewal
@@ -218,6 +222,9 @@ func addOrModifyExternalUser(storage storage.Iface, userStore *users.UserStore, 
 			}
 			existingUser.ConnectionsDisabledOnAuthFailure = false
 		}
+
+		existingUser.LastLogin = time.Now()
+
 		err = userStore.UpdateUser(existingUser)
 		if err != nil {
 			return existingUser, fmt.Errorf("couldn't update user: %s", login)
@@ -234,6 +241,9 @@ func addOrModifyExternalUser(storage storage.Iface, userStore *users.UserStore, 
 		if authType == "saml" {
 			newUser.SAMLID = externalAuthID
 		}
+
+		newUser.LastLogin = time.Now()
+
 		newUserAdded, err := userStore.AddUser(newUser)
 		if err != nil {
 			return newUserAdded, fmt.Errorf("could not add user: %s", err)
