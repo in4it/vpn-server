@@ -239,7 +239,7 @@ export function ListUsers({localAuthDisabled}:Props) {
                     <Table.Th>Role</Table.Th>
                     <Table.Th>Type</Table.Th>
                     <Table.Th>Status</Table.Th>
-                    <Table.Th>Last Login</Table.Th>
+                    <Table.Th>Last Web Login</Table.Th>
                     <Table.Th />
                     </Table.Tr>
                 </Table.Thead>
