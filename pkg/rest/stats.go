@@ -129,11 +129,11 @@ func (c *Context) userStatsHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		handshake, err := time.Parse(wireguard.TIMESTAMP_FORMAT, inputSplit[5])
 		if err == nil {
-			if _, ok := handshakeData[userID]; !ok {
-				handshakeData[userID] = []UserStatsDataPoint{}
-			}
 			handshake = handshake.Add(time.Duration(offset) * time.Minute)
 			if dateEqual(handshake, date) && !handshake.Equal(handshakeLast[userID]) {
+				if _, ok := handshakeData[userID]; !ok {
+					handshakeData[userID] = []UserStatsDataPoint{}
+				}
 				handshakeData[userID] = append(handshakeData[userID], UserStatsDataPoint{X: handshake.Format(wireguard.TIMESTAMP_FORMAT), Y: 1})
 			}
 		}
