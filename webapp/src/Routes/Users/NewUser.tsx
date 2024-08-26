@@ -54,6 +54,7 @@ export function NewUser({setShowNewUser} :Props) {
             provisioned: false,
             suspended: false,
             lastTokenRenewal: "",
+            lastLogin: "",
             connectionsDisabledOnAuthFailure: false,
         },
         validate: {
