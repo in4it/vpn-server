@@ -35,7 +35,7 @@ export function UserStats() {
         responsive: true,
         plugins: {
           legend: {
-            position: 'right' as const,
+            position: 'bottom' as const,
             display: true,
           },
           tooltip: {

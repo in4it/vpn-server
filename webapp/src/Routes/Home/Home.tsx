@@ -32,7 +32,7 @@ export function Home() {
   if (error) return 'cannot retrieve licensed users'
 
   return (
-    <Container my={40} size="40rem">
+    <Container my={45} size="45rem">
     <Title ta="center" className={classes.title}>
       VPN Status
     </Title>
