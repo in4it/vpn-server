@@ -199,3 +199,9 @@ type UserStatsDataPoint struct {
 	X string  `json:"x"`
 	Y float64 `json:"y"`
 }
+
+type NewUserRequest struct {
+	Login    string `json:"login"`
+	Role     string `json:"role"`
+	Password string `json:"password,omitempty"`
+}

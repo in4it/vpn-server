@@ -27,6 +27,7 @@ type User struct {
 	ExternalID                       string    `json:"externalID,omitempty"`
 	LastLogin                        time.Time `json:"lastLogin"`
 }
+
 type Factor struct {
 	Name   string `json:"name"`
 	Type   string `json:"type"`
