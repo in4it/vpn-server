@@ -8,5 +8,5 @@ aws s3 cp ../configmanager-linux-amd64 s3://in4it-vpn-server/assets/binaries/${L
 aws s3 cp ../configmanager-linux-amd64.sha256 s3://in4it-vpn-server/assets/binaries/${LATEST}/configmanager-linux-amd64.sha256
 if [ "$1" == "--release" ] ; then
 	echo "=> $LATEST released."
-	#aws s3 cp ../latest s3://in4it-vpn-server/assets/binaries/latest
+	aws s3 cp ../latest s3://in4it-vpn-server/assets/binaries/latest
 fi

@@ -82,7 +82,7 @@ func (c *Context) usersHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		c.write(w, out)
 	case http.MethodPost:
-		var user users.User
+		var user NewUserRequest
 		decoder := json.NewDecoder(r.Body)
 		err := decoder.Decode(&user)
 		if err != nil {

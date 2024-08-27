@@ -9,7 +9,7 @@ import (
 
 func (u *UserStore) AddUser(user User) (User, error) {
 	if user.Login == "" {
-		return user, fmt.Errorf("Login cannot be empty")
+		return user, fmt.Errorf("login cannot be empty")
 	}
 	existingUsers := u.ListUsers()
 	for _, existingUser := range existingUsers {
