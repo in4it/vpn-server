@@ -4,30 +4,24 @@
 package processpeerconfig
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
-	"path"
 
 	"github.com/in4it/wireguard-server/pkg/storage"
 	"github.com/in4it/wireguard-server/pkg/wireguard"
 	wireguardlinux "github.com/in4it/wireguard-server/pkg/wireguard/linux"
 )
 
-func SyncClients(storage storage.Iface, filename string) error {
-	peerConfig, peerConfigFilename, err := getClientFile(storage, filename)
+func SyncClients(storage storage.Iface, peerConfig wireguard.PeerConfig) error {
+	err := processPeerConfig(storage, peerConfig)
 	if err != nil {
-		return fmt.Errorf("getClientFile error: %s", err)
-	}
-	err = processPeerConfig(storage, peerConfig)
-	if err != nil {
-		return fmt.Errorf("could not process peerconfig (%s): %s", peerConfigFilename, err)
+		return fmt.Errorf("could not process peerconfig (%s): %s", peerConfig.ID, err)
 	}
 	return nil
 }
 
-func SyncClientsAndCleanup(storage storage.Iface, filename string) {
-	if err := SyncClients(storage, filename); err != nil {
+func SyncClientsAndCleanup(storage storage.Iface, peerConfig wireguard.PeerConfig) {
+	if err := SyncClients(storage, peerConfig); err != nil {
 		returnErrorInGoRoutine(err)
 		return
 	}
@@ -37,32 +31,12 @@ func SyncClientsAndCleanup(storage storage.Iface, filename string) {
 	}
 }
 
-func DeleteClient(storage storage.Iface, filename string) {
-	peerConfig, peerConfigFilename, err := getClientFile(storage, filename)
+func DeleteClient(peerConfig wireguard.PeerConfig) {
+	err := processDeleteOfPeerConfig(peerConfig)
 	if err != nil {
-		returnErrorInGoRoutine(fmt.Errorf("getClientFile error: %s", err))
+		returnErrorInGoRoutine(fmt.Errorf("could not process delete of peerconfig (%s): %s", peerConfig.ID, err))
 		return
 	}
-	err = processDeleteOfPeerConfig(peerConfig)
-	if err != nil {
-		returnErrorInGoRoutine(fmt.Errorf("could not process delete of peerconfig (%s): %s", peerConfigFilename, err))
-		return
-	}
-}
-
-func getClientFile(storage storage.Iface, filename string) (wireguard.PeerConfig, string, error) {
-	var peerConfig wireguard.PeerConfig
-
-	peerConfigFilename := storage.ConfigPath(path.Join(wireguard.VPN_CLIENTS_DIR, filename))
-	peerConfigData, err := storage.ReadFile(peerConfigFilename)
-	if err != nil {
-		return peerConfig, peerConfigFilename, fmt.Errorf("could not read clients filename (%s): %s", peerConfigFilename, err)
-	}
-	err = json.Unmarshal(peerConfigData, &peerConfig)
-	if err != nil {
-		return peerConfig, peerConfigFilename, fmt.Errorf("could not read unmarshal peerconfig(%s): %s", peerConfigFilename, err)
-	}
-	return peerConfig, peerConfigFilename, nil
 }
 
 func processPeerConfig(storage storage.Iface, peerConfig wireguard.PeerConfig) error {

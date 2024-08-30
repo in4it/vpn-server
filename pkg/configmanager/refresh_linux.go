@@ -13,12 +13,28 @@ import (
 	syncclients "github.com/in4it/wireguard-server/pkg/wireguard/linux/syncclients"
 )
 
-func syncClient(storage storage.Iface, filename string) error {
-	go syncclients.SyncClientsAndCleanup(storage, filename)
+func syncClient(storage storage.Iface, filename string, clientCache *wireguard.ClientCache) error {
+	peerConfig, err := wireguard.GetPeerConfigByFilename(storage, filename)
+	if err != nil {
+		return fmt.Errorf("getClientFile error: %s", err)
+	}
+	err = wireguard.UpdateClientCache(peerConfig, clientCache)
+	if err != nil {
+		return fmt.Errorf("update client cache error: %s", err)
+	}
+	go syncclients.SyncClientsAndCleanup(storage, peerConfig)
 	return nil
 }
-func deleteClient(storage storage.Iface, filename string) error {
-	go syncclients.DeleteClient(storage, filename)
+func deleteClient(storage storage.Iface, filename string, clientCache *wireguard.ClientCache) error {
+	peerConfig, err := wireguard.GetPeerConfigByFilename(storage, filename)
+	if err != nil {
+		return fmt.Errorf("getClientFile error: %s", err)
+	}
+	err = wireguard.UpdateClientCache(peerConfig, clientCache)
+	if err != nil {
+		return fmt.Errorf("update client cache error: %s", err)
+	}
+	go syncclients.DeleteClient(peerConfig)
 	return nil
 }
 func cleanupClients(storage storage.Iface) error {
@@ -26,7 +42,7 @@ func cleanupClients(storage storage.Iface) error {
 	return nil
 }
 
-func refreshAllClientsAndServer(storage storage.Iface) error {
+func refreshAllClientsAndServer(storage storage.Iface, clientCache *wireguard.ClientCache) error {
 	peerConfigPath := storage.ConfigPath(wireguard.VPN_CLIENTS_DIR)
 
 	if _, err := os.Stat(peerConfigPath); errors.Is(err, os.ErrNotExist) {
@@ -39,7 +55,15 @@ func refreshAllClientsAndServer(storage storage.Iface) error {
 	}
 
 	for _, e := range entries {
-		err = syncclients.SyncClients(storage, e)
+		peerConfig, err := wireguard.GetPeerConfigByFilename(storage, e)
+		if err != nil {
+			return fmt.Errorf("getClientFile error: %s", err)
+		}
+		err = wireguard.UpdateClientCache(peerConfig, clientCache)
+		if err != nil {
+			return fmt.Errorf("update client cache error: %s", err)
+		}
+		err = syncclients.SyncClients(storage, peerConfig)
 		if err != nil {
 			return fmt.Errorf("SyncClients error: %s", err)
 		}

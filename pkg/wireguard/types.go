@@ -1,6 +1,7 @@
 package wireguard
 
 import (
+	"net"
 	"net/netip"
 	"time"
 )
@@ -70,4 +71,14 @@ type StatsEntry struct {
 	LastHandshakeTime time.Time
 	ReceiveBytes      int64
 	TransmitBytes     int64
+}
+
+// client cache
+
+type ClientCache struct {
+	Addresses []ClientCacheAddresses
+}
+type ClientCacheAddresses struct {
+	Address  net.IPNet
+	ClientID string
 }

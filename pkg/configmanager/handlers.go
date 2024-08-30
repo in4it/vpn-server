@@ -59,13 +59,13 @@ func (c *ConfigManager) refreshClients(w http.ResponseWriter, r *http.Request) {
 			}
 			switch payload.Action {
 			case wireguard.ACTION_ADD:
-				err = syncClient(c.Storage, filename)
+				err = syncClient(c.Storage, filename, c.ClientCache)
 				if err != nil {
 					returnError(w, fmt.Errorf("syncClient error: %s", err), http.StatusBadRequest)
 					return
 				}
 			case wireguard.ACTION_DELETE:
-				err = deleteClient(c.Storage, filename)
+				err = deleteClient(c.Storage, filename, c.ClientCache)
 				if err != nil {
 					returnError(w, fmt.Errorf("deleteClient error: %s", err), http.StatusBadRequest)
 					return
@@ -131,7 +131,7 @@ func (c *ConfigManager) restartVpn(w http.ResponseWriter, r *http.Request) {
 			returnError(w, fmt.Errorf("vpn start error: %s", err), http.StatusBadRequest)
 			return
 		}
-		err = refreshAllClientsAndServer(c.Storage)
+		err = refreshAllClientsAndServer(c.Storage, c.ClientCache)
 		if err != nil {
 			returnError(w, fmt.Errorf("could not refresh all clients: %s", err), http.StatusBadRequest)
 			return

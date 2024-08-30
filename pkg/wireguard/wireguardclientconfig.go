@@ -70,12 +70,19 @@ func NewEmptyClientConfig(storage storage.Iface, userID string) (PeerConfig, err
 		return PeerConfig{}, fmt.Errorf("getClientAllowedIPs error: %s", err)
 	}
 
+	// validate address
+	address := nextFreeIP.String() + vpnConfig.ClientAddressPrefix
+	_, _, err = net.ParseCIDR(address)
+	if err != nil {
+		return PeerConfig{}, fmt.Errorf("cannot parse client address: %s", err)
+	}
+
 	peerConfig := PeerConfig{
 		ID:               fmt.Sprintf("%s-%d", userID, newConfigNumber),
 		DNS:              strings.Join(vpnConfig.Nameservers, ", "),
 		Name:             fmt.Sprintf("connection-%d", newConfigNumber),
-		Address:          nextFreeIP.String() + vpnConfig.ClientAddressPrefix,
-		ServerAllowedIPs: []string{nextFreeIP.String() + vpnConfig.ClientAddressPrefix},
+		Address:          address,
+		ServerAllowedIPs: []string{address},
 		ClientAllowedIPs: clientAllowedIPs,
 	}
 
@@ -161,10 +168,10 @@ func UpdateClientsConfig(storage storage.Iface) error {
 }
 
 func getPeerConfig(storage storage.Iface, connectionID string) (PeerConfig, error) {
-	return getPeerConfigByFilename(storage, fmt.Sprintf("%s.json", connectionID))
+	return GetPeerConfigByFilename(storage, fmt.Sprintf("%s.json", connectionID))
 }
 
-func getPeerConfigByFilename(storage storage.Iface, filename string) (PeerConfig, error) {
+func GetPeerConfigByFilename(storage storage.Iface, filename string) (PeerConfig, error) {
 	var peerConfig PeerConfig
 	peerConfigFilename := storage.ConfigPath(path.Join(VPN_CLIENTS_DIR, filename))
 	peerConfigBytes, err := storage.ReadFile(peerConfigFilename)
@@ -187,7 +194,7 @@ func GetAllPeerConfigs(storage storage.Iface) ([]PeerConfig, error) {
 	}
 	peerConfigs := make([]PeerConfig, len(entries))
 	for k, entry := range entries {
-		peerConfig, err := getPeerConfigByFilename(storage, entry)
+		peerConfig, err := GetPeerConfigByFilename(storage, entry)
 		if err != nil {
 			return peerConfigs, fmt.Errorf("cnanot get peer config (%s): %s", entry, err)
 		}
