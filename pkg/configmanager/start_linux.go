@@ -27,3 +27,8 @@ func startStats(storage storage.Iface) {
 	// run statistics go routine
 	go wireguard.RunStats(storage)
 }
+
+func startPacketLogger(storage storage.Iface) {
+	// run statistics go routine
+	go wireguard.RunPacketLogger(storage)
+}

@@ -40,7 +40,9 @@ func StartServer(port int) {
 		log.Fatalf("could not refresh all clients: %s", err)
 	}
 
-	startStats(localStorage) // start gathering of wireguard stats
+	// start goroutines
+	startStats(localStorage)        // start gathering of wireguard stats
+	startPacketLogger(localStorage) // start packet logger (optional)
 
 	log.Printf("Starting localhost http server at port %d\n", port)
 	log.Fatal(http.ListenAndServe(fmt.Sprintf("127.0.0.1:%d", port), c.getRouter()))

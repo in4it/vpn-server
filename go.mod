@@ -18,10 +18,14 @@ require (
 require (
 	github.com/beevik/etree v1.4.0 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
+	github.com/google/gopacket v1.1.19 // indirect
+	github.com/gopacket/gopacket v1.2.0 // indirect
 	github.com/jonboulle/clockwork v0.4.0 // indirect
 	github.com/josharian/native v1.1.0 // indirect
 	github.com/mattermost/xml-roundtrip-validator v0.1.0 // indirect
 	github.com/mdlayher/socket v0.5.1 // indirect
+	github.com/packetcap/go-pcap v0.0.0-20240528124601-8c87ecf5dbc5 // indirect
+	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	golang.org/x/net v0.27.0 // indirect
