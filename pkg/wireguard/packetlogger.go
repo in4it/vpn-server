@@ -1,10 +1,14 @@
 package wireguard
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
 	"net"
+	"net/http"
 	"path"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -20,9 +24,10 @@ func RunPacketLogger(storage storage.Iface, clientCache *ClientCache) {
 	if runtime.GOOS == "darwin" {
 		useSyscalls = true
 	}
-	handle, err := pcap.OpenLive("en0", 1600, false, 0, useSyscalls)
+	handle, err := pcap.OpenLive(VPN_INTERFACE_NAME, 1600, false, 0, useSyscalls)
 	if err != nil {
 		logging.ErrorLog(fmt.Errorf("can't start packet inspector: %s", err))
+		return
 	}
 	for {
 		err := readPacket(storage, handle, clientCache)
@@ -41,7 +46,7 @@ func readPacket(storage storage.Iface, handle *pcap.Handle, clientCache *ClientC
 func parsePacket(storage storage.Iface, data []byte, clientCache *ClientCache) error {
 	now := time.Now()
 	filename := path.Join(VPN_STATS_DIR, "ip-"+now.Format("2006-01-02.log"))
-	packet := gopacket.NewPacket(data, layers.IPProtocolIPv4, gopacket.Lazy)
+	packet := gopacket.NewPacket(data, layers.IPProtocolIPv4, gopacket.DecodeOptions{Lazy: true, DecodeStreamsAsDatagrams: true})
 	var (
 		ip4   *layers.IPv4
 		ip6   *layers.IPv6
@@ -75,7 +80,45 @@ func parsePacket(storage storage.Iface, data []byte, clientCache *ClientCache) e
 	if tcpLayer := packet.Layer(layers.LayerTypeTCP); tcpLayer != nil {
 		tcpPacket, _ := tcpLayer.(*layers.TCP)
 		if tcpPacket.SYN {
-			fmt.Printf("protocol: tcp, src: %s, dst: %s, srcport: %s, dstport: %s\n", srcIP.String(), dstIP.String(), tcpPacket.SrcPort, tcpPacket.DstPort)
+			storage.AppendFile(filename, []byte(strings.Join([]string{
+				time.Now().Format(TIMESTAMP_FORMAT),
+				"tcp",
+				srcIP.String(),
+				dstIP.String(),
+				strconv.FormatUint(uint64(tcpPacket.SrcPort), 10),
+				strconv.FormatUint(uint64(tcpPacket.DstPort), 10)},
+				",")+"\n",
+			))
+		}
+		switch tcpPacket.DstPort {
+		case 80:
+			if tcpPacket.DstPort == 80 {
+				//fmt.Printf("payload: %s", tcpPacket.LayerContents())
+				appLayer := packet.ApplicationLayer()
+				if appLayer != nil {
+					req, err := http.ReadRequest(bufio.NewReader(bytes.NewReader(appLayer.Payload())))
+					if err != nil {
+						fmt.Printf("debug: can't parse http packet: %s", err)
+					} else {
+						storage.AppendFile(filename, []byte(strings.Join([]string{
+							time.Now().Format(TIMESTAMP_FORMAT),
+							"http",
+							srcIP.String(),
+							dstIP.String(),
+							strconv.FormatUint(uint64(tcpPacket.SrcPort), 10),
+							strconv.FormatUint(uint64(tcpPacket.DstPort), 10),
+							"http://" + req.Host + req.URL.RequestURI()},
+							",")+"\n",
+						))
+					}
+				}
+			}
+		case 443:
+			//fmt.Printf("dstport: %s: %s\n", tcpPacket.DstPort.String(), packet.ApplicationLayer().Payload())
+			// TODO: get SNI from handshake
+			/*if tls, ok := packet.Layer(layers.LayerTypeTLS).(*layers.TLS); ok {
+				fmt.Printf("handshake: %+v\n", tls.Handshake)
+			}*/
 		}
 	}
 	if udpLayer := packet.Layer(layers.LayerTypeUDP); udpLayer != nil {
@@ -99,11 +142,12 @@ func parsePacket(storage storage.Iface, data []byte, clientCache *ClientCache) e
 
 				}
 				storage.AppendFile(filename, []byte(strings.Join([]string{
+					time.Now().Format(TIMESTAMP_FORMAT),
 					"udp",
 					srcIP.String(),
 					dstIP.String(),
-					udp.SrcPort.String(),
-					udp.DstPort.String(),
+					strconv.FormatUint(uint64(udp.SrcPort), 10),
+					strconv.FormatUint(uint64(udp.DstPort), 10),
 					strings.Join(questions, "#")},
 					",")+"\n"))
 			}

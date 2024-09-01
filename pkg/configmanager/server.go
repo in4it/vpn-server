@@ -51,6 +51,9 @@ func StartServer(port int) {
 func initConfigManager(storage storage.Iface) (*ConfigManager, error) {
 	c := &ConfigManager{
 		Storage: storage,
+		ClientCache: &wireguard.ClientCache{
+			Addresses: []wireguard.ClientCacheAddresses{},
+		},
 	}
 
 	vpnConfig, err := wireguard.GetVPNConfig(storage)
