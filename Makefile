@@ -47,7 +47,7 @@ install-digitalocean:
 	cd provisioning && packer build packer-digitalocean-amd64.pkr.hcl
 
 install-s3:
-	cd provisioning && AWS_PROFILE=in4it-vpn-server scripts/install_s3.sh --release
+	cd provisioning && AWS_PROFILE=in4it-vpn-server scripts/install_s3.sh
 
 install-docs:
 	provisioning/scripts/deploy_documentation.sh

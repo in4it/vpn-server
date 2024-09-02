@@ -3,6 +3,7 @@ package wireguard
 import (
 	"bufio"
 	"bytes"
+	"encoding/binary"
 	"fmt"
 	"net"
 	"net/http"
@@ -12,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/gopacket"
-	"github.com/google/gopacket/layers"
+	"github.com/gopacket/gopacket"
+	"github.com/gopacket/gopacket/layers"
 	"github.com/in4it/wireguard-server/pkg/logging"
 	"github.com/in4it/wireguard-server/pkg/storage"
 	"github.com/packetcap/go-pcap"
@@ -114,11 +115,22 @@ func parsePacket(storage storage.Iface, data []byte, clientCache *ClientCache) e
 				}
 			}
 		case 443:
-			//fmt.Printf("dstport: %s: %s\n", tcpPacket.DstPort.String(), packet.ApplicationLayer().Payload())
-			// TODO: get SNI from handshake
-			/*if tls, ok := packet.Layer(layers.LayerTypeTLS).(*layers.TLS); ok {
-				fmt.Printf("handshake: %+v\n", tls.Handshake)
-			}*/
+			if tls, ok := packet.Layer(layers.LayerTypeTLS).(*layers.TLS); ok {
+				for _, handshake := range tls.Handshake {
+					if sni := parseTLSExtensionSNI([]byte(handshake.ClientHello.Extensions)); sni != nil {
+						storage.AppendFile(filename, []byte(strings.Join([]string{
+							time.Now().Format(TIMESTAMP_FORMAT),
+							"https",
+							srcIP.String(),
+							dstIP.String(),
+							strconv.FormatUint(uint64(tcpPacket.SrcPort), 10),
+							strconv.FormatUint(uint64(tcpPacket.DstPort), 10),
+							string(sni)},
+							",")+"\n",
+						))
+					}
+				}
+			}
 		}
 	}
 	if udpLayer := packet.Layer(layers.LayerTypeUDP); udpLayer != nil {
@@ -154,5 +166,65 @@ func parsePacket(storage storage.Iface, data []byte, clientCache *ClientCache) e
 		}
 	}
 
+	return nil
+}
+
+// TLS Extensions http://www.iana.org/assignments/tls-extensiontype-values/tls-extensiontype-values.xhtml
+type TLSExtension uint16
+
+const (
+	ExtServerName           TLSExtension = 0
+	ExtMaxFragLen           TLSExtension = 1
+	ExtClientCertURL        TLSExtension = 2
+	ExtTrustedCAKeys        TLSExtension = 3
+	ExtTruncatedHMAC        TLSExtension = 4
+	ExtStatusRequest        TLSExtension = 5
+	ExtUserMapping          TLSExtension = 6
+	ExtClientAuthz          TLSExtension = 7
+	ExtServerAuthz          TLSExtension = 8
+	ExtCertType             TLSExtension = 9
+	ExtSupportedGroups      TLSExtension = 10
+	ExtECPointFormats       TLSExtension = 11
+	ExtSRP                  TLSExtension = 12
+	ExtSignatureAlgs        TLSExtension = 13
+	ExtUseSRTP              TLSExtension = 14
+	ExtHeartbeat            TLSExtension = 15
+	ExtALPN                 TLSExtension = 16
+	ExtStatusRequestV2      TLSExtension = 17
+	ExtSignedCertTS         TLSExtension = 18
+	ExtClientCertType       TLSExtension = 19
+	ExtServerCertType       TLSExtension = 20
+	ExtPadding              TLSExtension = 21
+	ExtEncryptThenMAC       TLSExtension = 22
+	ExtExtendedMasterSecret TLSExtension = 23
+	ExtSessionTicket        TLSExtension = 35
+	ExtNPN                  TLSExtension = 13172
+	ExtRenegotiationInfo    TLSExtension = 65281
+)
+
+func parseTLSExtensionSNI(data []byte) []byte {
+	for len(data) > 0 {
+		if len(data) < 4 {
+			break
+		}
+		extensionType := binary.BigEndian.Uint16(data[:2])
+		length := binary.BigEndian.Uint16(data[2:4])
+		if len(data) < 4+int(length) {
+			break
+		}
+		if TLSExtension(extensionType) == ExtServerName && len(data) > 6 {
+			serverNameExtensionLength := binary.BigEndian.Uint16(data[4:6])
+			entryType := data[6]
+
+			if serverNameExtensionLength > 0 && entryType == 0 && len(data) > 8 { // 0 = DNS hostname
+				hostnameLength := binary.BigEndian.Uint16(data[7:9])
+				fmt.Printf("extensionType: %d length: %d; slice: %d\n", extensionType, serverNameExtensionLength, 9+hostnameLength)
+				if len(data) > int(8+hostnameLength) {
+					return data[9 : 9+hostnameLength]
+				}
+			}
+		}
+		data = data[4+length:]
+	}
 	return nil
 }

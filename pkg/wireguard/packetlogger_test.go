@@ -66,8 +66,48 @@ func TestParsePacket(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read file error: %s", err)
 	}
-	if !strings.Contains(string(out), `udp,10.189.184.2,10.0.0.2,58893,53,apple.com`) {
-		t.Fatalf("unexpected output")
+	if !strings.Contains(string(out), `,udp,10.189.184.2,10.0.0.2,58893,53,apple.com`) {
+		t.Fatalf("unexpected output. Expected udp record")
 	}
+	if !strings.Contains(string(out), `,https,10.189.184.2,10.0.1.12,62026,443,vpn-server.in4it.io`) {
+		t.Fatalf("unexpected output. Expected https record")
+	}
+}
 
+func TestParseTLSExtensionSNI(t *testing.T) {
+	input := []string{
+		"00000018001600001376706e2d7365727665722e696e3469742e696f",
+		"00000018001600001376706e2d7365727665722e696e3469742e696f000b00020100000a000a0008001d001700180019000d00180016080606010603080505010503080404010403020102030010000e000c02683208687474702f312e31",
+	}
+	for _, s := range input {
+
+		data, err := hex.DecodeString(s)
+		if err != nil {
+			t.Fatalf("hex decode error: %s", err)
+		}
+		if sni := parseTLSExtensionSNI(data); sni != nil {
+			if string(sni) != "vpn-server.in4it.io" {
+				t.Fatalf("got SNI, but expected different hostname. Got: %s", sni)
+			}
+		} else {
+			t.Fatalf("no SNI found")
+		}
+	}
+}
+func TestParseTLSExtensionSNINoMatch(t *testing.T) {
+	input := []string{
+		"0010000e000c02",
+		"000d00180016080606010603080505010503080404010403020102030010000e000c02683208687474702f312e31",
+		"00",
+	}
+	for _, s := range input {
+
+		data, err := hex.DecodeString(s)
+		if err != nil {
+			t.Fatalf("hex decode error: %s", err)
+		}
+		if sni := parseTLSExtensionSNI(data); sni != nil {
+			t.Fatalf("got match, expected no match. Got: %s", sni)
+		}
+	}
 }
