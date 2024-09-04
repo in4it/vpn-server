@@ -24,6 +24,6 @@ func startStats(storage storage.Iface) {
 	fmt.Printf("Warning: startStats is not implemented in darwin\n")
 }
 
-func startPacketLogger(storage storage.Iface, clientCache *wireguard.ClientCache) {
-	go wireguard.RunPacketLogger(storage, clientCache)
+func startPacketLogger(storage storage.Iface, clientCache *wireguard.ClientCache, vpnConfig *wireguard.VPNConfig) {
+	go wireguard.RunPacketLogger(storage, clientCache, vpnConfig)
 }

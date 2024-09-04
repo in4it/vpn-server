@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"net/netip"
 	"reflect"
+	"slices"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -256,6 +258,26 @@ func (c *Context) vpnSetupHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		if setupRequest.DisableNAT != vpnConfig.DisableNAT { // don't rewrite client config
 			vpnConfig.DisableNAT = setupRequest.DisableNAT
+			writeVPNConfig = true
+		}
+		if setupRequest.EnablePacketLogs != vpnConfig.EnablePacketLogs {
+			vpnConfig.EnablePacketLogs = setupRequest.EnablePacketLogs
+			writeVPNConfig = true
+		}
+		// packetlogtypes
+		packetLogTypes := []string{}
+		for k, enabled := range vpnConfig.PacketLogsTypes {
+			if enabled {
+				packetLogTypes = append(packetLogTypes, k)
+			}
+		}
+		sort.Strings(setupRequest.PacketLogsTypes)
+		sort.Strings(packetLogTypes)
+		if !slices.Equal(setupRequest.PacketLogsTypes, packetLogTypes) {
+			vpnConfig.PacketLogsTypes = make(map[string]bool)
+			for _, v := range setupRequest.PacketLogsTypes {
+				vpnConfig.PacketLogsTypes[v] = true
+			}
 			writeVPNConfig = true
 		}
 

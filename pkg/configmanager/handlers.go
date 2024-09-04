@@ -77,6 +77,21 @@ func (c *ConfigManager) refreshClients(w http.ResponseWriter, r *http.Request) {
 		returnError(w, fmt.Errorf("method not supported"), http.StatusBadRequest)
 	}
 }
+func (c *ConfigManager) refreshServerConfig(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodPost:
+		vpnConfig, err := wireguard.GetVPNConfig(c.Storage)
+		if err != nil {
+			returnError(w, fmt.Errorf("get vpn config error: %s", err), http.StatusBadRequest)
+			return
+		}
+		c.VPNConfig.EnablePacketLogs = vpnConfig.EnablePacketLogs
+		c.VPNConfig.PacketLogsTypes = vpnConfig.PacketLogsTypes
+		w.WriteHeader(http.StatusAccepted)
+	default:
+		returnError(w, fmt.Errorf("method not supported"), http.StatusBadRequest)
+	}
+}
 
 func (c *ConfigManager) upgrade(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {

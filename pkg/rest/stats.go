@@ -210,6 +210,105 @@ func (c *Context) userStatsHandler(w http.ResponseWriter, r *http.Request) {
 	c.write(w, out)
 }
 
+func (c *Context) ipLogsHandler(w http.ResponseWriter, r *http.Request) {
+	vpnConfig, err := wireguard.GetVPNConfig(c.Storage.Client)
+	if err != nil {
+		c.returnError(w, fmt.Errorf("get vpn config error: %s", err), http.StatusBadRequest)
+		return
+	}
+	if !vpnConfig.EnablePacketLogs { // packet logs is disabled
+		out, err := json.Marshal(LogDataResponse{Enabled: false})
+		if err != nil {
+			c.returnError(w, fmt.Errorf("user stats response marshal error: %s", err), http.StatusBadRequest)
+			return
+		}
+		c.write(w, out)
+		return
+	}
+	userID := r.PathValue("user")
+	if userID == "" {
+		c.returnError(w, fmt.Errorf("no user supplied"), http.StatusBadRequest)
+		return
+	}
+	if r.PathValue("date") == "" {
+		c.returnError(w, fmt.Errorf("no date supplied"), http.StatusBadRequest)
+		return
+	}
+	date, err := time.Parse("2006-01-02", r.PathValue("date"))
+	if err != nil {
+		c.returnError(w, fmt.Errorf("invalid date: %s", err), http.StatusBadRequest)
+		return
+	}
+	offset := 0
+	if r.FormValue("offset") != "" {
+		i, err := strconv.Atoi(r.FormValue("offset"))
+		if err == nil {
+			offset = i
+		}
+	}
+	// get all users
+	users := c.UserStore.ListUsers()
+	userMap := make(map[string]string)
+	for _, user := range users {
+		userMap[user.ID] = user.Login
+	}
+	// calculate stats
+	statsFiles := []string{
+		path.Join(wireguard.VPN_STATS_DIR, wireguard.VPN_PACKETLOGGER_DIR, userID+"-"+date.Format("2006-01-02")+".log"),
+	}
+	logInputData := bytes.NewBuffer([]byte{})
+	for _, statsFile := range statsFiles {
+		if c.Storage.Client.FileExists(statsFile) {
+			fileLogData, err := c.Storage.Client.ReadFile(statsFile)
+			if err != nil {
+				c.returnError(w, fmt.Errorf("readfile error: %s", err), http.StatusBadRequest)
+				return
+			}
+			logInputData.Write(fileLogData)
+		}
+	}
+
+	scanner := bufio.NewScanner(logInputData)
+
+	logData := LogData{
+		Schema: LogSchema{
+			Columns: map[string]string{
+				"Protocol":         "string",
+				"Source IP":        "string",
+				"Destination IP":   "string",
+				"Source Port":      "string",
+				"Destination Port": "string",
+				"Destination":      "string",
+			},
+		},
+	}
+
+	for scanner.Scan() { // all other entries
+		inputSplit := strings.Split(scanner.Text(), ",")
+		timestamp, err := time.Parse(wireguard.TIMESTAMP_FORMAT, inputSplit[0])
+		if err != nil {
+			continue // invalid record
+		}
+		row := LogRow{
+			Timestamp: timestamp.Add(time.Duration(offset) * time.Minute),
+			Data:      inputSplit[1:],
+		}
+		logData.Data = append(logData.Data, row)
+	}
+
+	if err := scanner.Err(); err != nil {
+		c.returnError(w, fmt.Errorf("log file read (scanner) error: %s", err), http.StatusBadRequest)
+		return
+	}
+
+	out, err := json.Marshal(LogDataResponse{Enabled: true, LogData: logData})
+	if err != nil {
+		c.returnError(w, fmt.Errorf("user stats response marshal error: %s", err), http.StatusBadRequest)
+		return
+	}
+	c.write(w, out)
+}
+
 func getColor(i int) string {
 	colors := []string{
 		"#DEEFB7",

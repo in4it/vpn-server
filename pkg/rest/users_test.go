@@ -32,6 +32,11 @@ func TestCreateUserConnectionDeleteUserFlow(t *testing.T) {
 				w.Write([]byte("OK"))
 				return
 			}
+			if r.RequestURI == "/refresh-server-config" {
+				w.WriteHeader(http.StatusAccepted)
+				w.Write([]byte("OK"))
+				return
+			}
 			w.WriteHeader(http.StatusBadRequest)
 		default:
 			w.WriteHeader(http.StatusBadRequest)

@@ -28,7 +28,7 @@ func startStats(storage storage.Iface) {
 	go wireguard.RunStats(storage)
 }
 
-func startPacketLogger(storage storage.Iface, clientCache *wireguard.ClientCache) {
+func startPacketLogger(storage storage.Iface, clientCache *wireguard.ClientCache, vpnConfig *wireguard.VPNConfig) {
 	// run statistics go routine
-	go wireguard.RunPacketLogger(storage, clientCache)
+	go wireguard.RunPacketLogger(storage, clientCache, vpnConfig)
 }

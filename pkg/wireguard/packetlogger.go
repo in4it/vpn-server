@@ -22,7 +22,32 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-func RunPacketLogger(storage storage.Iface, clientCache *ClientCache) {
+func RunPacketLogger(storage storage.Iface, clientCache *ClientCache, vpnConfig *VPNConfig) {
+	if !vpnConfig.EnablePacketLogs {
+		return
+	}
+	// ensure logs dir is created
+	err := storage.EnsurePath(VPN_STATS_DIR)
+	if err != nil {
+		logging.ErrorLog(fmt.Errorf("could not create stats path: %s. Stats disabled", err))
+		return
+	}
+	err = storage.EnsureOwnership(VPN_STATS_DIR, "vpn")
+	if err != nil {
+		logging.ErrorLog(fmt.Errorf("could not ensure ownership of stats path: %s. Stats disabled", err))
+		return
+	}
+	err = storage.EnsurePath(path.Join(VPN_STATS_DIR, VPN_PACKETLOGGER_DIR))
+	if err != nil {
+		logging.ErrorLog(fmt.Errorf("could not create stats path: %s. Stats disabled", err))
+		return
+	}
+	err = storage.EnsureOwnership(path.Join(VPN_STATS_DIR, VPN_PACKETLOGGER_DIR), "vpn")
+	if err != nil {
+		logging.ErrorLog(fmt.Errorf("could not ensure ownership of stats path: %s. Stats disabled", err))
+		return
+	}
+
 	useSyscalls := false
 	if runtime.GOOS == "darwin" {
 		useSyscalls = true
@@ -37,6 +62,10 @@ func RunPacketLogger(storage storage.Iface, clientCache *ClientCache) {
 		err := readPacket(storage, handle, clientCache)
 		if err != nil {
 			logging.DebugLog(fmt.Errorf("readPacket error: %s", err))
+		}
+		if !vpnConfig.EnablePacketLogs {
+			logging.InfoLog("disabling packetlogs")
+			return
 		}
 		if i%1000 == 0 {
 			if err := checkDiskSpace(); err != nil {
@@ -56,8 +85,6 @@ func readPacket(storage storage.Iface, handle *pcap.Handle, clientCache *ClientC
 	return parsePacket(storage, data, clientCache)
 }
 func parsePacket(storage storage.Iface, data []byte, clientCache *ClientCache) error {
-	now := time.Now()
-	filename := path.Join(VPN_STATS_DIR, "ip-"+now.Format("2006-01-02.log"))
 	packet := gopacket.NewPacket(data, layers.IPProtocolIPv4, gopacket.DecodeOptions{Lazy: true, DecodeStreamsAsDatagrams: true})
 	var (
 		ip4   *layers.IPv4
@@ -89,6 +116,8 @@ func parsePacket(storage storage.Iface, data []byte, clientCache *ClientCache) e
 	if clientID == "" { // doesn't match a client ID
 		return nil
 	}
+	now := time.Now()
+	filename := path.Join(VPN_STATS_DIR, VPN_PACKETLOGGER_DIR, clientID+"-"+now.Format("2006-01-02")+".log")
 	if tcpLayer := packet.Layer(layers.LayerTypeTCP); tcpLayer != nil {
 		tcpPacket, _ := tcpLayer.(*layers.TCP)
 		if tcpPacket.SYN {

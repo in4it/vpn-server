@@ -20,14 +20,14 @@ func TestParsePacket(t *testing.T) {
 					IP:   net.ParseIP("10.189.184.2"),
 					Mask: net.IPMask(net.ParseIP("255.255.255.255").To4()),
 				},
-				ClientID: "1-2-3-4-1",
+				ClientID: "1-2-3-4",
 			},
 			{
 				Address: net.IPNet{
 					IP:   net.ParseIP("10.189.184.3"),
 					Mask: net.IPMask(net.ParseIP("255.255.255.255").To4()),
 				},
-				ClientID: "1-2-3-5-1",
+				ClientID: "1-2-3-5",
 			},
 		},
 	}
@@ -62,7 +62,7 @@ func TestParsePacket(t *testing.T) {
 		}
 	}
 
-	out, err := storage.ReadFile(path.Join(VPN_STATS_DIR, "ip-"+now.Format("2006-01-02.log")))
+	out, err := storage.ReadFile(path.Join(VPN_STATS_DIR, VPN_PACKETLOGGER_DIR, "1-2-3-4-"+now.Format("2006-01-02")+".log"))
 	if err != nil {
 		t.Fatalf("read file error: %s", err)
 	}
@@ -83,14 +83,14 @@ func TestParsePacketSNI(t *testing.T) {
 					IP:   net.ParseIP("10.189.184.2"),
 					Mask: net.IPMask(net.ParseIP("255.255.255.255").To4()),
 				},
-				ClientID: "1-2-3-4-1",
+				ClientID: "1-2-3-4",
 			},
 			{
 				Address: net.IPNet{
 					IP:   net.ParseIP("10.189.184.3"),
 					Mask: net.IPMask(net.ParseIP("255.255.255.255").To4()),
 				},
-				ClientID: "1-2-3-5-1",
+				ClientID: "1-2-3-5",
 			},
 		},
 	}
@@ -110,7 +110,7 @@ func TestParsePacketSNI(t *testing.T) {
 		}
 	}
 
-	out, err := storage.ReadFile(path.Join(VPN_STATS_DIR, "ip-"+now.Format("2006-01-02.log")))
+	out, err := storage.ReadFile(path.Join(VPN_STATS_DIR, VPN_PACKETLOGGER_DIR, "1-2-3-4-"+now.Format("2006-01-02")+".log"))
 	if err != nil {
 		t.Fatalf("read file error: %s", err)
 	}

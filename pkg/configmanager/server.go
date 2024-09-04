@@ -41,8 +41,8 @@ func StartServer(port int) {
 	}
 
 	// start goroutines
-	startStats(localStorage)                       // start gathering of wireguard stats
-	startPacketLogger(localStorage, c.ClientCache) // start packet logger (optional)
+	startStats(localStorage)                                    // start gathering of wireguard stats
+	startPacketLogger(localStorage, c.ClientCache, c.VPNConfig) // start packet logger (optional)
 
 	log.Printf("Starting localhost http server at port %d\n", port)
 	log.Fatal(http.ListenAndServe(fmt.Sprintf("127.0.0.1:%d", port), c.getRouter()))
@@ -71,6 +71,8 @@ func initConfigManager(storage storage.Iface) (*ConfigManager, error) {
 			return c, fmt.Errorf("failed to write setup-code.txt: %s", err)
 		}
 	}
+
+	c.VPNConfig = &vpnConfig
 
 	return c, nil
 }

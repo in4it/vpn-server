@@ -63,6 +63,7 @@ func (c *Context) getRouter(assets fs.FS, indexHtml []byte) *http.ServeMux {
 	mux.Handle("/api/users", c.authMiddleware(c.injectUserMiddleware(c.isAdminMiddleware(http.HandlerFunc(c.usersHandler)))))
 	mux.Handle("/api/user/{id}", c.authMiddleware(c.injectUserMiddleware(c.isAdminMiddleware(http.HandlerFunc(c.userHandler)))))
 	mux.Handle("/api/stats/user/{date}", c.authMiddleware(c.injectUserMiddleware(c.isAdminMiddleware(http.HandlerFunc(c.userStatsHandler)))))
+	mux.Handle("/api/stats/{user}/{date}", c.authMiddleware(c.injectUserMiddleware(c.isAdminMiddleware(http.HandlerFunc(c.ipLogsHandler)))))
 
 	return mux
 }

@@ -10,6 +10,7 @@ type ConfigManager struct {
 	PublicKey   string
 	Storage     storage.Iface
 	ClientCache *wireguard.ClientCache
+	VPNConfig   *wireguard.VPNConfig
 }
 
 type UpgradeResponse struct {
