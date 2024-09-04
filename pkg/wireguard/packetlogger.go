@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"os"
 	"path"
 	"runtime"
 	"strconv"
@@ -18,6 +19,7 @@ import (
 	"github.com/in4it/wireguard-server/pkg/logging"
 	"github.com/in4it/wireguard-server/pkg/storage"
 	"github.com/packetcap/go-pcap"
+	"golang.org/x/sys/unix"
 )
 
 func RunPacketLogger(storage storage.Iface, clientCache *ClientCache) {
@@ -30,11 +32,20 @@ func RunPacketLogger(storage storage.Iface, clientCache *ClientCache) {
 		logging.ErrorLog(fmt.Errorf("can't start packet inspector: %s", err))
 		return
 	}
+	i := 0
 	for {
 		err := readPacket(storage, handle, clientCache)
 		if err != nil {
 			logging.DebugLog(fmt.Errorf("readPacket error: %s", err))
 		}
+		if i%1000 == 0 {
+			if err := checkDiskSpace(); err != nil {
+				logging.ErrorLog(fmt.Errorf("disk space error: %s", err))
+				return
+			}
+			i = 0
+		}
+		i++
 	}
 }
 func readPacket(storage storage.Iface, handle *pcap.Handle, clientCache *ClientCache) error {
@@ -94,7 +105,6 @@ func parsePacket(storage storage.Iface, data []byte, clientCache *ClientCache) e
 		switch tcpPacket.DstPort {
 		case 80:
 			if tcpPacket.DstPort == 80 {
-				//fmt.Printf("payload: %s", tcpPacket.LayerContents())
 				appLayer := packet.ApplicationLayer()
 				if appLayer != nil {
 					req, err := http.ReadRequest(bufio.NewReader(bytes.NewReader(appLayer.Payload())))
@@ -218,7 +228,6 @@ func parseTLSExtensionSNI(data []byte) []byte {
 
 			if serverNameExtensionLength > 0 && entryType == 0 && len(data) > 8 { // 0 = DNS hostname
 				hostnameLength := binary.BigEndian.Uint16(data[7:9])
-				fmt.Printf("extensionType: %d length: %d; slice: %d\n", extensionType, serverNameExtensionLength, 9+hostnameLength)
 				if len(data) > int(8+hostnameLength) {
 					return data[9 : 9+hostnameLength]
 				}
@@ -226,5 +235,24 @@ func parseTLSExtensionSNI(data []byte) []byte {
 		}
 		data = data[4+length:]
 	}
+	return nil
+}
+
+func checkDiskSpace() error {
+	var stat unix.Statfs_t
+
+	wd, err := os.Getwd()
+	if err != nil {
+		fmt.Printf("cannot get cwd: %s", err)
+	}
+	unix.Statfs(wd, &stat)
+	if stat.Blocks*uint64(stat.Bsize) == 0 {
+		return fmt.Errorf("no blocks available")
+	}
+	freeDiskSpace := float64(stat.Bfree) / float64(stat.Blocks)
+	if freeDiskSpace < 0.10 {
+		return fmt.Errorf("not enough disk free disk space: %f", freeDiskSpace)
+	}
+
 	return nil
 }

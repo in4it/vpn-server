@@ -74,19 +74,70 @@ func TestParsePacket(t *testing.T) {
 	}
 }
 
-func TestParseTLSExtensionSNI(t *testing.T) {
-	input := []string{
-		"00000018001600001376706e2d7365727665722e696e3469742e696f",
-		"00000018001600001376706e2d7365727665722e696e3469742e696f000b00020100000a000a0008001d001700180019000d00180016080606010603080505010503080404010403020102030010000e000c02683208687474702f312e31",
+func TestParsePacketSNI(t *testing.T) {
+	storage := &testingmocks.MockMemoryStorage{}
+	clientCache := &ClientCache{
+		Addresses: []ClientCacheAddresses{
+			{
+				Address: net.IPNet{
+					IP:   net.ParseIP("10.189.184.2"),
+					Mask: net.IPMask(net.ParseIP("255.255.255.255").To4()),
+				},
+				ClientID: "1-2-3-4-1",
+			},
+			{
+				Address: net.IPNet{
+					IP:   net.ParseIP("10.189.184.3"),
+					Mask: net.IPMask(net.ParseIP("255.255.255.255").To4()),
+				},
+				ClientID: "1-2-3-5-1",
+			},
+		},
 	}
+	input := []string{
+		`450000d100004000400682160abdb80240e9b468ec5001bb4f71ed891a93673d8018080468f400000101080a1329f7772c5410131603010098010000940301f1d62f57f05cc00fc8fb984e7fc381a26adc301ec143b9bab6d36f3f1b15c97200002ec014c00a0039ff850088008100350084c013c00900330045002f0041c011c00700050004c012c0080016000a00ff0100003d00000013001100000e7777772e676f6f676c652e636f6d000b00020100000a000a0008001d0017001800190010000e000c02683208687474702f312e31`,
+	}
+	now := time.Now()
 	for _, s := range input {
 
 		data, err := hex.DecodeString(s)
 		if err != nil {
 			t.Fatalf("hex decode error: %s", err)
 		}
+		err = parsePacket(storage, data, clientCache)
+		if err != nil {
+			t.Fatalf("parse error: %s", err)
+		}
+	}
+
+	out, err := storage.ReadFile(path.Join(VPN_STATS_DIR, "ip-"+now.Format("2006-01-02.log")))
+	if err != nil {
+		t.Fatalf("read file error: %s", err)
+	}
+	if !strings.Contains(string(out), `,https,10.189.184.2,64.233.180.104,60496,443,www.google.com`) {
+		t.Fatalf("unexpected output. Expected https record")
+	}
+}
+
+func TestParseTLSExtensionSNI(t *testing.T) {
+	input := []string{
+		"00000013001100000e7777772e676f6f676c652e636f6d000b00020100000a000a0008001d0017001800190010000e000c02683208687474702f312e31",
+		"00000018001600001376706e2d7365727665722e696e3469742e696f",
+		"00000018001600001376706e2d7365727665722e696e3469742e696f000b00020100000a000a0008001d001700180019000d00180016080606010603080505010503080404010403020102030010000e000c02683208687474702f312e31",
+	}
+	match := []string{
+		"www.google.com",
+		"vpn-server.in4it.io",
+		"vpn-server.in4it.io",
+	}
+	for k, s := range input {
+
+		data, err := hex.DecodeString(s)
+		if err != nil {
+			t.Fatalf("hex decode error: %s", err)
+		}
 		if sni := parseTLSExtensionSNI(data); sni != nil {
-			if string(sni) != "vpn-server.in4it.io" {
+			if string(sni) != match[k] {
 				t.Fatalf("got SNI, but expected different hostname. Got: %s", sni)
 			}
 		} else {
@@ -109,5 +160,12 @@ func TestParseTLSExtensionSNINoMatch(t *testing.T) {
 		if sni := parseTLSExtensionSNI(data); sni != nil {
 			t.Fatalf("got match, expected no match. Got: %s", sni)
 		}
+	}
+}
+
+func TestCheckDiskSpace(t *testing.T) {
+	err := checkDiskSpace()
+	if err != nil {
+		t.Fatalf("disk space error: %s", err)
 	}
 }
