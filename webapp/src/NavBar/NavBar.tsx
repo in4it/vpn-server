@@ -1,15 +1,18 @@
 import { useState } from 'react';
 import { Group, Code } from '@mantine/core';
 import {
-  IconBellRinging,
-  IconSettings,
-  IconLogout,
-  IconUser,
-  IconPlugConnected,
-  IconCloudDataConnection,
-  IconBook,
-  IconUserCircle,
-} from '@tabler/icons-react';
+  TbBellRinging,
+  TbSettings,
+  TbLogout,
+  TbUser,
+  TbPlugConnected,
+  TbCloudDataConnection,
+  TbBook,
+  TbUserCircle,
+  
+} from 'react-icons/tb';
+import { FaStream } from "react-icons/fa";
+
 import classes from './Navbar.module.css';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuthContext } from '../Auth/Auth';
@@ -22,16 +25,17 @@ export function NavBar() {
   const [active, setActive] = useState(pathname);
 
   const data = authInfo.role === "admin" ? [
-    { link: '/', label: 'Status', icon: IconBellRinging },
-    { link: '/connection', label: 'VPN Connections', icon: IconPlugConnected },
-    { link: '/users', label: 'Users', icon: IconUser },
-    { link: '/setup', label: 'VPN Setup', icon: IconSettings },
-    { link: '/auth-setup', label: 'Authentication & Provisioning', icon: IconCloudDataConnection },
-    { link: 'https://vpn-documentation.in4it.com', label: 'Documentation', icon: IconBook },
+    { link: '/', label: 'Status', icon: TbBellRinging },
+    { link: '/connection', label: 'VPN Connections', icon: TbPlugConnected },
+    { link: '/users', label: 'Users', icon: TbUser },
+    { link: '/setup', label: 'VPN Setup', icon: TbSettings },
+    { link: '/auth-setup', label: 'Authentication & Provisioning', icon: TbCloudDataConnection },
+    { link: '/packetlogs', label: 'Logging', icon: FaStream },
+    { link: 'https://vpn-documentation.in4it.com', label: 'Documentation', icon: TbBook },
   ] : 
   [
-    { link: '/connection', label: 'VPN Connections', icon: IconPlugConnected },
-    { link: 'https://vpn-documentation.in4it.com', label: 'Documentation', icon: IconBook },
+    { link: '/connection', label: 'VPN Connections', icon: TbPlugConnected },
+    { link: 'https://vpn-documentation.in4it.com', label: 'Documentation', icon: TbBook },
   ];
 
   const links = data.map((item) => (
@@ -45,7 +49,7 @@ export function NavBar() {
         setActive(item.link);
       }}
     >
-      <item.icon className={classes.linkIcon} stroke={1.5} />
+      <item.icon className={classes.linkIcon} />
       <span>{item.label}</span>
     </NavLink>
   ));
@@ -62,14 +66,14 @@ export function NavBar() {
       <div className={classes.footer}>
         {authInfo.userType == "local" ?
           <NavLink to="/profile" className={classes.link} onClick={() => { setActive("/profile"); }} data-active={"/profile" === active || undefined}>
-            <IconUserCircle className={classes.linkIcon} stroke={1.5} />
+            <TbUserCircle className={classes.linkIcon} />
             <span>Profile</span>
           </NavLink>
           :
           null
         }
         <NavLink to="/logout" className={classes.link}>
-          <IconLogout className={classes.linkIcon} stroke={1.5} />
+          <TbLogout className={classes.linkIcon} />
           <span>Logout</span>
         </NavLink>
       </div>

@@ -2,7 +2,7 @@
 import { Container, TextInput, Alert, InputWrapper, Button, Space, UnstyledButton, Checkbox, Text, MultiSelect } from "@mantine/core";
 import { useEffect, useState } from "react";
 import classes from './Setup.module.css';
-import { IconInfoCircle } from "@tabler/icons-react";
+import { TbInfoCircle } from "react-icons/tb";
 import { AppSettings } from "../../Constants/Constants";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuthContext } from "../../Auth/Auth";
@@ -84,7 +84,7 @@ export function VPNSetup() {
       }
     })
 
-    const alertIcon = <IconInfoCircle />;
+    const alertIcon = <TbInfoCircle />;
 
     useEffect(() => {
       if (isSuccess) {

@@ -60,4 +60,5 @@
     margin-right: var(--mantine-spacing-sm);
     width: rem(25px);
     height: rem(25px);
+    stroke-width: 1.25px;
   }

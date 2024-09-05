@@ -1,5 +1,5 @@
 import { Alert, Button, PasswordInput, Space } from "@mantine/core";
-import { IconInfoCircle } from "@tabler/icons-react";
+import { TbInfoCircle } from "react-icons/tb";
 import { useMutation } from "@tanstack/react-query";
 import axios from "axios";
 import { useState } from "react";
@@ -57,7 +57,7 @@ export function ChangePassword() {
         }
         changePassword.mutate({password: newPassword})
     }
-    const alertIcon = <IconInfoCircle />;
+    const alertIcon = <TbInfoCircle />;
 
     return (
         <>

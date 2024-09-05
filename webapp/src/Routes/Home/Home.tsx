@@ -6,7 +6,7 @@ import classes from './Home.module.css';
 import { AppSettings } from '../../Constants/Constants';
 import { useQuery } from '@tanstack/react-query';
 import { UpgradeAlert } from './UpgradeAlert';
-import { IconPaperBag } from '@tabler/icons-react';
+import { TbPaperBag } from 'react-icons/tb';
 import { UserStats } from './UserStats';
 
 export function Home() {
@@ -54,7 +54,7 @@ export function Home() {
       {isPending || data.cloudType === "aws-marketplace" || data.cloudType === "azure" ? null : 
       <Card.Section inheritPadding mt="sm" pb="md">
           <Link to="/licenses">
-            <Button leftSection={<IconPaperBag size={14} />} fz="sm" mt="md" radius="md" variant="default" size="sm">
+            <Button leftSection={<TbPaperBag size={14} />} fz="sm" mt="md" radius="md" variant="default" size="sm">
               Get more licenses
             </Button>
           </Link>

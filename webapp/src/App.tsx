@@ -18,6 +18,7 @@ import { Users } from "./Routes/Users/Users";
 import { Profile } from "./Routes/Profile/Profile";
 import { Upgrade } from "./Routes/Upgrade/Upgrade";
 import { GetMoreLicenses } from "./Routes/Licenses/GetMoreLicenses";
+import { PacketLogs } from "./Routes/Logs/PacketLogs";
 
 const queryClient = new QueryClient()
 
@@ -44,6 +45,7 @@ export default function App() {
                           <Route path="/" element={<Home />} />
                           <Route path="/users" element={<CheckRole role="admin"><Users /></CheckRole>} />
                           <Route path="/setup" element={<CheckRole role="admin"><Setup /></CheckRole>} />
+                          <Route path="/setup/:page" element={<CheckRole role="admin"><Setup /></CheckRole>} />
                           <Route path="/auth-setup" element={<CheckRole role="admin"><AuthSetup /></CheckRole>} />
                           <Route path="/logout" element={<Logout />} />
                           <Route path="/login/:logintype/:id" element={<Navigate to={"/"} />} />
@@ -52,6 +54,7 @@ export default function App() {
                           <Route path="/profile" element={<Profile />} />
                           <Route path="/upgrade" element={<Upgrade />} />
                           <Route path="/licenses" element={<GetMoreLicenses />} />
+                          <Route path="/packetlogs" element={<PacketLogs />} />
                         </Routes>
                     </AppShell.Main>
                   </AppShell>

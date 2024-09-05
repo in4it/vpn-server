@@ -4,7 +4,7 @@ import { Table, ScrollArea, Button, Tooltip, rem, Select } from '@mantine/core';
 import classes from './ListSAMLProviders.module.css';
 import { useQueryClient, useMutation, useQuery } from '@tanstack/react-query';
 import { AppSettings } from '../../../Constants/Constants';
-import { IconCheck, IconCopy, IconTrash } from '@tabler/icons-react';
+import { TbCheck, TbCopy, TbTrash } from 'react-icons/tb';
 import { useClipboard } from '@mantine/hooks';
 import axios from 'axios';
 import { useAuthContext } from '../../../Auth/Auth';
@@ -91,9 +91,9 @@ export function ListSAMLProviders() {
                 variant="light"
                 rightSection={
                   clipboard.copied && activeRow === row.id + "#acs" ? (
-                    <IconCheck style={{ width: rem(10), height: rem(10) }} stroke={1.5} />
+                    <TbCheck style={{ width: rem(10), height: rem(10) }} />
                   ) : (
-                    <IconCopy style={{ width: rem(10), height: rem(10) }} stroke={1.5} />
+                    <TbCopy style={{ width: rem(10), height: rem(10) }} />
                   )
                 }
                 radius="xl"
@@ -120,9 +120,9 @@ export function ListSAMLProviders() {
                 variant="light"
                 rightSection={
                   clipboard.copied && activeRow === row.id  + "#aud" ? (
-                    <IconCheck style={{ width: rem(10), height: rem(10) }} stroke={1.5} />
+                    <TbCheck style={{ width: rem(10), height: rem(10) }} />
                   ) : (
-                    <IconCopy style={{ width: rem(10), height: rem(10) }} stroke={1.5} />
+                    <TbCopy style={{ width: rem(10), height: rem(10) }} />
                   )
                 }
                 radius="xl"
@@ -149,9 +149,9 @@ export function ListSAMLProviders() {
                 variant="light"
                 rightSection={
                   clipboard.copied && activeRow === row.id + "#issuer" ? (
-                    <IconCheck style={{ width: rem(10), height: rem(10) }} stroke={1.5} />
+                    <TbCheck style={{ width: rem(10), height: rem(10) }} />
                   ) : (
-                    <IconCopy style={{ width: rem(10), height: rem(10) }} stroke={1.5} />
+                    <TbCopy style={{ width: rem(10), height: rem(10) }} />
                   )
                 }
                 radius="xl"
@@ -166,7 +166,7 @@ export function ListSAMLProviders() {
               </Button>
               </Tooltip>
             </Table.Td>
-            <Table.Td><Button onClick={() => deleteSAML.mutate(row.id)}><IconTrash size={15} /></Button></Table.Td>
+            <Table.Td><Button onClick={() => deleteSAML.mutate(row.id)}><TbTrash size={15} /></Button></Table.Td>
         </Table.Tr>
     ));
 

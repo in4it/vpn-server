@@ -1,9 +1,9 @@
 import { Alert } from "@mantine/core";
-import { IconInfoCircle } from "@tabler/icons-react";
+import { TbInfoCircle } from "react-icons/tb";
 import { useSearchParams } from "react-router-dom";
 
 export function AuthError() {
-    const alertIcon = <IconInfoCircle />;
+    const alertIcon = <TbInfoCircle />;
 
     let [ searchParams, _ ] = useSearchParams();
     if(!searchParams.has("error")) return ''

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { NewOIDC } from "./NewOIDC";
 import { ListOIDCProviders } from "./ListOIDCProviders";
 import { Provisioning } from "./Provisioning";
-import { IconDevices, IconIdBadge, IconUserCircle } from "@tabler/icons-react";
+import { TbDevices, TbIdBadge, TbUserCircle } from "react-icons/tb";
 import { ListSAMLProviders } from "./ListSAMLProviders";
 import { NewSAML } from "./NewSAML";
 
@@ -20,13 +20,13 @@ export function AuthSetup() {
           </Title>
           <Tabs defaultValue="oidc">
             <Tabs.List grow={true}>
-              <Tabs.Tab value="oidc" leftSection={<IconIdBadge style={iconStyle} />}>
+              <Tabs.Tab value="oidc" leftSection={<TbIdBadge style={iconStyle} />}>
                 OpenID Connect (OIDC) Connections
               </Tabs.Tab>
-              <Tabs.Tab value="saml" leftSection={<IconUserCircle style={iconStyle} />}>
+              <Tabs.Tab value="saml" leftSection={<TbUserCircle style={iconStyle} />}>
                 SAML
               </Tabs.Tab>
-              <Tabs.Tab value="provisioning" leftSection={<IconDevices style={iconStyle} />}>
+              <Tabs.Tab value="provisioning" leftSection={<TbDevices style={iconStyle} />}>
                 Provisioning
               </Tabs.Tab>
             </Tabs.List>

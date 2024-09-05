@@ -210,7 +210,7 @@ func (c *Context) userStatsHandler(w http.ResponseWriter, r *http.Request) {
 	c.write(w, out)
 }
 
-func (c *Context) ipLogsHandler(w http.ResponseWriter, r *http.Request) {
+func (c *Context) packetLogsHandler(w http.ResponseWriter, r *http.Request) {
 	vpnConfig, err := wireguard.GetVPNConfig(c.Storage.Client)
 	if err != nil {
 		c.returnError(w, fmt.Errorf("get vpn config error: %s", err), http.StatusBadRequest)
@@ -252,7 +252,7 @@ func (c *Context) ipLogsHandler(w http.ResponseWriter, r *http.Request) {
 	for _, user := range users {
 		userMap[user.ID] = user.Login
 	}
-	// calculate stats
+	// logs
 	statsFiles := []string{
 		path.Join(wireguard.VPN_STATS_DIR, wireguard.VPN_PACKETLOGGER_DIR, userID+"-"+date.Format("2006-01-02")+".log"),
 	}
@@ -265,6 +265,8 @@ func (c *Context) ipLogsHandler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			logInputData.Write(fileLogData)
+		} else {
+			fmt.Printf("File does not exist: %s", statsFile)
 		}
 	}
 
@@ -281,9 +283,10 @@ func (c *Context) ipLogsHandler(w http.ResponseWriter, r *http.Request) {
 				"Destination":      "string",
 			},
 		},
+		Data: []LogRow{},
 	}
 
-	for scanner.Scan() { // all other entries
+	for scanner.Scan() {
 		inputSplit := strings.Split(scanner.Text(), ",")
 		timestamp, err := time.Parse(wireguard.TIMESTAMP_FORMAT, inputSplit[0])
 		if err != nil {
@@ -301,7 +304,15 @@ func (c *Context) ipLogsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	out, err := json.Marshal(LogDataResponse{Enabled: true, LogData: logData})
+	// logtypes
+	packetLogTypes := []string{}
+	for k, enabled := range vpnConfig.PacketLogsTypes {
+		if enabled {
+			packetLogTypes = append(packetLogTypes, k)
+		}
+	}
+
+	out, err := json.Marshal(LogDataResponse{Enabled: true, LogData: logData, LogTypes: packetLogTypes})
 	if err != nil {
 		c.returnError(w, fmt.Errorf("user stats response marshal error: %s", err), http.StatusBadRequest)
 		return

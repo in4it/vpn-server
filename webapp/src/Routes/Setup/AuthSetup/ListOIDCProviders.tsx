@@ -4,7 +4,7 @@ import { Table, ScrollArea, Button, Tooltip, rem } from '@mantine/core';
 import classes from './ListOIDCProviders.module.css';
 import { useQueryClient, useMutation, useQuery } from '@tanstack/react-query';
 import { AppSettings } from '../../../Constants/Constants';
-import { IconCheck, IconCopy, IconTrash } from '@tabler/icons-react';
+import { TbCheck, TbCopy, TbTrash } from 'react-icons/tb';
 import { useClipboard } from '@mantine/hooks';
 import axios from 'axios';
 import { useAuthContext } from '../../../Auth/Auth';
@@ -65,9 +65,9 @@ export function ListOIDCProviders() {
                 variant="light"
                 rightSection={
                   clipboard.copied && activeRow === row.id + "#redirectURI" ? (
-                    <IconCheck style={{ width: rem(10), height: rem(10) }} stroke={1.5} />
+                    <TbCheck style={{ width: rem(10), height: rem(10) }} />
                   ) : (
-                    <IconCopy style={{ width: rem(10), height: rem(10) }} stroke={1.5} />
+                    <TbCopy style={{ width: rem(10), height: rem(10) }} />
                   )
                 }
                 radius="xl"
@@ -94,9 +94,9 @@ export function ListOIDCProviders() {
                 variant="light"
                 rightSection={
                   clipboard.copied && activeRow === row.id + "#loginURL" ? (
-                    <IconCheck style={{ width: rem(10), height: rem(10) }} stroke={1.5} />
+                    <TbCheck style={{ width: rem(10), height: rem(10) }} />
                   ) : (
-                    <IconCopy style={{ width: rem(10), height: rem(10) }} stroke={1.5} />
+                    <TbCopy style={{ width: rem(10), height: rem(10) }} />
                   )
                 }
                 radius="xl"
@@ -112,7 +112,7 @@ export function ListOIDCProviders() {
               </Tooltip>
             </Table.Td>
             <Table.Td>{row.scope}</Table.Td>
-            <Table.Td><Button onClick={() => mutation.mutate(row.id)}><IconTrash size={15} /></Button></Table.Td>
+            <Table.Td><Button onClick={() => mutation.mutate(row.id)}><TbTrash size={15} /></Button></Table.Td>
         </Table.Tr>
     ));
 
