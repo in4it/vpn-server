@@ -24,7 +24,7 @@ type VPNSetupRequest = {
     nameservers: string,
     disableNAT: boolean,
     enablePacketLogs: boolean,
-    packetLogTypes: string[],
+    packetLogsTypes: string[],
 };
 export function VPNSetup() {
     const [saved, setSaved] = useState(false)
@@ -57,7 +57,7 @@ export function VPNSetup() {
         nameservers: "",
         disableNAT: false,
         enablePacketLogs: false,
-        packetLogTypes: []
+        packetLogsTypes: []
       },
     });
     const setupMutation = useMutation({
@@ -250,8 +250,14 @@ export function VPNSetup() {
                     >
                       <MultiSelect
                       searchable
-                      data={["DNS", "HTTP/HTTPS", "New TCP Connections (SYN)"]}
-                      {...form.getInputProps('packetLogTypes')}
+                      hidePickedOptions
+                      comboboxProps={{ offset: 0 }}
+                      data={[
+                        { value: 'dns', label: 'DNS' },
+                        { value: 'http+https', label: 'HTTP/HTTPS' },
+                        { value: 'tcp', label: 'New TCP Connections (SYN)' },
+                      ]}
+                      {...form.getInputProps('packetLogsTypes')}
                       />
                     </InputWrapper>
                 : null}

@@ -232,6 +232,11 @@ func TestCreateUserConnectionDeleteUserFlow(t *testing.T) {
 				w.Write([]byte("OK"))
 				return
 			}
+			if r.RequestURI == "/refresh-server-config" {
+				w.WriteHeader(http.StatusAccepted)
+				w.Write([]byte("OK"))
+				return
+			}
 			w.WriteHeader(http.StatusBadRequest)
 		default:
 			w.WriteHeader(http.StatusBadRequest)
@@ -344,6 +349,11 @@ func TestCreateUserConnectionSuspendUserFlow(t *testing.T) {
 		switch r.Method {
 		case http.MethodPost:
 			if r.RequestURI == "/refresh-clients" {
+				w.WriteHeader(http.StatusAccepted)
+				w.Write([]byte("OK"))
+				return
+			}
+			if r.RequestURI == "/refresh-server-config" {
 				w.WriteHeader(http.StatusAccepted)
 				w.Write([]byte("OK"))
 				return

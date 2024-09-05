@@ -169,6 +169,12 @@ func (c *Context) vpnSetupHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	switch r.Method {
 	case http.MethodGet:
+		packetLogTypes := []string{}
+		for k, enabled := range vpnConfig.PacketLogsTypes {
+			if enabled {
+				packetLogTypes = append(packetLogTypes, k)
+			}
+		}
 		setupRequest := VPNSetupRequest{
 			Routes:              strings.Join(vpnConfig.ClientRoutes, ", "),
 			VPNEndpoint:         vpnConfig.Endpoint,
@@ -178,6 +184,8 @@ func (c *Context) vpnSetupHandler(w http.ResponseWriter, r *http.Request) {
 			ExternalInterface:   vpnConfig.ExternalInterface,
 			Nameservers:         strings.Join(vpnConfig.Nameservers, ","),
 			DisableNAT:          vpnConfig.DisableNAT,
+			EnablePacketLogs:    vpnConfig.EnablePacketLogs,
+			PacketLogsTypes:     packetLogTypes,
 		}
 		out, err := json.Marshal(setupRequest)
 		if err != nil {
@@ -276,7 +284,9 @@ func (c *Context) vpnSetupHandler(w http.ResponseWriter, r *http.Request) {
 		if !slices.Equal(setupRequest.PacketLogsTypes, packetLogTypes) {
 			vpnConfig.PacketLogsTypes = make(map[string]bool)
 			for _, v := range setupRequest.PacketLogsTypes {
-				vpnConfig.PacketLogsTypes[v] = true
+				if v == "http+https" || v == "dns" || v == "tcp" {
+					vpnConfig.PacketLogsTypes[v] = true
+				}
 			}
 			writeVPNConfig = true
 		}
