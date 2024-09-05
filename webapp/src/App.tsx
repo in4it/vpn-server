@@ -18,7 +18,7 @@ import { Users } from "./Routes/Users/Users";
 import { Profile } from "./Routes/Profile/Profile";
 import { Upgrade } from "./Routes/Upgrade/Upgrade";
 import { GetMoreLicenses } from "./Routes/Licenses/GetMoreLicenses";
-import { PacketLogs } from "./Routes/Logs/PacketLogs";
+import { PacketLogs } from "./Routes/PacketLogs/PacketLogs";
 
 const queryClient = new QueryClient()
 
@@ -47,14 +47,14 @@ export default function App() {
                           <Route path="/setup" element={<CheckRole role="admin"><Setup /></CheckRole>} />
                           <Route path="/setup/:page" element={<CheckRole role="admin"><Setup /></CheckRole>} />
                           <Route path="/auth-setup" element={<CheckRole role="admin"><AuthSetup /></CheckRole>} />
+                          <Route path="/upgrade" element={<CheckRole role="admin"><Upgrade /></CheckRole>} />
+                          <Route path="/licenses" element={<CheckRole role="admin"><GetMoreLicenses /></CheckRole>} />
+                          <Route path="/packetlogs" element={<CheckRole role="admin"><PacketLogs /></CheckRole>} />
                           <Route path="/logout" element={<Logout />} />
                           <Route path="/login/:logintype/:id" element={<Navigate to={"/"} />} />
                           <Route path="/callback/:callbacktype/:id" element={<Navigate to={"/"} />} />
                           <Route path="/connection" element={<Connections />} />
                           <Route path="/profile" element={<Profile />} />
-                          <Route path="/upgrade" element={<Upgrade />} />
-                          <Route path="/licenses" element={<GetMoreLicenses />} />
-                          <Route path="/packetlogs" element={<PacketLogs />} />
                         </Routes>
                     </AppShell.Main>
                   </AppShell>

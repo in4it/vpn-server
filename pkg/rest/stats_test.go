@@ -67,3 +67,14 @@ func TestUserStatsHandler(t *testing.T) {
 	}
 
 }
+
+func TestFilterLogRecord(t *testing.T) {
+	logTypeFilter := []string{"tcp", "http+https"}
+	expected := []bool{false, false, true, false}
+	for k, v := range []string{"tcp", "http", "udp", "https"} {
+		res := filterLogRecord(logTypeFilter, v)
+		if res != expected[k] {
+			t.Fatalf("unexpected result: %v, got: %v", res, expected[k])
+		}
+	}
+}

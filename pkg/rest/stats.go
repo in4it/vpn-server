@@ -252,6 +252,9 @@ func (c *Context) packetLogsHandler(w http.ResponseWriter, r *http.Request) {
 	for _, user := range users {
 		userMap[user.ID] = user.Login
 	}
+	// get filter
+	logTypeFilterQueryString := r.URL.Query().Get("logtype")
+	logTypeFilter := strings.Split(logTypeFilterQueryString, ",")
 	// logs
 	statsFiles := []string{
 		path.Join(wireguard.VPN_STATS_DIR, wireguard.VPN_PACKETLOGGER_DIR, userID+"-"+date.Format("2006-01-02")+".log"),
@@ -292,11 +295,14 @@ func (c *Context) packetLogsHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			continue // invalid record
 		}
-		row := LogRow{
-			Timestamp: timestamp.Add(time.Duration(offset) * time.Minute),
-			Data:      inputSplit[1:],
+		if !filterLogRecord(logTypeFilter, inputSplit[1]) {
+			row := LogRow{
+				Timestamp: timestamp.Add(time.Duration(offset) * time.Minute),
+				Data:      inputSplit[1:],
+			}
+			logData.Data = append(logData.Data, row)
+
 		}
-		logData.Data = append(logData.Data, row)
 	}
 
 	if err := scanner.Err(); err != nil {
@@ -312,7 +318,7 @@ func (c *Context) packetLogsHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	out, err := json.Marshal(LogDataResponse{Enabled: true, LogData: logData, LogTypes: packetLogTypes})
+	out, err := json.Marshal(LogDataResponse{Enabled: true, LogData: logData, LogTypes: packetLogTypes, Users: userMap})
 	if err != nil {
 		c.returnError(w, fmt.Errorf("user stats response marshal error: %s", err), http.StatusBadRequest)
 		return
@@ -350,4 +356,23 @@ func dateEqual(date1, date2 time.Time) bool {
 	y1, m1, d1 := date1.Date()
 	y2, m2, d2 := date2.Date()
 	return y1 == y2 && m1 == m2 && d1 == d2
+}
+
+func filterLogRecord(logTypeFilter []string, logType string) bool {
+	if len(logTypeFilter) > 0 && logTypeFilter[0] != "" {
+		for _, logTypeFilterItem := range logTypeFilter {
+			if logType == logTypeFilterItem {
+				return false
+			}
+
+			splitLogTypes := strings.Split(logTypeFilterItem, "+")
+			for _, splitLogType := range splitLogTypes {
+				if splitLogType == logType {
+					return false
+				}
+			}
+		}
+		return true
+	}
+	return false
 }

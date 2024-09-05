@@ -209,9 +209,10 @@ type NewUserRequest struct {
 }
 
 type LogDataResponse struct {
-	LogData  LogData  `json:"logData"`
-	Enabled  bool     `json:"enabled"`
-	LogTypes []string `json:"logTypes"`
+	LogData  LogData           `json:"logData"`
+	Enabled  bool              `json:"enabled"`
+	LogTypes []string          `json:"logTypes"`
+	Users    map[string]string `json:"users"`
 }
 
 type LogData struct {
