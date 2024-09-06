@@ -21,5 +21,5 @@ type ReadWriter interface {
 }
 
 type Seeker interface {
-	OpenFilesFromPos(names []string, pos int64) ([]io.Reader, error)
+	OpenFilesFromPos(names []string, pos int64) ([]io.ReadCloser, error)
 }

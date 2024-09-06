@@ -115,6 +115,6 @@ func (m *MockMemoryStorage) Remove(name string) error {
 	return nil
 }
 
-func (m *MockMemoryStorage) OpenFilesFromPos(names []string, pos int64) ([]io.Reader, error) {
+func (m *MockMemoryStorage) OpenFilesFromPos(names []string, pos int64) ([]io.ReadCloser, error) {
 	return nil, fmt.Errorf("not implemented")
 }

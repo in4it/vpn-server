@@ -1,11 +1,12 @@
-import { Card, Container, Text, Table, Title, Button, Grid, Select, MultiSelect, Popover} from "@mantine/core";
+import { Card, Container, Text, Table, Title, Button, Grid, Select, MultiSelect, Popover, Group} from "@mantine/core";
 import { AppSettings } from "../../Constants/Constants";
-import {  keepPreviousData, useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuthContext } from "../../Auth/Auth";
-import { Link, useParams, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { TbSettings } from "react-icons/tb";
 import { DatePickerInput } from "@mantine/dates";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import React from "react";
 
 type LogsDataResponse = {
     enabled: boolean;
@@ -16,6 +17,7 @@ type LogsDataResponse = {
 type LogData = {
     schema: LogDataSchema;
     rows: LogRow[];
+    nextPos: number;
 }
 type LogDataSchema = {
     columns: string[];
@@ -44,11 +46,10 @@ export function PacketLogs() {
     const [logType, setLogType] = useState<string[]>([])
     const [logsDate, setLogsDate] = useState<Date | null>(dateParam === null ? new Date() : new Date(dateParam));
     const [user, setUser] = useState<string>(userParam === null ? "all" : userParam)
-    const [page, setPage] = useState(1)
-    const { isPending, error, data } = useQuery<LogsDataResponse>({
-      queryKey: ['packetlogs', user, logsDate, logType, page],
-      queryFn: () =>
-        fetch(AppSettings.url + '/stats/packetlogs/'+(user === undefined || user === "" ? "all" : user)+'/'+(logsDate == undefined ? getDate(new Date()) : getDate(logsDate)) + "?offset="+timezoneOffset+"&logtype="+encodeURIComponent(logType.join(",")), {
+    const { isPending, fetchNextPage, hasNextPage, error, data } = useInfiniteQuery<LogsDataResponse>({
+      queryKey: ['packetlogs', user, logsDate, logType],
+      queryFn: async ({ pageParam }) =>
+        fetch(AppSettings.url + '/stats/packetlogs/'+(user === undefined || user === "" ? "all" : user)+'/'+(logsDate == undefined ? getDate(new Date()) : getDate(logsDate)) + "?pos="+pageParam+"&offset="+timezoneOffset+"&logtype="+encodeURIComponent(logType.join(",")), {
           headers: {
             "Content-Type": "application/json",
             "Authorization": "Bearer " + authInfo.token
@@ -57,13 +58,29 @@ export function PacketLogs() {
           return res.json()
           }
         ),
-        placeholderData: page == 1 ? undefined : keepPreviousData,
+        initialPageParam: 0,
+        getNextPageParam: (lastRequest) => lastRequest.logData.nextPos === -1 ? null : lastRequest.logData.nextPos,
     })
+
+    useEffect(() => {
+      const handleScroll = () => {
+        const { scrollTop, clientHeight, scrollHeight } =
+          document.documentElement;
+        if (scrollTop + clientHeight >= scrollHeight - 20) {
+          fetchNextPage();
+        }
+      };
+  
+      window.addEventListener("scroll", handleScroll);
+      return () => {
+        window.removeEventListener("scroll", handleScroll);
+      };
+    }, [fetchNextPage])
 
     if(isPending) return "Loading..."
     if(error) return 'A backend error has occurred: ' + error.message
 
-    if(!data.enabled || data.logTypes.length == 0) { // show disabled page if not enabled
+    if(data.pages.length === 0 || !data.pages[0].enabled || data.pages[0].logTypes.length == 0) { // show disabled page if not enabled
       return (
         <Container my={40}>
           <Title ta="center" style={{marginBottom: 20}}>
@@ -71,10 +88,10 @@ export function PacketLogs() {
           </Title>
           <Card withBorder radius="md" padding="xl" bg="var(--mantine-color-body)">
             <Text fz="xs" tt="uppercase" fw={700} c="dimmed">
-              { !data.enabled ? 
+              { !data.pages[0].enabled ? 
                 "Packet Logs are not activated. Activate packet logging in the VPN Settings." 
               : 
-                data.logTypes.length == 0 ? "Packet logs are activated, but no packet logging types are selected. Select at least one packet log type." : null
+                data.pages[0].logTypes.length == 0 ? "Packet logs are activated, but no packet logging types are selected. Select at least one packet log type." : null
               }
             </Text>
             <Card.Section inheritPadding mt="sm" pb="md">
@@ -89,15 +106,19 @@ export function PacketLogs() {
       )
     }
 
-    const rows = data.logData.rows.map((row, i) => (
-        <Table.Tr key={i}>
-          <Table.Td>{row.t}</Table.Td>
-          {row.d.map((element, y) => {
-            return (
-            <Table.Td key={i+"-"+y}>{element}</Table.Td>
-            )
-          })}
-        </Table.Tr>
+    const rows = data.pages.map((group, groupIndex) => (
+      <React.Fragment key={groupIndex}>
+        {group.logData.rows.map((row, i) => (
+          <Table.Tr key={i}>
+            <Table.Td>{row.t}</Table.Td>
+            {row.d.map((element, y) => {
+              return (
+              <Table.Td key={i+"-"+y}>{element}</Table.Td>
+              )
+            })}
+          </Table.Tr>
+        ))}
+      </React.Fragment>
       ));
     return (
         <Container my={40} size="80rem">
@@ -115,9 +136,9 @@ export function PacketLogs() {
                 </Grid.Col>
             <Grid.Col span={2}>
             <Select
-                data={Object.keys(data.users).map((key) => {
+                data={Object.keys(data.pages[0].users).map((key) => {
                   return {
-                    label:  data.users[key],
+                    label:  data.pages[0].users[key],
                     value: key,
                   }
                 })}
@@ -139,7 +160,7 @@ export function PacketLogs() {
                   searchable
                   hidePickedOptions
                   comboboxProps={{ offset: 0, withinPortal: false}}
-                  data={data.logTypes}
+                  data={data.pages[0].logTypes}
                   value={logType}
                   onChange={setLogType}
                   size="xs"
@@ -169,6 +190,10 @@ export function PacketLogs() {
                 }
               </Table.Tbody>
           </Table>
+          <Group justify="center">
+          {hasNextPage ? <Button onClick={() => fetchNextPage()} variant="default">Loading more...</Button> : null}
+          </Group>
+
         </Container>
 
     )
