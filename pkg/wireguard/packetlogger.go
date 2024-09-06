@@ -12,6 +12,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gopacket/gopacket"
@@ -22,10 +23,18 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+var (
+	PacketLoggerIsRunning sync.Mutex
+)
+
 func RunPacketLogger(storage storage.Iface, clientCache *ClientCache, vpnConfig *VPNConfig) {
 	if !vpnConfig.EnablePacketLogs {
 		return
 	}
+	fmt.Printf("starting packetlogger")
+	// ensure we only run a single instance of the packet logger
+	PacketLoggerIsRunning.Lock()
+	defer PacketLoggerIsRunning.Unlock()
 	// ensure logs dir is created
 	err := storage.EnsurePath(VPN_STATS_DIR)
 	if err != nil {
@@ -57,6 +66,7 @@ func RunPacketLogger(storage storage.Iface, clientCache *ClientCache, vpnConfig 
 		logging.ErrorLog(fmt.Errorf("can't start packet inspector: %s", err))
 		return
 	}
+	defer handle.Close()
 	i := 0
 	for {
 		err := readPacket(storage, handle, clientCache)

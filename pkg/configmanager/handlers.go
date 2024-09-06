@@ -85,8 +85,15 @@ func (c *ConfigManager) refreshServerConfig(w http.ResponseWriter, r *http.Reque
 			returnError(w, fmt.Errorf("get vpn config error: %s", err), http.StatusBadRequest)
 			return
 		}
+		startPacketLogger := false
+		if vpnConfig.EnablePacketLogs && !c.VPNConfig.EnablePacketLogs {
+			startPacketLogger = true
+		}
 		c.VPNConfig.EnablePacketLogs = vpnConfig.EnablePacketLogs
 		c.VPNConfig.PacketLogsTypes = vpnConfig.PacketLogsTypes
+		if startPacketLogger {
+			go wireguard.RunPacketLogger(c.Storage, c.ClientCache, c.VPNConfig)
+		}
 		w.WriteHeader(http.StatusAccepted)
 	default:
 		returnError(w, fmt.Errorf("method not supported"), http.StatusBadRequest)
