@@ -256,6 +256,7 @@ func (c *Context) packetLogsHandler(w http.ResponseWriter, r *http.Request) {
 			pos = i
 		}
 	}
+	search := r.FormValue("search")
 	// get all users
 	users := c.UserStore.ListUsers()
 	userMap := make(map[string]string)
@@ -314,7 +315,7 @@ func (c *Context) packetLogsHandler(w http.ResponseWriter, r *http.Request) {
 			}
 			timestamp = timestamp.Add(time.Duration(offset) * time.Minute)
 			if dateEqual(timestamp, date) {
-				if !filterLogRecord(logTypeFilter, inputSplit[1]) {
+				if !filterLogRecord(logTypeFilter, inputSplit[1]) && matchesSearch(search, inputSplit) {
 					row := LogRow{
 						Timestamp: timestamp.Format("2006-01-02 15:04:05"),
 						Data:      inputSplit[1:],
@@ -412,6 +413,17 @@ func filterLogRecord(logTypeFilter []string, logType string) bool {
 			}
 		}
 		return true
+	}
+	return false
+}
+func matchesSearch(search string, data []string) bool {
+	if search == "" {
+		return true
+	}
+	for _, element := range data {
+		if strings.Contains(element, search) {
+			return true
+		}
 	}
 	return false
 }

@@ -1,9 +1,9 @@
-import { Card, Container, Text, Table, Title, Button, Grid, Select, MultiSelect, Popover, Group} from "@mantine/core";
+import { Card, Container, Text, Table, Title, Button, Grid, Select, MultiSelect, Popover, Group, TextInput, rem, ActionIcon, Highlight} from "@mantine/core";
 import { AppSettings } from "../../Constants/Constants";
-import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { useAuthContext } from "../../Auth/Auth";
 import { Link, useSearchParams } from "react-router-dom";
-import { TbSettings } from "react-icons/tb";
+import { TbArrowRight, TbSearch, TbSettings } from "react-icons/tb";
 import { DatePickerInput } from "@mantine/dates";
 import { useEffect, useState } from "react";
 import React from "react";
@@ -44,12 +44,14 @@ export function PacketLogs() {
     const dateParam = currentQueryParameters.get("date")
     const userParam = currentQueryParameters.get("user")
     const [logType, setLogType] = useState<string[]>([])
+    const [search, setSearch] = useState<string>("")
+    const [searchParam, setSearchParam] = useState<string>("")
     const [logsDate, setLogsDate] = useState<Date | null>(dateParam === null ? new Date() : new Date(dateParam));
     const [user, setUser] = useState<string>(userParam === null ? "all" : userParam)
     const { isPending, fetchNextPage, hasNextPage, error, data } = useInfiniteQuery<LogsDataResponse>({
-      queryKey: ['packetlogs', user, logsDate, logType],
+      queryKey: ['packetlogs', user, logsDate, logType, searchParam],
       queryFn: async ({ pageParam }) =>
-        fetch(AppSettings.url + '/stats/packetlogs/'+(user === undefined || user === "" ? "all" : user)+'/'+(logsDate == undefined ? getDate(new Date()) : getDate(logsDate)) + "?pos="+pageParam+"&offset="+timezoneOffset+"&logtype="+encodeURIComponent(logType.join(",")), {
+        fetch(AppSettings.url + '/stats/packetlogs/'+(user === undefined || user === "" ? "all" : user)+'/'+(logsDate == undefined ? getDate(new Date()) : getDate(logsDate)) + "?pos="+pageParam+"&offset="+timezoneOffset+"&logtype="+encodeURIComponent(logType.join(","))+"&search="+encodeURIComponent(searchParam), {
           headers: {
             "Content-Type": "application/json",
             "Authorization": "Bearer " + authInfo.token
@@ -61,6 +63,12 @@ export function PacketLogs() {
         initialPageParam: 0,
         getNextPageParam: (lastRequest) => lastRequest.logData.nextPos === -1 ? null : lastRequest.logData.nextPos,
     })
+
+    const captureEnter = (e: React.KeyboardEvent<HTMLDivElement>) => {
+      if (e.key === "Enter") {
+        setSearchParam(search)
+      }
+    }
 
     useEffect(() => {
       const handleScroll = () => {
@@ -113,7 +121,7 @@ export function PacketLogs() {
             <Table.Td>{row.t}</Table.Td>
             {row.d.map((element, y) => {
               return (
-              <Table.Td key={i+"-"+y}>{element}</Table.Td>
+              <Table.Td key={i+"-"+y}>{searchParam === "" ? element : <Highlight color="lime" highlight={searchParam}>{element}</Highlight>}</Table.Td>
               )
             })}
           </Table.Tr>
@@ -126,7 +134,22 @@ export function PacketLogs() {
           Packet Logs
           </Title>
           <Grid>
-            <Grid.Col span={4}></Grid.Col>
+            <Grid.Col span={4}>
+            <TextInput
+                placeholder="Search..."
+                rightSectionWidth={30}
+                size="xs"
+                leftSection={<TbSearch style={{ width: rem(18), height: rem(18) }} />}
+                rightSection={
+                  <ActionIcon size={18} radius="xl" variant="filled" onClick={() => setSearchParam(search)}>
+                    <TbArrowRight style={{ width: rem(14), height: rem(14) }} />
+                  </ActionIcon>
+                }
+                onKeyDown={(e) => captureEnter(e)}
+                onChange={(e) => setSearch(e.currentTarget.value)}
+                value={search}
+              />
+            </Grid.Col>
             <Grid.Col span={4}>
                 <DatePickerInput
                 value={logsDate}
