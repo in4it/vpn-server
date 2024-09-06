@@ -13,6 +13,9 @@ func (l *LocalStorage) ReadFile(name string) ([]byte, error) {
 
 func (l *LocalStorage) OpenFilesFromPos(names []string, pos int64) ([]io.ReadCloser, error) {
 	readers := []io.ReadCloser{}
+	if pos < 0 {
+		return readers, nil
+	}
 	for _, name := range names {
 		file, err := os.Open(path.Join(l.path, name))
 		if err != nil {
