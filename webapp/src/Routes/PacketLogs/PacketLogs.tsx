@@ -1,6 +1,6 @@
 import { Card, Container, Text, Table, Title, Button, Grid, Select, MultiSelect, Popover} from "@mantine/core";
 import { AppSettings } from "../../Constants/Constants";
-import {  useQuery } from "@tanstack/react-query";
+import {  keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useAuthContext } from "../../Auth/Auth";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { TbSettings } from "react-icons/tb";
@@ -28,18 +28,27 @@ type UserMap = {
   [key: string]: string;
 }
 
+function getDate(date:Date) {
+  var dd = String(date.getDate()).padStart(2, '0');
+  var mm = String(date.getMonth() + 1).padStart(2, '0'); //January is 0!
+  var yyyy = date.getFullYear();  
+  return yyyy + "-" + mm + '-' + dd;
+}
+
 export function PacketLogs() {
     const {authInfo} = useAuthContext();
-    const [currentQueryParameters, setSearchParams] = useSearchParams();
+    const timezoneOffset = new Date().getTimezoneOffset() * -1
+    const [currentQueryParameters] = useSearchParams();
     const dateParam = currentQueryParameters.get("date")
     const userParam = currentQueryParameters.get("user")
     const [logType, setLogType] = useState<string[]>([])
     const [logsDate, setLogsDate] = useState<Date | null>(dateParam === null ? new Date() : new Date(dateParam));
     const [user, setUser] = useState<string>(userParam === null ? "all" : userParam)
+    const [page, setPage] = useState(1)
     const { isPending, error, data } = useQuery<LogsDataResponse>({
-      queryKey: ['packetlogs', user, logsDate, logType],
+      queryKey: ['packetlogs', user, logsDate, logType, page],
       queryFn: () =>
-        fetch(AppSettings.url + '/stats/packetlogs/'+(user === undefined ? "all" : user)+'/'+(logsDate == undefined ? new Date().toISOString().slice(0, 10) : logsDate.toISOString().slice(0, 10)) + "?logtype="+encodeURIComponent(logType.join(",")), {
+        fetch(AppSettings.url + '/stats/packetlogs/'+(user === undefined || user === "" ? "all" : user)+'/'+(logsDate == undefined ? getDate(new Date()) : getDate(logsDate)) + "?offset="+timezoneOffset+"&logtype="+encodeURIComponent(logType.join(",")), {
           headers: {
             "Content-Type": "application/json",
             "Authorization": "Bearer " + authInfo.token
@@ -48,6 +57,7 @@ export function PacketLogs() {
           return res.json()
           }
         ),
+        placeholderData: page == 1 ? undefined : keepPreviousData,
     })
 
     if(isPending) return "Loading..."
@@ -66,7 +76,6 @@ export function PacketLogs() {
               : 
                 data.logTypes.length == 0 ? "Packet logs are activated, but no packet logging types are selected. Select at least one packet log type." : null
               }
-      
             </Text>
             <Card.Section inheritPadding mt="sm" pb="md">
               <Link to="/setup/vpn">
@@ -152,7 +161,13 @@ export function PacketLogs() {
                   <Table.Th>Destination</Table.Th>
                   </Table.Tr>
               </Table.Thead>
-              <Table.Tbody>{rows}</Table.Tbody>
+              <Table.Tbody>
+                {user === undefined || user === "" || user === "all" ? 
+                  <Table.Tr key="nouser"><Table.Td colSpan={7}>Select a user to see log data.</Table.Td></Table.Tr>
+                :
+                  rows
+                }
+              </Table.Tbody>
           </Table>
         </Container>
 

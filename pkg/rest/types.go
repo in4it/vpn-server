@@ -216,13 +216,14 @@ type LogDataResponse struct {
 }
 
 type LogData struct {
-	Schema LogSchema `json:"schema"`
-	Data   []LogRow  `json:"rows"`
+	Schema  LogSchema `json:"schema"`
+	Data    []LogRow  `json:"rows"`
+	NextPos int64     `json:"nextPos"`
 }
 type LogSchema struct {
 	Columns map[string]string `json:"columns"`
 }
 type LogRow struct {
-	Timestamp time.Time `json:"t"`
-	Data      []string  `json:"d"`
+	Timestamp string   `json:"t"`
+	Data      []string `json:"d"`
 }

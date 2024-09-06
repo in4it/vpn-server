@@ -1,5 +1,7 @@
 package storage
 
+import "io"
+
 type Iface interface {
 	GetPath() string
 	EnsurePath(path string) error
@@ -8,6 +10,7 @@ type Iface interface {
 	Remove(name string) error
 	AppendFile(name string, data []byte) error
 	ReadWriter
+	Seeker
 }
 
 type ReadWriter interface {
@@ -15,4 +18,8 @@ type ReadWriter interface {
 	WriteFile(name string, data []byte) error
 	FileExists(filename string) bool
 	ConfigPath(filename string) string
+}
+
+type Seeker interface {
+	OpenFilesFromPos(names []string, pos int64) ([]io.Reader, error)
 }

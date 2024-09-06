@@ -2,6 +2,7 @@ package testingmocks
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path"
 	"strings"
@@ -112,4 +113,8 @@ func (m *MockMemoryStorage) Remove(name string) error {
 	}
 	delete(m.Data, name)
 	return nil
+}
+
+func (m *MockMemoryStorage) OpenFilesFromPos(names []string, pos int64) ([]io.Reader, error) {
+	return nil, fmt.Errorf("not implemented")
 }

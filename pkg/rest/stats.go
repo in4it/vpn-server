@@ -16,6 +16,8 @@ import (
 	"github.com/in4it/wireguard-server/pkg/wireguard"
 )
 
+const MAX_LOG_OUTPUT_LINES = 5
+
 func (c *Context) userStatsHandler(w http.ResponseWriter, r *http.Request) {
 	if r.PathValue("date") == "" {
 		c.returnError(w, fmt.Errorf("no date supplied"), http.StatusBadRequest)
@@ -255,26 +257,7 @@ func (c *Context) packetLogsHandler(w http.ResponseWriter, r *http.Request) {
 	// get filter
 	logTypeFilterQueryString := r.URL.Query().Get("logtype")
 	logTypeFilter := strings.Split(logTypeFilterQueryString, ",")
-	// logs
-	statsFiles := []string{
-		path.Join(wireguard.VPN_STATS_DIR, wireguard.VPN_PACKETLOGGER_DIR, userID+"-"+date.Format("2006-01-02")+".log"),
-	}
-	logInputData := bytes.NewBuffer([]byte{})
-	for _, statsFile := range statsFiles {
-		if c.Storage.Client.FileExists(statsFile) {
-			fileLogData, err := c.Storage.Client.ReadFile(statsFile)
-			if err != nil {
-				c.returnError(w, fmt.Errorf("readfile error: %s", err), http.StatusBadRequest)
-				return
-			}
-			logInputData.Write(fileLogData)
-		} else {
-			fmt.Printf("File does not exist: %s", statsFile)
-		}
-	}
-
-	scanner := bufio.NewScanner(logInputData)
-
+	// initialize response
 	logData := LogData{
 		Schema: LogSchema{
 			Columns: map[string]string{
@@ -288,27 +271,63 @@ func (c *Context) packetLogsHandler(w http.ResponseWriter, r *http.Request) {
 		},
 		Data: []LogRow{},
 	}
+	// logs
+	statsFiles := []string{
+		path.Join(wireguard.VPN_STATS_DIR, wireguard.VPN_PACKETLOGGER_DIR, userID+"-"+date.Format("2006-01-02")+".log"),
+	}
+	if !dateEqual(time.Now(), date) { // date is in local timezone, and we are UTC, so also read next file
+		statsFiles = append(statsFiles, path.Join(wireguard.VPN_STATS_DIR, wireguard.VPN_PACKETLOGGER_DIR, userID+"-"+date.AddDate(0, 0, 1).Format("2006-01-02")+".log"))
+	}
+	logInputData := bytes.NewBuffer([]byte{})
+	//OpenFilesFromPos(statsFiles, 0) ([]io.Reader, error)
+	for _, statsFile := range statsFiles {
+		if c.Storage.Client.FileExists(statsFile) {
+			fileLogData, err := c.Storage.Client.ReadFile(statsFile)
+			if err != nil {
+				c.returnError(w, fmt.Errorf("readfile error: %s", err), http.StatusBadRequest)
+				return
+			}
+			logInputData.Write(fileLogData)
+		}
+	}
 
-	for scanner.Scan() {
+	pos := int64(0)
+	scanner := bufio.NewScanner(logInputData)
+	scanner.Split(func(data []byte, atEOF bool) (advance int, token []byte, err error) {
+		advance, token, err = bufio.ScanLines(data, atEOF)
+		pos += int64(advance)
+		return
+	})
+
+	for scanner.Scan() && len(logData.Data) < MAX_LOG_OUTPUT_LINES {
 		inputSplit := strings.Split(scanner.Text(), ",")
 		timestamp, err := time.Parse(wireguard.TIMESTAMP_FORMAT, inputSplit[0])
 		if err != nil {
 			continue // invalid record
 		}
-		if !filterLogRecord(logTypeFilter, inputSplit[1]) {
-			row := LogRow{
-				Timestamp: timestamp.Add(time.Duration(offset) * time.Minute),
-				Data:      inputSplit[1:],
+		timestamp = timestamp.Add(time.Duration(offset) * time.Minute)
+		if dateEqual(timestamp, date) {
+			if !filterLogRecord(logTypeFilter, inputSplit[1]) {
+				row := LogRow{
+					Timestamp: timestamp.Format("2006-01-02 15:04:05"),
+					Data:      inputSplit[1:],
+				}
+				logData.Data = append(logData.Data, row)
 			}
-			logData.Data = append(logData.Data, row)
-
 		}
 	}
 
 	if err := scanner.Err(); err != nil {
 		c.returnError(w, fmt.Errorf("log file read (scanner) error: %s", err), http.StatusBadRequest)
 		return
+	} else {
+		if len(logData.Data) < MAX_LOG_OUTPUT_LINES { // todo: and check if it is last file
+			pos = -1 // no more records
+		}
 	}
+
+	// set position
+	logData.NextPos = pos
 
 	// logtypes
 	packetLogTypes := []string{}
