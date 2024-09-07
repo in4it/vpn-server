@@ -18,6 +18,8 @@ type ReadWriter interface {
 	WriteFile(name string, data []byte) error
 	FileExists(filename string) bool
 	ConfigPath(filename string) string
+	OpenFile(name string) (io.ReadCloser, error)
+	OpenFileForWriting(name string) (io.WriteCloser, error)
 }
 
 type Seeker interface {

@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/in4it/wireguard-server/pkg/storage"
+	dateutils "github.com/in4it/wireguard-server/pkg/utils/date"
 	"github.com/in4it/wireguard-server/pkg/wireguard"
 )
 
@@ -57,7 +58,7 @@ func (c *Context) userStatsHandler(w http.ResponseWriter, r *http.Request) {
 		path.Join(wireguard.VPN_STATS_DIR, "user-"+date.AddDate(0, 0, -1).Format("2006-01-02")+".log"),
 		path.Join(wireguard.VPN_STATS_DIR, "user-"+date.Format("2006-01-02")+".log"),
 	}
-	if !dateEqual(time.Now(), date) {
+	if !dateutils.DateEqual(time.Now(), date) {
 		statsFiles = append(statsFiles, path.Join(wireguard.VPN_STATS_DIR, "user-"+date.AddDate(0, 0, 1).Format("2006-01-02")+".log"))
 	}
 	logData := bytes.NewBuffer([]byte{})
@@ -111,7 +112,7 @@ func (c *Context) userStatsHandler(w http.ResponseWriter, r *http.Request) {
 			timestamp, err := time.Parse(wireguard.TIMESTAMP_FORMAT, inputSplit[0])
 			if err == nil {
 				timestamp = timestamp.Add(time.Duration(offset) * time.Minute)
-				if dateEqual(timestamp, date) {
+				if dateutils.DateEqual(timestamp, date) {
 					receiveBytesData[userID] = append(receiveBytesData[userID], UserStatsDataPoint{X: timestamp.Format(wireguard.TIMESTAMP_FORMAT), Y: value})
 				}
 			}
@@ -125,7 +126,7 @@ func (c *Context) userStatsHandler(w http.ResponseWriter, r *http.Request) {
 			timestamp, err := time.Parse(wireguard.TIMESTAMP_FORMAT, inputSplit[0])
 			if err == nil {
 				timestamp = timestamp.Add(time.Duration(offset) * time.Minute)
-				if dateEqual(timestamp, date) {
+				if dateutils.DateEqual(timestamp, date) {
 					transmitBytesData[userID] = append(transmitBytesData[userID], UserStatsDataPoint{X: timestamp.Format(wireguard.TIMESTAMP_FORMAT), Y: value})
 				}
 			}
@@ -133,7 +134,7 @@ func (c *Context) userStatsHandler(w http.ResponseWriter, r *http.Request) {
 		handshake, err := time.Parse(wireguard.TIMESTAMP_FORMAT, inputSplit[5])
 		if err == nil {
 			handshake = handshake.Add(time.Duration(offset) * time.Minute)
-			if dateEqual(handshake, date) && !handshake.Equal(handshakeLast[userID]) {
+			if dateutils.DateEqual(handshake, date) && !handshake.Equal(handshakeLast[userID]) {
 				if _, ok := handshakeData[userID]; !ok {
 					handshakeData[userID] = []UserStatsDataPoint{}
 				}
@@ -284,7 +285,7 @@ func (c *Context) packetLogsHandler(w http.ResponseWriter, r *http.Request) {
 	statsFiles := []string{
 		path.Join(wireguard.VPN_STATS_DIR, wireguard.VPN_PACKETLOGGER_DIR, userID+"-"+date.Format("2006-01-02")+".log"),
 	}
-	if !dateEqual(time.Now(), date) { // date is in local timezone, and we are UTC, so also read next file
+	if !dateutils.DateEqual(time.Now(), date) { // date is in local timezone, and we are UTC, so also read next file
 		statsFiles = append(statsFiles, path.Join(wireguard.VPN_STATS_DIR, wireguard.VPN_PACKETLOGGER_DIR, userID+"-"+date.AddDate(0, 0, 1).Format("2006-01-02")+".log"))
 	}
 	statsFiles = filterNonExistentFiles(c.Storage.Client, statsFiles)
@@ -314,7 +315,7 @@ func (c *Context) packetLogsHandler(w http.ResponseWriter, r *http.Request) {
 				continue // invalid record
 			}
 			timestamp = timestamp.Add(time.Duration(offset) * time.Minute)
-			if dateEqual(timestamp, date) {
+			if dateutils.DateEqual(timestamp, date) {
 				if !filterLogRecord(logTypeFilter, inputSplit[1]) && matchesSearch(search, inputSplit) {
 					row := LogRow{
 						Timestamp: timestamp.Format("2006-01-02 15:04:05"),
@@ -386,12 +387,6 @@ func getColor(i int) string {
 		"#00cc99",
 	}
 	return colors[i%len(colors)]
-}
-
-func dateEqual(date1, date2 time.Time) bool {
-	y1, m1, d1 := date1.Date()
-	y2, m2, d2 := date2.Date()
-	return y1 == y2 && m1 == m2 && d1 == d2
 }
 
 func filterLogRecord(logTypeFilter []string, logType string) bool {

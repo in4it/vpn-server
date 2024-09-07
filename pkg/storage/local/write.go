@@ -1,6 +1,8 @@
 package localstorage
 
 import (
+	"fmt"
+	"io"
 	"os"
 	"path"
 )
@@ -20,4 +22,12 @@ func (l *LocalStorage) AppendFile(name string, data []byte) error {
 	}
 
 	return nil
+}
+
+func (l *LocalStorage) OpenFileForWriting(name string) (io.WriteCloser, error) {
+	file, err := os.Create(path.Join(l.path, name))
+	if err != nil {
+		return nil, fmt.Errorf("cannot open file (%s): %s", name, err)
+	}
+	return file, nil
 }

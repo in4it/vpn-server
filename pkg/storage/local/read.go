@@ -38,3 +38,11 @@ func (l *LocalStorage) OpenFilesFromPos(names []string, pos int64) ([]io.ReadClo
 	}
 	return readers, nil
 }
+
+func (l *LocalStorage) OpenFile(name string) (io.ReadCloser, error) {
+	file, err := os.Open(path.Join(l.path, name))
+	if err != nil {
+		return nil, fmt.Errorf("cannot open file (%s): %s", name, err)
+	}
+	return file, nil
+}

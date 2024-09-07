@@ -1,12 +1,22 @@
 package testingmocks
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"os"
 	"path"
 	"strings"
 )
+
+type MyWriteCloser struct {
+	*bufio.Writer
+}
+
+func (mwc *MyWriteCloser) Close() error {
+	return nil
+}
 
 type MockReadWriter struct {
 	Data map[string][]byte
@@ -39,6 +49,25 @@ func (m *MockReadWriter) WriteFile(name string, data []byte) error {
 	}
 	m.Data[name] = data
 	return nil
+}
+
+func (m *MockReadWriter) OpenFile(name string) (io.ReadCloser, error) {
+	if m.Data == nil {
+		m.Data = make(map[string][]byte)
+	}
+	val, ok := m.Data[name]
+	if !ok {
+		return nil, fmt.Errorf("file does not exist")
+	}
+
+	return io.NopCloser(bytes.NewBuffer(val)), nil
+}
+func (m *MockReadWriter) OpenFileForWriting(name string) (io.WriteCloser, error) {
+	if m.Data == nil {
+		m.Data = make(map[string][]byte)
+	}
+	buf := bufio.NewWriter(bytes.NewBuffer(m.Data[name]))
+	return &MyWriteCloser{buf}, nil
 }
 
 type MockMemoryStorage struct {
@@ -117,4 +146,22 @@ func (m *MockMemoryStorage) Remove(name string) error {
 
 func (m *MockMemoryStorage) OpenFilesFromPos(names []string, pos int64) ([]io.ReadCloser, error) {
 	return nil, fmt.Errorf("not implemented")
+}
+func (m *MockMemoryStorage) OpenFile(name string) (io.ReadCloser, error) {
+	if m.Data == nil {
+		m.Data = make(map[string][]byte)
+	}
+	val, ok := m.Data[name]
+	if !ok {
+		return nil, fmt.Errorf("file does not exist")
+	}
+
+	return io.NopCloser(bytes.NewBuffer(val)), nil
+}
+func (m *MockMemoryStorage) OpenFileForWriting(name string) (io.WriteCloser, error) {
+	if m.Data == nil {
+		m.Data = make(map[string][]byte)
+	}
+	buf := bufio.NewWriter(bytes.NewBuffer(m.Data[name]))
+	return &MyWriteCloser{buf}, nil
 }

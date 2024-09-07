@@ -19,6 +19,7 @@ import (
 	"github.com/gopacket/gopacket/layers"
 	"github.com/in4it/wireguard-server/pkg/logging"
 	"github.com/in4it/wireguard-server/pkg/storage"
+	dateutils "github.com/in4it/wireguard-server/pkg/utils/date"
 	"github.com/packetcap/go-pcap"
 	"golang.org/x/sys/unix"
 )
@@ -293,5 +294,49 @@ func checkDiskSpace() error {
 		return fmt.Errorf("not enough disk free disk space: %f", freeDiskSpace)
 	}
 
+	return nil
+}
+
+// Packet log rotation
+func PacketLoggerLogRotation(storage storage.Iface) {
+	err := packetLoggerLogRotation(storage)
+	logging.ErrorLog(fmt.Errorf("packet logger log rotation error: %s", err))
+}
+
+func packetLoggerLogRotation(storage storage.Iface) error {
+	logDir := path.Join(VPN_STATS_DIR, VPN_PACKETLOGGER_DIR)
+	files, err := storage.ReadDir(logDir)
+	if err != nil {
+		return fmt.Errorf("readDir error: %s", err)
+	}
+	for _, filename := range files {
+		filenameSplit := strings.Split(strings.TrimSuffix(filename, ".log"), "-")
+		if len(filenameSplit) > 3 {
+			dateParsed, err := time.Parse("2006-01-02", filenameSplit[len(filenameSplit)-3])
+			if err == nil {
+				if !dateutils.DateEqual(dateParsed, time.Now()) {
+					err := packetLoggerRotateLog(storage, filename)
+					if err != nil {
+						return fmt.Errorf("rotate log error: %s", err)
+					}
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func packetLoggerRotateLog(storage storage.Iface, filename string) error {
+	reader, err := storage.OpenFile(path.Join(VPN_STATS_DIR, VPN_PACKETLOGGER_DIR, filename))
+	if err != nil {
+		return fmt.Errorf("open file error (%s): %s", filename, err)
+	}
+	writer, err := storage.OpenFileForWriting(path.Join(VPN_STATS_DIR, VPN_PACKETLOGGER_DIR, filename+".gz.tmp"))
+	if err != nil {
+		return fmt.Errorf("write file error (%s): %s", filename+".gz.tmp", err)
+	}
+	defer reader.Close()
+	defer writer.Close()
+	// compress, write, rename
 	return nil
 }
