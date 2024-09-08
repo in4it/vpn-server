@@ -8,6 +8,7 @@ type Iface interface {
 	EnsureOwnership(filename, login string) error
 	ReadDir(name string) ([]string, error)
 	Remove(name string) error
+	Rename(oldName, newName string) error
 	AppendFile(name string, data []byte) error
 	ReadWriter
 	Seeker

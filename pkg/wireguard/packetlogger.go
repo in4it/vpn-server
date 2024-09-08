@@ -3,8 +3,10 @@ package wireguard
 import (
 	"bufio"
 	"bytes"
+	"compress/gzip"
 	"encoding/binary"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"os"
@@ -315,18 +317,23 @@ func packetLoggerLogRotation(storage storage.Iface) error {
 			dateParsed, err := time.Parse("2006-01-02", filenameSplit[len(filenameSplit)-3])
 			if err == nil {
 				if !dateutils.DateEqual(dateParsed, time.Now()) {
-					err := packetLoggerRotateLog(storage, filename)
+					err := packetLoggerCompressLog(storage, filename)
 					if err != nil {
 						return fmt.Errorf("rotate log error: %s", err)
 					}
+					err = packetLoggerRenameLog(storage, filename)
+					if err != nil {
+						return fmt.Errorf("rotate log error (rename): %s", err)
+					}
 				}
+
 			}
 		}
 	}
 	return nil
 }
 
-func packetLoggerRotateLog(storage storage.Iface, filename string) error {
+func packetLoggerCompressLog(storage storage.Iface, filename string) error {
 	reader, err := storage.OpenFile(path.Join(VPN_STATS_DIR, VPN_PACKETLOGGER_DIR, filename))
 	if err != nil {
 		return fmt.Errorf("open file error (%s): %s", filename, err)
@@ -337,6 +344,29 @@ func packetLoggerRotateLog(storage storage.Iface, filename string) error {
 	}
 	defer reader.Close()
 	defer writer.Close()
-	// compress, write, rename
+
+	gzipWriter, err := gzip.NewWriterLevel(writer, gzip.DefaultCompression)
+	if err != nil {
+		return fmt.Errorf("gzip writer error: %s", err)
+	}
+	_, err = io.Copy(gzipWriter, reader)
+	if err != nil {
+		return fmt.Errorf("copy error: %s", err)
+	}
+	err = gzipWriter.Close()
+	if err != nil {
+		return fmt.Errorf("file close error (gzip): %s", err)
+	}
+	return nil
+}
+func packetLoggerRenameLog(storage storage.Iface, filename string) error {
+	err := storage.Rename(path.Join(VPN_STATS_DIR, VPN_PACKETLOGGER_DIR, filename+".gz.tmp"), path.Join(VPN_STATS_DIR, VPN_PACKETLOGGER_DIR, filename+".gz"))
+	if err != nil {
+		return fmt.Errorf("rename error: %s", err)
+	}
+	err = storage.Remove(path.Join(VPN_STATS_DIR, VPN_PACKETLOGGER_DIR, filename))
+	if err != nil {
+		return fmt.Errorf("delete log error: %s", err)
+	}
 	return nil
 }

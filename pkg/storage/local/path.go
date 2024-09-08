@@ -81,3 +81,7 @@ func (l *LocalStorage) ReadDir(pathname string) ([]string, error) {
 func (l *LocalStorage) Remove(name string) error {
 	return os.Remove(path.Join(l.path, name))
 }
+
+func (l *LocalStorage) Rename(oldName, newName string) error {
+	return os.Rename(oldName, newName)
+}
