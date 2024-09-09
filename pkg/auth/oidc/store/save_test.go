@@ -4,11 +4,11 @@ import (
 	"testing"
 
 	"github.com/in4it/wireguard-server/pkg/auth/oidc"
-	testingmocks "github.com/in4it/wireguard-server/pkg/testing/mocks"
+	memorystorage "github.com/in4it/wireguard-server/pkg/storage/memory"
 )
 
 func TestSave(t *testing.T) {
-	storage := &testingmocks.MockMemoryStorage{}
+	storage := &memorystorage.MockMemoryStorage{}
 	store, err := NewStore(storage)
 	if err != nil {
 		t.Fatalf("error: %s", err)

@@ -35,12 +35,14 @@ func StartServer(port int) {
 	}
 
 	// refresh all clients
-	err = refreshAllClientsAndServer(localStorage)
+	err = refreshAllClientsAndServer(localStorage, c.ClientCache)
 	if err != nil {
 		log.Fatalf("could not refresh all clients: %s", err)
 	}
 
-	startStats(localStorage) // start gathering of wireguard stats
+	// start goroutines
+	startStats(localStorage)                                    // start gathering of wireguard stats
+	startPacketLogger(localStorage, c.ClientCache, c.VPNConfig) // start packet logger (optional)
 
 	log.Printf("Starting localhost http server at port %d\n", port)
 	log.Fatal(http.ListenAndServe(fmt.Sprintf("127.0.0.1:%d", port), c.getRouter()))
@@ -49,6 +51,9 @@ func StartServer(port int) {
 func initConfigManager(storage storage.Iface) (*ConfigManager, error) {
 	c := &ConfigManager{
 		Storage: storage,
+		ClientCache: &wireguard.ClientCache{
+			Addresses: []wireguard.ClientCacheAddresses{},
+		},
 	}
 
 	vpnConfig, err := wireguard.GetVPNConfig(storage)
@@ -66,6 +71,8 @@ func initConfigManager(storage storage.Iface) (*ConfigManager, error) {
 			return c, fmt.Errorf("failed to write setup-code.txt: %s", err)
 		}
 	}
+
+	c.VPNConfig = &vpnConfig
 
 	return c, nil
 }

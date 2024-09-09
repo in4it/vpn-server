@@ -1,6 +1,6 @@
 import { Container, Button, Alert, Textarea, Space } from "@mantine/core";
 import { useEffect, useState } from "react";
-import { IconInfoCircle } from "@tabler/icons-react";
+import { TbInfoCircle } from "react-icons/tb";
 import { AppSettings } from "../../Constants/Constants";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuthContext } from "../../Auth/Auth";
@@ -41,7 +41,7 @@ export function TemplateSetup() {
         serverTemplate: "",
       },
     });
-    const alertIcon = <IconInfoCircle />;
+    const alertIcon = <TbInfoCircle />;
     const setupMutation = useMutation({
       mutationFn: (setupRequest: TemplateSetupRequest) => {
         return axios.post(AppSettings.url + '/setup/templates', setupRequest, {

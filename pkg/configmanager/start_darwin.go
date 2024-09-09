@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/in4it/wireguard-server/pkg/storage"
+	"github.com/in4it/wireguard-server/pkg/wireguard"
 )
 
 func startVPN(storage storage.Iface) error {
@@ -21,4 +22,10 @@ func stopVPN() error {
 
 func startStats(storage storage.Iface) {
 	fmt.Printf("Warning: startStats is not implemented in darwin\n")
+}
+
+func startPacketLogger(storage storage.Iface, clientCache *wireguard.ClientCache, vpnConfig *wireguard.VPNConfig) {
+	go wireguard.RunPacketLogger(storage, clientCache, vpnConfig)
+	// run cleanup
+	go wireguard.PacketLoggerLogRotation(storage)
 }

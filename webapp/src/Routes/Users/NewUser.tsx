@@ -4,7 +4,7 @@ import classes from './NewUser.module.css';
 import { useMutation } from "@tanstack/react-query";
 import axios, { AxiosError } from "axios";
 import { AppSettings } from "../../Constants/Constants";
-import { IconInfoCircle } from "@tabler/icons-react";
+import { TbInfoCircle } from "react-icons/tb";
 import { useAuthContext } from "../../Auth/Auth";
 import { useForm } from "@mantine/form";
 
@@ -40,7 +40,7 @@ export function NewUser({setShowNewUser} :Props) {
             }
         }
     })
-    const alertIcon = <IconInfoCircle />;
+    const alertIcon = <TbInfoCircle />;
     const rolesData = ["user", "admin"];
     const form = useForm({
         mode: 'uncontrolled',

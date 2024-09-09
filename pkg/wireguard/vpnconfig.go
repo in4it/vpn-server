@@ -44,16 +44,26 @@ func GetVPNConfig(storage storage.Iface) (VPNConfig, error) {
 	if err != nil {
 		return vpnConfig, fmt.Errorf("decode input error: %s", err)
 	}
+
+	if vpnConfig.PacketLogsTypes == nil {
+		vpnConfig.PacketLogsTypes = make(map[string]bool)
+	}
+
 	return vpnConfig, nil
 }
 
 func getEmptyVPNConfig() (VPNConfig, error) {
-	vpnConfig := VPNConfig{}
+	vpnConfig := VPNConfig{
+		PacketLogsTypes: make(map[string]bool),
+	}
 	return vpnConfig, nil
 }
 
 func CreateNewVPNConfig(storage storage.Iface) (VPNConfig, error) {
-	vpnConfig := VPNConfig{}
+	vpnConfig, err := getEmptyVPNConfig()
+	if err != nil {
+		return vpnConfig, fmt.Errorf("get empty vpn config error: %s", err)
+	}
 	prefix, err := netip.ParsePrefix(DEFAULT_VPN_PREFIX)
 	if err != nil {
 		return vpnConfig, fmt.Errorf("ParsePrefix error: %s", err)
@@ -133,6 +143,19 @@ func WriteVPNConfig(storage storage.Iface, vpnConfig VPNConfig) error {
 		if err != nil {
 			return fmt.Errorf("config write error: %s", err)
 		}
+	}
+
+	// notify configmanager
+	client := http.Client{
+		Timeout: 10 * time.Second,
+	}
+
+	resp, err := client.Post("http://"+CONFIGMANAGER_URI+"/refresh-server-config", "application/json", nil)
+	if err != nil {
+		return fmt.Errorf("configmanager post error: %s", err)
+	}
+	if resp.StatusCode != http.StatusAccepted {
+		return fmt.Errorf("configmanager post error: received status code %d", resp.StatusCode)
 	}
 
 	return nil

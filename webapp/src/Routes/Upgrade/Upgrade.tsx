@@ -5,7 +5,7 @@ import classes from './Upgrade.module.css';
 import { AppSettings } from '../../Constants/Constants';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import axios, { AxiosError } from 'axios';
-import { IconInfoCircle } from '@tabler/icons-react';
+import { TbInfoCircle } from "react-icons/tb";
 import { useEffect, useState } from 'react';
 
 export function Upgrade() {
@@ -74,7 +74,7 @@ export function Upgrade() {
   if (error) return 'cannot retrieve licensed users'
   if (isPending) return 'Loading...'
 
-  const alertIcon = <IconInfoCircle />;
+  const alertIcon = <TbInfoCircle />;
   
   return (
     <Container my={40} size="40rem">

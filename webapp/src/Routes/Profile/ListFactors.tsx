@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { AppSettings } from "../../Constants/Constants"
 import { useAuthContext } from "../../Auth/Auth";
 import { ActionIcon, Group, Menu, Table, Text, rem } from "@mantine/core";
-import { IconDots, IconTrash } from "@tabler/icons-react";
+import { TbDots, TbTrash } from "react-icons/tb";
 import axios from "axios";
 
 type Factor = {
@@ -69,12 +69,12 @@ export function ListFactors() {
                 >
                 <Menu.Target>
                 <ActionIcon variant="subtle" color="gray">
-                    <IconDots style={{ width: rem(16), height: rem(16) }} stroke={1.5} />
+                    <TbDots style={{ width: rem(16), height: rem(16) }} />
                 </ActionIcon>
                 </Menu.Target>
                 <Menu.Dropdown>
                 <Menu.Item
-                    leftSection={<IconTrash style={{ width: rem(16), height: rem(16) }} stroke={1.5} />}
+                    leftSection={<TbTrash style={{ width: rem(16), height: rem(16) }} />}
                     color="red"
                     onClick={() => deleteFactor.mutate(item.name)}
                 >

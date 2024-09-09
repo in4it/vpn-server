@@ -1,7 +1,7 @@
 import { Text, Checkbox, Container, UnstyledButton, Tooltip, Center, rem, TextInput, Space, Button, Alert } from "@mantine/core";
 import classes from './Setup.module.css';
 import { useEffect, useState } from "react";
-import { IconInfoCircle } from "@tabler/icons-react";
+import { TbInfoCircle } from "react-icons/tb";
 import { AppSettings } from "../../Constants/Constants";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuthContext } from "../../Auth/Auth";
@@ -48,7 +48,7 @@ export function GeneralSetup() {
         enableOIDCTokenRenewal: false,
       },
     });
-    const alertIcon = <IconInfoCircle />;
+    const alertIcon = <TbInfoCircle />;
     const setupMutation = useMutation({
       mutationFn: (setupRequest: GeneralSetupRequest) => {
         return axios.post(AppSettings.url + '/setup/general', setupRequest, {
@@ -91,7 +91,7 @@ export function GeneralSetup() {
       >
         <Text component="div" c="dimmed" style={{ cursor: 'help' }}>
           <Center>
-            <IconInfoCircle style={{ width: rem(18), height: rem(18) }} stroke={1.5} />
+            <TbInfoCircle style={{ width: rem(18), height: rem(18) }} />
           </Center>
         </Text>
       </Tooltip>

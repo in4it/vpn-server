@@ -18,7 +18,7 @@ import { AppSettings } from '../Constants/Constants';
 import { useAuthContext } from './Auth';
 import { AuthError } from './AuthError';
 import { MFAInput } from './MFAInput';
-import { IconInfoCircle } from '@tabler/icons-react';
+import { TbInfoCircle } from "react-icons/tb";
 
 
 type LoginResponse = {
@@ -117,7 +117,7 @@ export function AuthBanner() {
         authenticate.mutate({login, password, factorResponse})
       }
     }
-    const alertIcon = <IconInfoCircle />
+    const alertIcon = <TbInfoCircle />
     
     if (error) return 'An backend error has occurred: ' + error.message
 

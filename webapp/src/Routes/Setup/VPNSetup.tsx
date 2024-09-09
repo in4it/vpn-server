@@ -1,8 +1,8 @@
 
-import { Container, TextInput, Alert, InputWrapper, Button, Space, UnstyledButton, Checkbox, Text } from "@mantine/core";
+import { Container, TextInput, Alert, InputWrapper, Button, Space, UnstyledButton, Checkbox, Text, MultiSelect } from "@mantine/core";
 import { useEffect, useState } from "react";
 import classes from './Setup.module.css';
-import { IconInfoCircle } from "@tabler/icons-react";
+import { TbInfoCircle } from "react-icons/tb";
 import { AppSettings } from "../../Constants/Constants";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuthContext } from "../../Auth/Auth";
@@ -23,6 +23,8 @@ type VPNSetupRequest = {
     externalInterface: string,
     nameservers: string,
     disableNAT: boolean,
+    enablePacketLogs: boolean,
+    packetLogsTypes: string[],
 };
 export function VPNSetup() {
     const [saved, setSaved] = useState(false)
@@ -53,7 +55,9 @@ export function VPNSetup() {
         port: "",
         externalInterface: "",
         nameservers: "",
-        disableNAT: false,   
+        disableNAT: false,
+        enablePacketLogs: false,
+        packetLogsTypes: []
       },
     });
     const setupMutation = useMutation({
@@ -80,7 +84,7 @@ export function VPNSetup() {
       }
     })
 
-    const alertIcon = <IconInfoCircle />;
+    const alertIcon = <TbInfoCircle />;
 
     useEffect(() => {
       if (isSuccess) {
@@ -217,8 +221,47 @@ export function VPNSetup() {
                     </Text>
                     </div>
                 </UnstyledButton>
-
-
+                <Space h="md" />
+                <UnstyledButton className={classes.button} onClick={() => form.setFieldValue("enablePacketLogs", !form.getValues().enablePacketLogs )}>
+                    <Checkbox
+                    tabIndex={-1}
+                    size="md"
+                    mr="xl"
+                    styles={{ input: { cursor: 'pointer' } }}
+                    aria-hidden
+                    key={form.key('enablePacketLogs')}
+                    {...form.getInputProps('enablePacketLogs', { type: 'checkbox' })}
+                    />
+                    <div>
+                    <Text fw={500} mb={7} lh={1}>
+                        Enable IP Packet logging
+                    </Text>
+                    <Text fz="sm" c="dimmed">
+                        Metadata of IP packets passing the VPN can be logged and displayed in this admin portal. Useful if you want to see TCP connection requests, DNS requests, or http/https requests passing the VPN.
+                    </Text>
+                    </div>
+                </UnstyledButton>
+                {form.getValues().enablePacketLogs ? 
+                    <InputWrapper
+                    id="input-packetlogger-type-input"
+                    label="Select types of packets to log"
+                    description="Select the type of packets that need to be logged. Note: by default all DNS requests are tunneled over the VPN, which can generate a lot of log data."
+                    style={{marginTop: 10}}
+                    >
+                      <MultiSelect
+                      searchable
+                      hidePickedOptions
+                      comboboxProps={{ offset: 0 }}
+                      data={[
+                        { value: 'dns', label: 'DNS' },
+                        { value: 'http+https', label: 'HTTP/HTTPS' },
+                        { value: 'tcp', label: 'New TCP Connections (SYN)' },
+                      ]}
+                      {...form.getInputProps('packetLogsTypes')}
+                      />
+                    </InputWrapper>
+                : null}
+                <Space h="md" />
                 <Button type="submit" mt="md">
                 Submit
                 </Button>

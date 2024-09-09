@@ -13,7 +13,7 @@ import (
 	"strings"
 	"testing"
 
-	testingmocks "github.com/in4it/wireguard-server/pkg/testing/mocks"
+	memorystorage "github.com/in4it/wireguard-server/pkg/storage/memory"
 	"github.com/in4it/wireguard-server/pkg/users"
 	"github.com/in4it/wireguard-server/pkg/wireguard"
 )
@@ -32,6 +32,11 @@ func TestCreateUserConnectionDeleteUserFlow(t *testing.T) {
 				w.Write([]byte("OK"))
 				return
 			}
+			if r.RequestURI == "/refresh-server-config" {
+				w.WriteHeader(http.StatusAccepted)
+				w.Write([]byte("OK"))
+				return
+			}
 			w.WriteHeader(http.StatusBadRequest)
 		default:
 			w.WriteHeader(http.StatusBadRequest)
@@ -45,7 +50,7 @@ func TestCreateUserConnectionDeleteUserFlow(t *testing.T) {
 	defer l.Close()
 
 	// first create a new user
-	storage := &testingmocks.MockMemoryStorage{}
+	storage := &memorystorage.MockMemoryStorage{}
 
 	c, err := newContext(storage, SERVER_TYPE_VPN)
 	if err != nil {
@@ -156,7 +161,7 @@ func TestCreateUserConnectionDeleteUserFlow(t *testing.T) {
 
 func TestCreateUser(t *testing.T) {
 	// first create a new user
-	storage := &testingmocks.MockMemoryStorage{}
+	storage := &memorystorage.MockMemoryStorage{}
 
 	c, err := newContext(storage, SERVER_TYPE_VPN)
 	if err != nil {

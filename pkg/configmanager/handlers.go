@@ -59,18 +59,40 @@ func (c *ConfigManager) refreshClients(w http.ResponseWriter, r *http.Request) {
 			}
 			switch payload.Action {
 			case wireguard.ACTION_ADD:
-				err = syncClient(c.Storage, filename)
+				err = syncClient(c.Storage, filename, c.ClientCache)
 				if err != nil {
 					returnError(w, fmt.Errorf("syncClient error: %s", err), http.StatusBadRequest)
 					return
 				}
 			case wireguard.ACTION_DELETE:
-				err = deleteClient(c.Storage, filename)
+				err = deleteClient(c.Storage, filename, c.ClientCache)
 				if err != nil {
 					returnError(w, fmt.Errorf("deleteClient error: %s", err), http.StatusBadRequest)
 					return
 				}
 			}
+		}
+		w.WriteHeader(http.StatusAccepted)
+	default:
+		returnError(w, fmt.Errorf("method not supported"), http.StatusBadRequest)
+	}
+}
+func (c *ConfigManager) refreshServerConfig(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodPost:
+		vpnConfig, err := wireguard.GetVPNConfig(c.Storage)
+		if err != nil {
+			returnError(w, fmt.Errorf("get vpn config error: %s", err), http.StatusBadRequest)
+			return
+		}
+		startPacketLogger := false
+		if vpnConfig.EnablePacketLogs && !c.VPNConfig.EnablePacketLogs {
+			startPacketLogger = true
+		}
+		c.VPNConfig.EnablePacketLogs = vpnConfig.EnablePacketLogs
+		c.VPNConfig.PacketLogsTypes = vpnConfig.PacketLogsTypes
+		if startPacketLogger {
+			go wireguard.RunPacketLogger(c.Storage, c.ClientCache, c.VPNConfig)
 		}
 		w.WriteHeader(http.StatusAccepted)
 	default:
@@ -131,7 +153,7 @@ func (c *ConfigManager) restartVpn(w http.ResponseWriter, r *http.Request) {
 			returnError(w, fmt.Errorf("vpn start error: %s", err), http.StatusBadRequest)
 			return
 		}
-		err = refreshAllClientsAndServer(c.Storage)
+		err = refreshAllClientsAndServer(c.Storage, c.ClientCache)
 		if err != nil {
 			returnError(w, fmt.Errorf("could not refresh all clients: %s", err), http.StatusBadRequest)
 			return

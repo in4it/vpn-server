@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	testingmocks "github.com/in4it/wireguard-server/pkg/testing/mocks"
+	memorystorage "github.com/in4it/wireguard-server/pkg/storage/memory"
 )
 
 func TestGetNextFreeIPFromList(t *testing.T) {
@@ -80,6 +80,11 @@ func TestWriteConfig(t *testing.T) {
 				w.Write([]byte("OK"))
 				return
 			}
+			if r.RequestURI == "/refresh-server-config" {
+				w.WriteHeader(http.StatusAccepted)
+				w.Write([]byte("OK"))
+				return
+			}
 			w.WriteHeader(http.StatusBadRequest)
 		default:
 			w.WriteHeader(http.StatusBadRequest)
@@ -92,7 +97,7 @@ func TestWriteConfig(t *testing.T) {
 	defer ts.Close()
 	defer l.Close()
 
-	storage := &testingmocks.MockMemoryStorage{}
+	storage := &memorystorage.MockMemoryStorage{}
 
 	// first create a new vpn config
 	vpnconfig, err := CreateNewVPNConfig(storage)
@@ -152,6 +157,11 @@ func TestWriteConfigMultipleClients(t *testing.T) {
 				w.Write([]byte("OK"))
 				return
 			}
+			if r.RequestURI == "/refresh-server-config" {
+				w.WriteHeader(http.StatusAccepted)
+				w.Write([]byte("OK"))
+				return
+			}
 			w.WriteHeader(http.StatusBadRequest)
 		default:
 			w.WriteHeader(http.StatusBadRequest)
@@ -164,7 +174,7 @@ func TestWriteConfigMultipleClients(t *testing.T) {
 	defer ts.Close()
 	defer l.Close()
 
-	storage := &testingmocks.MockMemoryStorage{}
+	storage := &memorystorage.MockMemoryStorage{}
 
 	// first create a new vpn config
 	vpnconfig, err := CreateNewVPNConfig(storage)
@@ -226,6 +236,11 @@ func TestCreateAndDeleteAllClientConfig(t *testing.T) {
 				w.Write([]byte("OK"))
 				return
 			}
+			if r.RequestURI == "/refresh-server-config" {
+				w.WriteHeader(http.StatusAccepted)
+				w.Write([]byte("OK"))
+				return
+			}
 			w.WriteHeader(http.StatusBadRequest)
 		default:
 			w.WriteHeader(http.StatusBadRequest)
@@ -238,7 +253,7 @@ func TestCreateAndDeleteAllClientConfig(t *testing.T) {
 	defer ts.Close()
 	defer l.Close()
 
-	storage := &testingmocks.MockMemoryStorage{}
+	storage := &memorystorage.MockMemoryStorage{}
 
 	// first create a new vpn config
 	vpnconfig, err := CreateNewVPNConfig(storage)
@@ -272,7 +287,7 @@ func TestCreateAndDeleteAllClientConfig(t *testing.T) {
 		t.Fatalf("couldn't find peer config file written in storage")
 	}
 
-	err = json.Unmarshal(writtenPeerconfig, &peerConfig)
+	err = json.Unmarshal(*writtenPeerconfig, &peerConfig)
 	if err != nil {
 		t.Fatalf("unmarshal error: %s", err)
 	}
@@ -314,6 +329,11 @@ func TestCreateAndDeleteClientConfig(t *testing.T) {
 				w.Write([]byte("OK"))
 				return
 			}
+			if r.RequestURI == "/refresh-server-config" {
+				w.WriteHeader(http.StatusAccepted)
+				w.Write([]byte("OK"))
+				return
+			}
 			w.WriteHeader(http.StatusBadRequest)
 		default:
 			w.WriteHeader(http.StatusBadRequest)
@@ -326,7 +346,7 @@ func TestCreateAndDeleteClientConfig(t *testing.T) {
 	defer ts.Close()
 	defer l.Close()
 
-	storage := &testingmocks.MockMemoryStorage{}
+	storage := &memorystorage.MockMemoryStorage{}
 
 	// first create a new vpn config
 	vpnconfig, err := CreateNewVPNConfig(storage)
@@ -360,7 +380,7 @@ func TestCreateAndDeleteClientConfig(t *testing.T) {
 		t.Fatalf("couldn't find peer config file written in storage")
 	}
 
-	err = json.Unmarshal(writtenPeerconfig, &peerConfig)
+	err = json.Unmarshal(*writtenPeerconfig, &peerConfig)
 	if err != nil {
 		t.Fatalf("unmarshal error: %s", err)
 	}
@@ -403,6 +423,11 @@ func TestCreateAndDisableAllClientConfig(t *testing.T) {
 				w.Write([]byte("OK"))
 				return
 			}
+			if r.RequestURI == "/refresh-server-config" {
+				w.WriteHeader(http.StatusAccepted)
+				w.Write([]byte("OK"))
+				return
+			}
 			w.WriteHeader(http.StatusBadRequest)
 		default:
 			w.WriteHeader(http.StatusBadRequest)
@@ -415,7 +440,7 @@ func TestCreateAndDisableAllClientConfig(t *testing.T) {
 	defer ts.Close()
 	defer l.Close()
 
-	storage := &testingmocks.MockMemoryStorage{}
+	storage := &memorystorage.MockMemoryStorage{}
 
 	// first create a new vpn config
 	vpnconfig, err := CreateNewVPNConfig(storage)
@@ -449,7 +474,7 @@ func TestCreateAndDisableAllClientConfig(t *testing.T) {
 		t.Fatalf("couldn't find peer config file written in storage")
 	}
 
-	err = json.Unmarshal(writtenPeerconfig, &peerConfig)
+	err = json.Unmarshal(*writtenPeerconfig, &peerConfig)
 	if err != nil {
 		t.Fatalf("unmarshal error: %s", err)
 	}
@@ -471,7 +496,7 @@ func TestCreateAndDisableAllClientConfig(t *testing.T) {
 		t.Fatalf("couldn't find peer config file written in storage")
 	}
 
-	err = json.Unmarshal(writtenPeerconfig, &peerConfig)
+	err = json.Unmarshal(*writtenPeerconfig, &peerConfig)
 	if err != nil {
 		t.Fatalf("unmarshal error: %s", err)
 	}
@@ -492,7 +517,7 @@ func TestCreateAndDisableAllClientConfig(t *testing.T) {
 		t.Fatalf("couldn't find peer config file written in storage")
 	}
 
-	err = json.Unmarshal(writtenPeerconfig, &peerConfig)
+	err = json.Unmarshal(*writtenPeerconfig, &peerConfig)
 	if err != nil {
 		t.Fatalf("unmarshal error: %s", err)
 	}
@@ -527,6 +552,11 @@ func TestUpdateClientConfig(t *testing.T) {
 				w.Write([]byte("OK"))
 				return
 			}
+			if r.RequestURI == "/refresh-server-config" {
+				w.WriteHeader(http.StatusAccepted)
+				w.Write([]byte("OK"))
+				return
+			}
 			w.WriteHeader(http.StatusBadRequest)
 		default:
 			w.WriteHeader(http.StatusBadRequest)
@@ -539,7 +569,7 @@ func TestUpdateClientConfig(t *testing.T) {
 	defer ts.Close()
 	defer l.Close()
 
-	storage := &testingmocks.MockMemoryStorage{}
+	storage := &memorystorage.MockMemoryStorage{}
 
 	// first create a new vpn config
 	vpnconfig, err := CreateNewVPNConfig(storage)
@@ -610,6 +640,11 @@ func TestUpdateClientConfigNewAddressRange(t *testing.T) {
 				w.Write([]byte("OK"))
 				return
 			}
+			if r.RequestURI == "/refresh-server-config" {
+				w.WriteHeader(http.StatusAccepted)
+				w.Write([]byte("OK"))
+				return
+			}
 			w.WriteHeader(http.StatusBadRequest)
 		default:
 			w.WriteHeader(http.StatusBadRequest)
@@ -622,7 +657,7 @@ func TestUpdateClientConfigNewAddressRange(t *testing.T) {
 	defer ts.Close()
 	defer l.Close()
 
-	storage := &testingmocks.MockMemoryStorage{}
+	storage := &memorystorage.MockMemoryStorage{}
 
 	// first create a new vpn config
 	vpnconfig, err := CreateNewVPNConfig(storage)
@@ -722,6 +757,11 @@ func TestUpdateClientConfigNewClientAddressPrefix(t *testing.T) {
 				w.Write([]byte("OK"))
 				return
 			}
+			if r.RequestURI == "/refresh-server-config" {
+				w.WriteHeader(http.StatusAccepted)
+				w.Write([]byte("OK"))
+				return
+			}
 			w.WriteHeader(http.StatusBadRequest)
 		default:
 			w.WriteHeader(http.StatusBadRequest)
@@ -734,7 +774,7 @@ func TestUpdateClientConfigNewClientAddressPrefix(t *testing.T) {
 	defer ts.Close()
 	defer l.Close()
 
-	storage := &testingmocks.MockMemoryStorage{}
+	storage := &memorystorage.MockMemoryStorage{}
 
 	// first create a new vpn config
 	vpnconfig, err := CreateNewVPNConfig(storage)

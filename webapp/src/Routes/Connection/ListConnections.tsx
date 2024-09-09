@@ -4,7 +4,7 @@ import { Table, ScrollArea, Button } from '@mantine/core';
 import classes from './ListConnections.module.css';
 import { useQueryClient, useMutation, useQuery } from '@tanstack/react-query';
 import { AppSettings } from '../../Constants/Constants';
-import { IconTrash } from '@tabler/icons-react';
+import { TbTrash } from 'react-icons/tb';
 import axios from 'axios';
 import { useAuthContext } from '../../Auth/Auth';
 import { Download } from './Download';
@@ -49,7 +49,7 @@ export function ListConnections() {
         <Table.Tr key={row.id}>
             <Table.Td>{row.name}</Table.Td>
             <Table.Td><Download id={row.id} name={row.name} /></Table.Td>
-            <Table.Td><Button onClick={() => deleteConnection.mutate(row.id)}><IconTrash size={15} /></Button></Table.Td>
+            <Table.Td><Button onClick={() => deleteConnection.mutate(row.id)}><TbTrash size={15} /></Button></Table.Td>
         </Table.Tr>
     ));
 

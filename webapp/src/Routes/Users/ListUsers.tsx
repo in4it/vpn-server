@@ -3,7 +3,7 @@ import { Table, Button, rem, Group, Text, Badge, Select, PasswordInput, Menu, Ac
 //import classes from './ListUsers.module.css';
 import { useQueryClient, useMutation, useQuery } from '@tanstack/react-query';
 import { AppSettings } from '../../Constants/Constants';
-import { IconDots, IconInfoCircle, IconPassword, IconTrash, IconUserPause } from '@tabler/icons-react';
+import { TbDots, TbInfoCircle, TbPassword, TbTrash, TbUserPause } from 'react-icons/tb';
 import { useDisclosure } from '@mantine/hooks';
 import axios from 'axios';
 import { useAuthContext } from '../../Auth/Auth';
@@ -82,7 +82,7 @@ export function ListUsers({localAuthDisabled}:Props) {
             queryClient.invalidateQueries({ queryKey: ['license'] })
         }
       })
-      const alertIcon = <IconInfoCircle />;
+      const alertIcon = <TbInfoCircle />;
       
     
     if(isPending) return "Loading..."
@@ -182,26 +182,26 @@ export function ListUsers({localAuthDisabled}:Props) {
                 >
                 <Menu.Target>
                 <ActionIcon variant="subtle" color="gray">
-                    <IconDots style={{ width: rem(16), height: rem(16) }} stroke={1.5} />
+                    <TbDots style={{ width: rem(16), height: rem(16) }} />
                 </ActionIcon>
                 </Menu.Target>
                 <Menu.Dropdown>
                 {item.oidcID == "" ? 
                 <Menu.Item
-                    leftSection={<IconPassword style={{ width: rem(16), height: rem(16) }} stroke={1.5} />}
+                    leftSection={<TbPassword style={{ width: rem(16), height: rem(16) }} />}
                     onClick={() => openPasswordModal(item.id)}
                 >
                     Change Password
                 </Menu.Item>
                 : null }
                 <Menu.Item
-                    leftSection={<IconUserPause style={{ width: rem(16), height: rem(16) }} stroke={1.5} />}
+                    leftSection={<TbUserPause style={{ width: rem(16), height: rem(16) }} />}
                     onClick={() => updateUser.mutate({...item, id: item.id, password: "", suspended: !item.suspended})}
                 >
                     {item.suspended ? "Unsuspend" : "Suspend"} User
                 </Menu.Item>
                 <Menu.Item
-                    leftSection={<IconTrash style={{ width: rem(16), height: rem(16) }} stroke={1.5} />}
+                    leftSection={<TbTrash style={{ width: rem(16), height: rem(16) }} />}
                     color="red"
                     onClick={() => deleteUser.mutate(item.id)}
                 >

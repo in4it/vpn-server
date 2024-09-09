@@ -4,7 +4,7 @@ import classes from './NewFactor.module.css';
 import { useMutation } from "@tanstack/react-query";
 import axios, { AxiosError } from "axios";
 import { AppSettings } from "../../Constants/Constants";
-import { IconInfoCircle } from "@tabler/icons-react";
+import { TbInfoCircle } from "react-icons/tb";
 import { useAuthContext } from "../../Auth/Auth";
 import { useForm } from "@mantine/form";
 import { QRCode } from "./QRCode";
@@ -50,7 +50,7 @@ export function NewFactor({setShowNewFactor, secret} :Props) {
             }
         }
     })
-    const alertIcon = <IconInfoCircle />;
+    const alertIcon = <TbInfoCircle />;
     const form = useForm({
         mode: 'uncontrolled',
         initialValues: {

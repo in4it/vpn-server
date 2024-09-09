@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 
 import { AppSettings } from '../../Constants/Constants';
 import { useQuery } from '@tanstack/react-query';
-import { IconInfoCircle } from '@tabler/icons-react';
+import { TbInfoCircle } from "react-icons/tb";
 
 export function UpgradeAlert() {
   const {authInfo} = useAuthContext()
@@ -26,7 +26,7 @@ export function UpgradeAlert() {
   if (error) return ''
   if (isPending) return ''
 
-  const alertIcon = <IconInfoCircle />
+  const alertIcon = <TbInfoCircle />
 
   if (!data.newVersionAvailable) return ''
 

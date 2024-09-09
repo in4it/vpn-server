@@ -4,7 +4,7 @@ import classes from './NewOIDC.module.css';
 import { useMutation } from "@tanstack/react-query";
 import axios, { AxiosError } from "axios";
 import { AppSettings } from "../../../Constants/Constants";
-import { IconX } from "@tabler/icons-react";
+import { TbX } from "react-icons/tb";
 import { useAuthContext } from "../../../Auth/Auth";
 
   type OIDCProviderError = {
@@ -59,7 +59,7 @@ export function NewOIDC({setShowNewOIDCProvider} :Props) {
             <>
             <Text component="div" c="red" mt={5} size="sm">
             <Center inline>
-                <IconX size="0.9rem" stroke={1.5} />
+                <TbX size="0.9rem"/>
                 <Box ml={7}>{oidcProviderError}</Box>
             </Center>
             </Text>

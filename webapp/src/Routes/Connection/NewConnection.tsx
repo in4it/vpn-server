@@ -4,13 +4,13 @@ import axios, { AxiosError } from "axios"
 import { useAuthContext } from "../../Auth/Auth";
 import { useState } from "react";
 import { Alert, Button } from "@mantine/core";
-import { IconInfoCircle } from "@tabler/icons-react";
+import { TbInfoCircle } from "react-icons/tb";
 
 export function NewConnection() {
     const queryClient = useQueryClient()
     const {authInfo} = useAuthContext();
     const [newConnectionError, setError] = useState<string>("")
-    const alertIcon = <IconInfoCircle />
+    const alertIcon = <TbInfoCircle />
     const newConnection = useMutation({
         mutationFn: () => {
           return axios.post(AppSettings.url + '/connections', {}, {

@@ -1,6 +1,7 @@
 package wireguard
 
 import (
+	"net"
 	"net/netip"
 	"time"
 )
@@ -31,16 +32,18 @@ type VPNServerClient struct {
 }
 
 type VPNConfig struct {
-	AddressRange        netip.Prefix `json:"addressRange"`
-	ClientAddressPrefix string       `json:"clientAddressPrefix"`
-	PublicKey           string       `json:"publicKey"`
-	PresharedKey        string       `json:"presharedKey"`
-	Endpoint            string       `json:"endpoint"`
-	Port                int          `json:"port"`
-	ExternalInterface   string       `json:"externalInterface"`
-	Nameservers         []string     `json:"nameservers"`
-	DisableNAT          bool         `json:"disableNAT"`
-	ClientRoutes        []string     `json:"clientRoutes"`
+	AddressRange        netip.Prefix    `json:"addressRange"`
+	ClientAddressPrefix string          `json:"clientAddressPrefix"`
+	PublicKey           string          `json:"publicKey"`
+	PresharedKey        string          `json:"presharedKey"`
+	Endpoint            string          `json:"endpoint"`
+	Port                int             `json:"port"`
+	ExternalInterface   string          `json:"externalInterface"`
+	Nameservers         []string        `json:"nameservers"`
+	DisableNAT          bool            `json:"disableNAT"`
+	ClientRoutes        []string        `json:"clientRoutes"`
+	EnablePacketLogs    bool            `json:"enablePacketLogs"`
+	PacketLogsTypes     map[string]bool `json:"packetLogsTypes"`
 }
 
 type PubKeyExchange struct {
@@ -70,4 +73,14 @@ type StatsEntry struct {
 	LastHandshakeTime time.Time
 	ReceiveBytes      int64
 	TransmitBytes     int64
+}
+
+// client cache
+
+type ClientCache struct {
+	Addresses []ClientCacheAddresses
+}
+type ClientCacheAddresses struct {
+	Address  net.IPNet
+	ClientID string
 }

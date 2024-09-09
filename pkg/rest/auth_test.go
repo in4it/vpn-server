@@ -23,7 +23,7 @@ import (
 	"github.com/in4it/wireguard-server/pkg/auth/saml"
 	"github.com/in4it/wireguard-server/pkg/logging"
 	"github.com/in4it/wireguard-server/pkg/rest/login"
-	testingmocks "github.com/in4it/wireguard-server/pkg/testing/mocks"
+	memorystorage "github.com/in4it/wireguard-server/pkg/storage/memory"
 	"github.com/in4it/wireguard-server/pkg/users"
 	"github.com/russellhaering/gosaml2/types"
 	dsigtypes "github.com/russellhaering/goxmldsig/types"
@@ -80,7 +80,7 @@ c7tL1QjbfAUHAQYwmHkWgPP+T2wAv0pOt36GgMCM`
 }
 
 func TestAuthHandler(t *testing.T) {
-	c, err := newContext(&testingmocks.MockMemoryStorage{}, SERVER_TYPE_VPN)
+	c, err := newContext(&memorystorage.MockMemoryStorage{}, SERVER_TYPE_VPN)
 	if err != nil {
 		t.Fatalf("Cannot create context: %s", err)
 	}
@@ -130,7 +130,7 @@ func TestAuthHandler(t *testing.T) {
 
 func TestNewSAMLConnection(t *testing.T) {
 	// generate new keypair
-	kp := saml.NewKeyPair(&testingmocks.MockMemoryStorage{}, "www.idp.inv")
+	kp := saml.NewKeyPair(&memorystorage.MockMemoryStorage{}, "www.idp.inv")
 	_, cert, err := kp.GetKeyPair()
 	if err != nil {
 		t.Fatalf("Can't generate new keypair: %s", err)
@@ -191,7 +191,7 @@ func TestNewSAMLConnection(t *testing.T) {
 	defer l.Close()
 
 	// first create a new user
-	c, err := newContext(&testingmocks.MockMemoryStorage{}, SERVER_TYPE_VPN)
+	c, err := newContext(&memorystorage.MockMemoryStorage{}, SERVER_TYPE_VPN)
 	if err != nil {
 		t.Fatalf("Cannot create context")
 	}
@@ -419,7 +419,7 @@ func TestNewSAMLConnection(t *testing.T) {
 
 }
 func TestAddModifyDeleteNewSAMLConnection(t *testing.T) {
-	c, err := newContext(&testingmocks.MockMemoryStorage{}, SERVER_TYPE_VPN)
+	c, err := newContext(&memorystorage.MockMemoryStorage{}, SERVER_TYPE_VPN)
 	if err != nil {
 		t.Fatalf("Cannot create context")
 	}
@@ -592,7 +592,7 @@ func TestAddModifyDeleteNewSAMLConnection(t *testing.T) {
 }
 
 func TestSAMLCallback(t *testing.T) {
-	c, err := newContext(&testingmocks.MockMemoryStorage{}, SERVER_TYPE_VPN)
+	c, err := newContext(&memorystorage.MockMemoryStorage{}, SERVER_TYPE_VPN)
 	if err != nil {
 		t.Fatalf("Cannot create context")
 	}
@@ -701,7 +701,7 @@ func TestOIDCFlow(t *testing.T) {
 	}
 
 	// first create a new user
-	c, err := newContext(&testingmocks.MockMemoryStorage{}, SERVER_TYPE_VPN)
+	c, err := newContext(&memorystorage.MockMemoryStorage{}, SERVER_TYPE_VPN)
 	if err != nil {
 		t.Fatalf("Cannot create context")
 	}

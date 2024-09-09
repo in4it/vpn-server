@@ -8,13 +8,13 @@ import (
 	"testing"
 	"time"
 
-	testingmocks "github.com/in4it/wireguard-server/pkg/testing/mocks"
+	memorystorage "github.com/in4it/wireguard-server/pkg/storage/memory"
 	"github.com/in4it/wireguard-server/pkg/wireguard"
 )
 
 func TestUserStatsHandler(t *testing.T) {
 
-	storage := &testingmocks.MockMemoryStorage{}
+	storage := &memorystorage.MockMemoryStorage{}
 
 	c, err := newContext(storage, SERVER_TYPE_VPN)
 	if err != nil {
@@ -66,4 +66,15 @@ func TestUserStatsHandler(t *testing.T) {
 		t.Fatalf("unexpected data: %s", userStatsResponse.Handshakes.Datasets[0].Data[0].X)
 	}
 
+}
+
+func TestFilterLogRecord(t *testing.T) {
+	logTypeFilter := []string{"tcp", "http+https"}
+	expected := []bool{false, false, true, false}
+	for k, v := range []string{"tcp", "http", "udp", "https"} {
+		res := filterLogRecord(logTypeFilter, v)
+		if res != expected[k] {
+			t.Fatalf("unexpected result: %v, got: %v", res, expected[k])
+		}
+	}
 }

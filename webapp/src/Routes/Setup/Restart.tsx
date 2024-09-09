@@ -1,6 +1,6 @@
 import { Container, Button, Alert, Space } from "@mantine/core";
 import { useState } from "react";
-import { IconInfoCircle } from "@tabler/icons-react";
+import { TbInfoCircle } from "react-icons/tb";
 import { AppSettings } from "../../Constants/Constants";
 import { useMutation } from "@tanstack/react-query";
 import { useAuthContext } from "../../Auth/Auth";
@@ -15,7 +15,7 @@ export function Restart() {
     const [pending, setPending] = useState(false)
     const [saveError, setSaveError] = useState("")
     const {authInfo} = useAuthContext();
-    const alertIcon = <IconInfoCircle />;
+    const alertIcon = <TbInfoCircle />;
     const setupMutation = useMutation({
       mutationFn: () => {
         return axios.post(AppSettings.url + '/setup/restart-vpn', {}, {

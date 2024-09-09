@@ -4,7 +4,7 @@ import classes from './GetMoreLicenses.module.css';
 
 import { AppSettings } from '../../Constants/Constants';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { IconInfoCircle } from '@tabler/icons-react';
+import { TbInfoCircle } from "react-icons/tb";
 import { useState } from 'react';
 
 export function GetMoreLicenses() {
@@ -36,7 +36,7 @@ export function GetMoreLicenses() {
   if (error) return 'cannot retrieve licensed users'
   if (isPending) return 'Loading...'
 
-  const alertIcon = <IconInfoCircle />;
+  const alertIcon = <TbInfoCircle />;
   
   return (
     <Container my={40} size="40rem">

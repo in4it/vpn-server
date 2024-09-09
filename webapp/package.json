@@ -15,7 +15,6 @@
     "@mantine/dates": "^7.12.1",
     "@mantine/form": "^7.10.0",
     "@mantine/hooks": "^7.9.2",
-    "@tabler/icons-react": "^3.4.0",
     "@tanstack/react-query": "^5.36.2",
     "axios": "^1.7.4",
     "base32-encode": "^2.0.0",
@@ -27,6 +26,7 @@
     "react-cookie": "^7.1.4",
     "react-dom": "^18.2.0",
     "react-hook-qrcode-svg": "^1.5.1",
+    "react-icons": "^5.3.0",
     "react-router-dom": "^6.23.1"
   },
   "devDependencies": {
