@@ -1,6 +1,7 @@
 package wireguard
 
 import (
+	"io"
 	"net"
 	"net/netip"
 	"time"
@@ -85,3 +86,7 @@ type ClientCacheAddresses struct {
 	Address  net.IPNet
 	ClientID string
 }
+
+// packetlogger open files
+
+type PacketLoggerOpenFiles map[string]io.WriteCloser
