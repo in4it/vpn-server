@@ -1,6 +1,9 @@
 package storage
 
-import "io"
+import (
+	"io"
+	"io/fs"
+)
 
 type Iface interface {
 	GetPath() string
@@ -10,6 +13,7 @@ type Iface interface {
 	Remove(name string) error
 	Rename(oldName, newName string) error
 	AppendFile(name string, data []byte) error
+	EnsurePermissions(name string, mode fs.FileMode) error
 	ReadWriter
 	Seeker
 }
@@ -21,6 +25,7 @@ type ReadWriter interface {
 	ConfigPath(filename string) string
 	OpenFile(name string) (io.ReadCloser, error)
 	OpenFileForWriting(name string) (io.WriteCloser, error)
+	OpenFileForAppending(name string) (io.WriteCloser, error)
 }
 
 type Seeker interface {

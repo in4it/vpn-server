@@ -57,13 +57,14 @@ func TestParsePacket(t *testing.T) {
 		"450201050000400040066c260abdb8020a00010cf24a01bb510f1260c4b504a180180800ea1300000101080a327dffc0edef002a1703030035131e32cc93174219580748842686d43e1cbb73501f643eaa49b3b7ba50a9f0a97e19ec926f8b5b141b363067d9a31061b146010d8f17030300511611c04909f5346b580fe1a95c68b2a62389ca6ed7e2f31ddb38cb191cf0997e16b5efaa9248a213e621869d071af7339ddafaee642953538a03d89cb3896ecf6756f5fb80f1866671282da72dce691169170303003c3bd012039a27a373dd1b4e7509e0e9aaefc4cfae6adcae6f670501e2577e20c98233761878d9f64355a89aa389f56480517bada888a2625ef211cb5e",
 	}
 	now := time.Now()
+	openFiles := make(PacketLoggerOpenFiles)
 	for _, s := range input {
 
 		data, err := hex.DecodeString(s)
 		if err != nil {
 			t.Fatalf("hex decode error: %s", err)
 		}
-		err = parsePacket(storage, data, clientCache)
+		err = parsePacket(storage, data, clientCache, openFiles, now)
 		if err != nil {
 			t.Fatalf("parse error: %s", err)
 		}
@@ -105,13 +106,14 @@ func TestParsePacketSNI(t *testing.T) {
 		`450000d100004000400682160abdb80240e9b468ec5001bb4f71ed891a93673d8018080468f400000101080a1329f7772c5410131603010098010000940301f1d62f57f05cc00fc8fb984e7fc381a26adc301ec143b9bab6d36f3f1b15c97200002ec014c00a0039ff850088008100350084c013c00900330045002f0041c011c00700050004c012c0080016000a00ff0100003d00000013001100000e7777772e676f6f676c652e636f6d000b00020100000a000a0008001d0017001800190010000e000c02683208687474702f312e31`,
 	}
 	now := time.Now()
+	openFiles := make(PacketLoggerOpenFiles)
 	for _, s := range input {
 
 		data, err := hex.DecodeString(s)
 		if err != nil {
 			t.Fatalf("hex decode error: %s", err)
 		}
-		err = parsePacket(storage, data, clientCache)
+		err = parsePacket(storage, data, clientCache, openFiles, now)
 		if err != nil {
 			t.Fatalf("parse error: %s", err)
 		}
@@ -123,6 +125,96 @@ func TestParsePacketSNI(t *testing.T) {
 	}
 	if !strings.Contains(string(out), `,https,10.189.184.2,64.233.180.104,60496,443,www.google.com`) {
 		t.Fatalf("unexpected output. Expected https record")
+	}
+}
+
+func TestParsePacketOpenFiles(t *testing.T) {
+	storage := &memorystorage.MockMemoryStorage{}
+	clientCache := &ClientCache{
+		Addresses: []ClientCacheAddresses{
+			{
+				Address: net.IPNet{
+					IP:   net.ParseIP("10.189.184.2"),
+					Mask: net.IPMask(net.ParseIP("255.255.255.255").To4()),
+				},
+				ClientID: "1-2-3-4",
+			},
+			{
+				Address: net.IPNet{
+					IP:   net.ParseIP("10.189.184.3"),
+					Mask: net.IPMask(net.ParseIP("255.255.255.255").To4()),
+				},
+				ClientID: "1-2-3-5",
+			},
+		},
+	}
+	input := []string{
+		// DNS reqs
+		"45000037e04900004011cdab0abdb8030a000002e60d00350023d6861e1501000001000000000000056170706c6503636f6d0000010001",
+		"4500004092d1000040111b1b0abdb8030a000002c73b0035002c4223b28e01000001000000000000037777770a676f6f676c656170697303636f6d0000410001",
+		"450000e300004000fe11af480a0000030abdb8020035dbb500cffccbad65818000010000000100000975732d656173742d310470726f6402707209616e616c797469637307636f6e736f6c65036177730361327a03636f6d00001c00010975732d656173742d310470726f6402707209616e616c797469637307636f6e736f6c65036177730361327a03636f6d00000600010000014b004b076e732d3136333709617773646e732d313202636f02756b0011617773646e732d686f73746d617374657206616d617a6f6e03636f6d000000000100001c20000003840012750000015180",
+		"450000a100004000fe11af8a0a0000030abdb8020035e136008db8bd155f81830001000000010000026462075f646e732d7364045f756470086174746c6f63616c036e657400000c0001c01c00060001000003c0004b046f726375026f72026272026e7007656c732d676d7303617474c0250d726d2d686f73746d617374657203656d730361747403636f6d0000000001000151800000271000093a8000015180",
+		// https reqs
+		"450000400000400040066ced0abdb8020a00010cf24a01bb510f111000000000b0c2ffffe119000002040564010303060101080a327dff040000000004020000",
+		"450000340000400040066cf90abdb8020a00010cf24a01bb510f1111c4b4fb4b801008046b8700000101080a327dff34edeeff9e",
+		"4502017d0000400040066bae0abdb8020a00010cf24a01bb510f1111c4b4fb4b801808041b1500000101080a327dff36edeeff9e1603010144010001400303e3b233de9dcd3f71f4c6e3d0d45ec25144e2fcdf8c676e52ff5cfc021123786020056eefe25e5b4e9abec2953b5fa9bc1f68dd09d7ad4ddce858476b4aaaa029b80062130313021301cca9cca8ccaac030c02cc028c024c014c00a009f006b0039ff8500c400880081009d003d003500c00084c02fc02bc027c023c013c009009e0067003300be0045009c003c002f00ba0041c011c00700050004c012c0080016000a00ff01000095002b0009080304030303020301003300260024001d0020dc2b5e4f0741b2ff9982fe2bfa6641e22fe80e5b50811780b82aafae96570c2400000018001600001376706e2d7365727665722e696e3469742e696f000b00020100000a000a0008001d001700180019000d00180016080606010603080505010503080404010403020102030010000e000c02683208687474702f312e31",
+		"450000340000400040066cf90abdb8020a00010cf24a01bb510f125ac4b500a3801007ee649700000101080a327dff66edeeffd1",
+		"450000340000400040066cf90abdb8020a00010cf24a01bb510f125ac4b504a1801007f0609600000101080a327dff67edeeffd1",
+		"4502003a0000400040066cf10abdb8020a00010cf24a01bb510f125ac4b504a180180800487100000101080a327dff6aedeeffd1140303000101",
+		"450201050000400040066c260abdb8020a00010cf24a01bb510f1260c4b504a180180800ea1300000101080a327dffc0edef002a1703030035131e32cc93174219580748842686d43e1cbb73501f643eaa49b3b7ba50a9f0a97e19ec926f8b5b141b363067d9a31061b146010d8f17030300511611c04909f5346b580fe1a95c68b2a62389ca6ed7e2f31ddb38cb191cf0997e16b5efaa9248a213e621869d071af7339ddafaee642953538a03d89cb3896ecf6756f5fb80f1866671282da72dce691169170303003c3bd012039a27a373dd1b4e7509e0e9aaefc4cfae6adcae6f670501e2577e20c98233761878d9f64355a89aa389f56480517bada888a2625ef211cb5e",
+	}
+	now := time.Now()
+	nowMinusOneDay := now.AddDate(0, 0, -1)
+	openFiles := make(PacketLoggerOpenFiles)
+	for _, s := range input {
+
+		data, err := hex.DecodeString(s)
+		if err != nil {
+			t.Fatalf("hex decode error: %s", err)
+		}
+		err = parsePacket(storage, data, clientCache, openFiles, nowMinusOneDay)
+		if err != nil {
+			t.Fatalf("parse error: %s", err)
+		}
+	}
+
+	out1, err := storage.ReadFile(path.Join(VPN_STATS_DIR, VPN_PACKETLOGGER_DIR, "1-2-3-4-"+nowMinusOneDay.Format("2006-01-02")+".log"))
+	if err != nil {
+		t.Fatalf("read file error: %s", err)
+	}
+	out2, err := storage.ReadFile(path.Join(VPN_STATS_DIR, VPN_PACKETLOGGER_DIR, "1-2-3-5-"+nowMinusOneDay.Format("2006-01-02")+".log"))
+	if err != nil {
+		t.Fatalf("read file error: %s", err)
+	}
+	if !strings.Contains(string(out2), `,udp,10.189.184.3,10.0.0.2,58893,53,apple.com`) {
+		t.Fatalf("unexpected output. Expected udp record")
+	}
+	if !strings.Contains(string(out1), `,https,10.189.184.2,10.0.1.12,62026,443,vpn-server.in4it.io`) {
+		t.Fatalf("unexpected output. Expected https record")
+	}
+	if len(openFiles) != 2 {
+		t.Fatalf("unexpected open files count: %d", len(openFiles))
+	}
+	for _, s := range input {
+		data, err := hex.DecodeString(s)
+		if err != nil {
+			t.Fatalf("hex decode error: %s", err)
+		}
+		err = parsePacket(storage, data, clientCache, openFiles, now)
+		if err != nil {
+			t.Fatalf("parse error: %s", err)
+		}
+	}
+
+	dir, err := storage.ReadDir(path.Join(VPN_STATS_DIR, VPN_PACKETLOGGER_DIR))
+	if err != nil {
+		t.Fatalf("read dir error: %s", err)
+	}
+	if len(dir) != 4 {
+		t.Fatalf("expected 4 files written")
+	}
+	if len(openFiles) != 2 {
+		t.Fatalf("unexpected open files count: %d", len(openFiles))
 	}
 }
 

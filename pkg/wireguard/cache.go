@@ -22,9 +22,13 @@ func UpdateClientCache(peerConfig PeerConfig, clientCache *ClientCache) error {
 	}
 
 	if !found {
+		clientID, _, err := getClientIDAndConfigID(peerConfig.ID)
+		if err != nil {
+			return fmt.Errorf("can't parse peer config ID (%s): %s", peerConfig.ID, err)
+		}
 		clientCache.Addresses = append(clientCache.Addresses, ClientCacheAddresses{
 			Address:  *peerConfigAddressParsed,
-			ClientID: peerConfig.ID,
+			ClientID: clientID,
 		})
 	}
 

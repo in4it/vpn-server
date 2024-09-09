@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path"
 	"strings"
@@ -143,4 +144,19 @@ func (m *MockMemoryStorage) OpenFileForWriting(name string) (io.WriteCloser, err
 	}
 	m.Data[name] = (*MockReadWriterData)(&[]byte{})
 	return m.Data[name], nil
+}
+func (m *MockMemoryStorage) OpenFileForAppending(name string) (io.WriteCloser, error) {
+	if m.Data == nil {
+		m.Data = make(map[string]*MockReadWriterData)
+	}
+	val, ok := m.Data[name]
+	if !ok {
+		m.Data[name] = (*MockReadWriterData)(&[]byte{})
+		return m.Data[name], nil
+	}
+	m.Data[name] = (*MockReadWriterData)(val)
+	return m.Data[name], nil
+}
+func (m *MockMemoryStorage) EnsurePermissions(name string, mode fs.FileMode) error {
+	return nil
 }

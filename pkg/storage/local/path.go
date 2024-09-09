@@ -3,6 +3,7 @@ package localstorage
 import (
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"os/user"
 	"path"
@@ -84,4 +85,8 @@ func (l *LocalStorage) Remove(name string) error {
 
 func (l *LocalStorage) Rename(oldName, newName string) error {
 	return os.Rename(path.Join(l.path, oldName), path.Join(l.path, newName))
+}
+
+func (l *LocalStorage) EnsurePermissions(name string, mode fs.FileMode) error {
+	return os.Chmod(path.Join(l.path, name), mode)
 }

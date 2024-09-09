@@ -829,3 +829,58 @@ func TestUpdateClientConfigNewClientAddressPrefix(t *testing.T) {
 	}
 
 }
+
+func TestGetClientIDAndConfigID(t *testing.T) {
+	testCases := []string{
+		"b7f3355d-1009-452c-8b81-ec4642ab7754-1",
+		"1-2-3-4-5-6-7",
+		"1-2-3",
+		"1-2",
+		"1",
+		"",
+		"garbage",
+	}
+	expectedUserID := []string{
+		"b7f3355d-1009-452c-8b81-ec4642ab7754",
+		"1-2-3-4-5-6",
+		"1-2",
+		"1",
+		"",
+		"",
+		"",
+	}
+	expectedConfigID := []int{
+		1,
+		7,
+		3,
+		2,
+		-1,
+		-1,
+		-1,
+	}
+	errExpected := []bool{
+		false,
+		false,
+		false,
+		false,
+		true,
+		true,
+		true,
+	}
+	for k, testCase := range testCases {
+		userID, configID, err := getClientIDAndConfigID(testCase)
+		if err != nil && !errExpected[k] {
+			t.Fatalf("got error: %s", err)
+		}
+		if err == nil && errExpected[k] {
+			t.Fatalf("expected error, but got nil")
+		}
+		if userID != expectedUserID[k] {
+			t.Fatalf("userid mismatch. Expected: %s, got: %s", expectedUserID[k], userID)
+		}
+		if configID != expectedConfigID[k] {
+			t.Fatalf("config ID mismatch. Expected: %d, got: %d", expectedConfigID[k], configID)
+		}
+	}
+
+}

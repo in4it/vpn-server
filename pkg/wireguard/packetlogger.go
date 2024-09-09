@@ -59,6 +59,11 @@ func RunPacketLogger(storage storage.Iface, clientCache *ClientCache, vpnConfig 
 		logging.ErrorLog(fmt.Errorf("could not ensure ownership of stats path: %s. Stats disabled", err))
 		return
 	}
+	err = storage.EnsurePermissions(path.Join(VPN_STATS_DIR, VPN_PACKETLOGGER_DIR), 0770|os.ModeSetgid)
+	if err != nil {
+		logging.ErrorLog(fmt.Errorf("could not ensure permissions of stats path: %s. Stats disabled", err))
+		return
+	}
 
 	useSyscalls := false
 	if runtime.GOOS == "darwin" {
@@ -71,18 +76,25 @@ func RunPacketLogger(storage storage.Iface, clientCache *ClientCache, vpnConfig 
 	}
 	defer handle.Close()
 	i := 0
+	openFiles := make(PacketLoggerOpenFiles)
 	for {
-		err := readPacket(storage, handle, clientCache)
+		err := readPacket(storage, handle, clientCache, openFiles)
 		if err != nil {
 			logging.DebugLog(fmt.Errorf("readPacket error: %s", err))
 		}
 		if !vpnConfig.EnablePacketLogs {
 			logging.InfoLog("disabling packetlogs")
+			for _, openFile := range openFiles {
+				openFile.Close()
+			}
 			return
 		}
 		if i%1000 == 0 {
 			if err := checkDiskSpace(); err != nil {
 				logging.ErrorLog(fmt.Errorf("disk space error: %s", err))
+				for _, openFile := range openFiles {
+					openFile.Close()
+				}
 				return
 			}
 			i = 0
@@ -90,14 +102,14 @@ func RunPacketLogger(storage storage.Iface, clientCache *ClientCache, vpnConfig 
 		i++
 	}
 }
-func readPacket(storage storage.Iface, handle *pcap.Handle, clientCache *ClientCache) error {
+func readPacket(storage storage.Iface, handle *pcap.Handle, clientCache *ClientCache, openFiles PacketLoggerOpenFiles) error {
 	data, _, err := handle.ReadPacketData()
 	if err != nil {
 		return fmt.Errorf("read packet error: %s", err)
 	}
-	return parsePacket(storage, data, clientCache)
+	return parsePacket(storage, data, clientCache, openFiles, time.Now())
 }
-func parsePacket(storage storage.Iface, data []byte, clientCache *ClientCache) error {
+func parsePacket(storage storage.Iface, data []byte, clientCache *ClientCache, openFiles PacketLoggerOpenFiles, now time.Time) error {
 	packet := gopacket.NewPacket(data, layers.IPProtocolIPv4, gopacket.DecodeOptions{Lazy: true, DecodeStreamsAsDatagrams: true})
 	var (
 		ip4   *layers.IPv4
@@ -129,19 +141,56 @@ func parsePacket(storage storage.Iface, data []byte, clientCache *ClientCache) e
 	if clientID == "" { // doesn't match a client ID
 		return nil
 	}
-	now := time.Now()
-	filename := path.Join(VPN_STATS_DIR, VPN_PACKETLOGGER_DIR, clientID+"-"+now.Format("2006-01-02")+".log")
+
+	// handle open files
+	logWriter, isFileOpen := openFiles[clientID+"-"+now.Format("2006-01-02")]
+	if !isFileOpen {
+		var err error
+		filename := path.Join(VPN_STATS_DIR, VPN_PACKETLOGGER_DIR, clientID+"-"+now.Format("2006-01-02")+".log")
+		// check if we need to close an older writer
+		for openFileKey, logWriterToClose := range openFiles {
+			filenameSplit := strings.Split(openFileKey, "-")
+			if len(filenameSplit) > 3 {
+				dateParsed, err := time.Parse("2006-01-02", strings.Join(filenameSplit[len(filenameSplit)-3:], "-"))
+				if err != nil {
+					logging.ErrorLog(fmt.Errorf("packetlogger: closing unknown open file %s (cannot parse date)", filename))
+					logWriterToClose.Close()
+					delete(openFiles, openFileKey)
+				} else {
+					if !dateutils.DateEqual(dateParsed, now) {
+						logWriterToClose.Close()
+						delete(openFiles, openFileKey)
+					}
+				}
+			} else {
+				logging.ErrorLog(fmt.Errorf("packetlogger: closing file without a date %s", filename))
+				logWriterToClose.Close()
+				delete(openFiles, openFileKey)
+			}
+		}
+		// open new file for appending
+		logWriter, err = storage.OpenFileForAppending(filename)
+		if err != nil {
+			return fmt.Errorf("could not open file for appending (%s): %s", clientID+"-"+now.Format("2006-01-02"), err)
+		}
+		err = storage.EnsurePermissions(filename, 0640)
+		if err != nil {
+			return fmt.Errorf("could not set permissions (%s): %s", clientID+"-"+now.Format("2006-01-02"), err)
+		}
+		openFiles[clientID+"-"+now.Format("2006-01-02")] = logWriter
+	}
+
 	if tcpLayer := packet.Layer(layers.LayerTypeTCP); tcpLayer != nil {
 		tcpPacket, _ := tcpLayer.(*layers.TCP)
 		if tcpPacket.SYN {
-			storage.AppendFile(filename, []byte(strings.Join([]string{
-				time.Now().Format(TIMESTAMP_FORMAT),
+			logWriter.Write([]byte(strings.Join([]string{
+				now.Format(TIMESTAMP_FORMAT),
 				"tcp",
 				srcIP.String(),
 				dstIP.String(),
 				strconv.FormatUint(uint64(tcpPacket.SrcPort), 10),
 				strconv.FormatUint(uint64(tcpPacket.DstPort), 10)},
-				",")+"\n",
+				",") + "\n",
 			))
 		}
 		switch tcpPacket.DstPort {
@@ -153,15 +202,15 @@ func parsePacket(storage storage.Iface, data []byte, clientCache *ClientCache) e
 					if err != nil {
 						fmt.Printf("debug: can't parse http packet: %s", err)
 					} else {
-						storage.AppendFile(filename, []byte(strings.Join([]string{
-							time.Now().Format(TIMESTAMP_FORMAT),
+						logWriter.Write([]byte(strings.Join([]string{
+							now.Format(TIMESTAMP_FORMAT),
 							"http",
 							srcIP.String(),
 							dstIP.String(),
 							strconv.FormatUint(uint64(tcpPacket.SrcPort), 10),
 							strconv.FormatUint(uint64(tcpPacket.DstPort), 10),
 							"http://" + req.Host + req.URL.RequestURI()},
-							",")+"\n",
+							",") + "\n",
 						))
 					}
 				}
@@ -170,15 +219,15 @@ func parsePacket(storage storage.Iface, data []byte, clientCache *ClientCache) e
 			if tls, ok := packet.Layer(layers.LayerTypeTLS).(*layers.TLS); ok {
 				for _, handshake := range tls.Handshake {
 					if sni := parseTLSExtensionSNI([]byte(handshake.ClientHello.Extensions)); sni != nil {
-						storage.AppendFile(filename, []byte(strings.Join([]string{
-							time.Now().Format(TIMESTAMP_FORMAT),
+						logWriter.Write([]byte(strings.Join([]string{
+							now.Format(TIMESTAMP_FORMAT),
 							"https",
 							srcIP.String(),
 							dstIP.String(),
 							strconv.FormatUint(uint64(tcpPacket.SrcPort), 10),
 							strconv.FormatUint(uint64(tcpPacket.DstPort), 10),
 							string(sni)},
-							",")+"\n",
+							",") + "\n",
 						))
 					}
 				}
@@ -205,15 +254,15 @@ func parsePacket(storage storage.Iface, data []byte, clientCache *ClientCache) e
 					}
 
 				}
-				storage.AppendFile(filename, []byte(strings.Join([]string{
-					time.Now().Format(TIMESTAMP_FORMAT),
+				logWriter.Write([]byte(strings.Join([]string{
+					now.Format(TIMESTAMP_FORMAT),
 					"udp",
 					srcIP.String(),
 					dstIP.String(),
 					strconv.FormatUint(uint64(udp.SrcPort), 10),
 					strconv.FormatUint(uint64(udp.DstPort), 10),
 					strings.Join(questions, "#")},
-					",")+"\n"))
+					",") + "\n"))
 			}
 		}
 	}

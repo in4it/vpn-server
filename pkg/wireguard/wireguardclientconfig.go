@@ -501,24 +501,27 @@ func ReactivateAllClientConfigs(storage storage.Iface, userID string) error {
 }
 
 func HasClientUserID(filename string, userID string) bool {
-	name := strings.TrimSuffix(filename, ".json")
-	nameSplit := strings.Split(name, "-")
-	filenameUserID := strings.Join(nameSplit[:len(nameSplit)-1], "-")
-	return filenameUserID == userID
+	clientID, _, _ := getClientIDAndConfigID(strings.TrimSuffix(filename, ".json"))
+	return clientID == userID
 }
 
 func getConfigNumberFromConnectionFile(filename string) (int, error) {
-	name := strings.TrimSuffix(filename, ".json")
+	_, configNumber, err := getClientIDAndConfigID(strings.TrimSuffix(filename, ".json"))
+	return configNumber, err
+}
+func getClientIDAndConfigID(name string) (string, int, error) {
 	nameSplit := strings.Split(name, "-")
 	if len(nameSplit) < 2 {
-		return -1, fmt.Errorf("invalid connection name")
+		return "", -1, fmt.Errorf("invalid connection name")
 	}
 	i, err := strconv.Atoi(nameSplit[len(nameSplit)-1])
 	if err != nil {
-		return -1, fmt.Errorf("could not convert string to int: %s", err)
+		return "", -1, fmt.Errorf("could not convert string to int: %s", err)
 	}
-	return i, nil
+	clientID := strings.Join(nameSplit[:len(nameSplit)-1], "-")
+	return clientID, i, nil
 }
+
 func networkIntersects(network1, network2 *net.IPNet) bool {
 	return network2.Contains(network1.IP) || network1.Contains(network2.IP)
 }
