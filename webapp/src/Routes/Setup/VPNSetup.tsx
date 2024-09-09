@@ -25,6 +25,7 @@ type VPNSetupRequest = {
     disableNAT: boolean,
     enablePacketLogs: boolean,
     packetLogsTypes: string[],
+    packetLogsRetention: string,
 };
 export function VPNSetup() {
     const [saved, setSaved] = useState(false)
@@ -57,7 +58,8 @@ export function VPNSetup() {
         nameservers: "",
         disableNAT: false,
         enablePacketLogs: false,
-        packetLogsTypes: []
+        packetLogsTypes: [],
+        packetLogsRetention: "",
       },
     });
     const setupMutation = useMutation({
@@ -241,7 +243,8 @@ export function VPNSetup() {
                     </Text>
                     </div>
                 </UnstyledButton>
-                {form.getValues().enablePacketLogs ? 
+                {form.getValues().enablePacketLogs ?
+                    <>
                     <InputWrapper
                     id="input-packetlogger-type-input"
                     label="Select types of packets to log"
@@ -260,6 +263,20 @@ export function VPNSetup() {
                       {...form.getInputProps('packetLogsTypes')}
                       />
                     </InputWrapper>
+                    <InputWrapper
+                      id="input-packetlogs-retention"
+                      label="Log Retention"
+                      description="How many days should packet logfiles be kept, in days. Default is 7 days."
+                      style={{marginTop: 10}}
+                      >
+                      <TextInput
+                      style={{ marginTop: 5 }}
+                      placeholder="7"
+                      key={form.key('packetLogsRetention')}
+                      {...form.getInputProps('packetLogsRetention')}
+                      />
+                      </InputWrapper>
+                    </>
                 : null}
                 <Space h="md" />
                 <Button type="submit" mt="md">

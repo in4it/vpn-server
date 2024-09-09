@@ -175,6 +175,9 @@ func (c *Context) vpnSetupHandler(w http.ResponseWriter, r *http.Request) {
 				packetLogTypes = append(packetLogTypes, k)
 			}
 		}
+		if vpnConfig.PacketLogsRetention == 0 {
+			vpnConfig.PacketLogsRetention = 7
+		}
 		setupRequest := VPNSetupRequest{
 			Routes:              strings.Join(vpnConfig.ClientRoutes, ", "),
 			VPNEndpoint:         vpnConfig.Endpoint,
@@ -186,6 +189,7 @@ func (c *Context) vpnSetupHandler(w http.ResponseWriter, r *http.Request) {
 			DisableNAT:          vpnConfig.DisableNAT,
 			EnablePacketLogs:    vpnConfig.EnablePacketLogs,
 			PacketLogsTypes:     packetLogTypes,
+			PacketLogsRetention: strconv.Itoa(vpnConfig.PacketLogsRetention),
 		}
 		out, err := json.Marshal(setupRequest)
 		if err != nil {
@@ -272,6 +276,16 @@ func (c *Context) vpnSetupHandler(w http.ResponseWriter, r *http.Request) {
 			vpnConfig.EnablePacketLogs = setupRequest.EnablePacketLogs
 			writeVPNConfig = true
 		}
+		packetLogsRention, err := strconv.Atoi(setupRequest.PacketLogsRetention)
+		if err != nil || packetLogsRention < 1 {
+			c.returnError(w, fmt.Errorf("incorrect packet log retention. Enter a number of days the logs must be kept (minimum 1)"), http.StatusBadRequest)
+			return
+		}
+		if packetLogsRention != vpnConfig.PacketLogsRetention {
+			vpnConfig.PacketLogsRetention = packetLogsRention
+			writeVPNConfig = true
+		}
+
 		// packetlogtypes
 		packetLogTypes := []string{}
 		for k, enabled := range vpnConfig.PacketLogsTypes {

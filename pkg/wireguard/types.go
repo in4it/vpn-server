@@ -44,6 +44,7 @@ type VPNConfig struct {
 	ClientRoutes        []string        `json:"clientRoutes"`
 	EnablePacketLogs    bool            `json:"enablePacketLogs"`
 	PacketLogsTypes     map[string]bool `json:"packetLogsTypes"`
+	PacketLogsRetention int             `json:"packetLogsRetention"`
 }
 
 type PubKeyExchange struct {
