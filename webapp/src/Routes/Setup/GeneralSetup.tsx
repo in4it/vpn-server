@@ -91,7 +91,7 @@ export function GeneralSetup() {
       >
         <Text component="div" c="dimmed" style={{ cursor: 'help' }}>
           <Center>
-            <TbInfoCircle style={{ width: rem(18), height: rem(18) }} stroke={1.5} />
+            <TbInfoCircle style={{ width: rem(18), height: rem(18) }} />
           </Center>
         </Text>
       </Tooltip>
