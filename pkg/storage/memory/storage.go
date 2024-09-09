@@ -115,6 +115,10 @@ func (m *MockMemoryStorage) Remove(name string) error {
 	if m.Data == nil {
 		m.Data = make(map[string]*MockReadWriterData)
 	}
+	_, ok := m.Data[name]
+	if !ok {
+		return fmt.Errorf("file does not exist")
+	}
 	delete(m.Data, name)
 	return nil
 }

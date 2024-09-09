@@ -322,19 +322,38 @@ func packetLoggerLogRotation(storage storage.Iface) error {
 	if err != nil {
 		return fmt.Errorf("readDir error: %s", err)
 	}
+	vpnConfig, err := GetVPNConfig(storage)
+	if err != nil {
+		return fmt.Errorf("cannot get vpn config: %s", err)
+	}
+	packetLogRetention := 7 // default packet log retention
+	if vpnConfig.PacketLogsRetention > 0 {
+		packetLogRetention = vpnConfig.PacketLogsRetention
+	}
 	for _, filename := range files {
-		filenameSplit := strings.Split(strings.TrimSuffix(filename, ".log"), "-")
+		filenameWithoutSuffix := filename
+		filenameWithoutSuffix = strings.TrimSuffix(filenameWithoutSuffix, ".log.gz")
+		filenameWithoutSuffix = strings.TrimSuffix(filenameWithoutSuffix, ".log")
+		filenameSplit := strings.Split(filenameWithoutSuffix, "-")
 		if len(filenameSplit) > 3 {
 			dateParsed, err := time.Parse("2006-01-02", strings.Join(filenameSplit[len(filenameSplit)-3:], "-"))
 			if err == nil {
 				if !dateutils.DateEqual(dateParsed, time.Now()) {
-					err := packetLoggerCompressLog(storage, filename)
-					if err != nil {
-						return fmt.Errorf("rotate log error: %s", err)
+					if strings.HasSuffix(filename, ".log") {
+						err := packetLoggerCompressLog(storage, filename)
+						if err != nil {
+							return fmt.Errorf("rotate log error: %s", err)
+						}
+						err = packetLoggerRenameLog(storage, filename)
+						if err != nil {
+							return fmt.Errorf("rotate log error (rename): %s", err)
+						}
 					}
-					err = packetLoggerRenameLog(storage, filename)
-					if err != nil {
-						return fmt.Errorf("rotate log error (rename): %s", err)
+					if strings.HasSuffix(filename, ".log.gz") {
+						err = removeLogsAfterRetentionPeriod(storage, filename, dateParsed, packetLogRetention)
+						if err != nil {
+							return fmt.Errorf("remove log error (tried to remove logs after retention period has lapsed): %s", err)
+						}
 					}
 				}
 
@@ -378,6 +397,15 @@ func packetLoggerRenameLog(storage storage.Iface, filename string) error {
 	err = storage.Remove(path.Join(VPN_STATS_DIR, VPN_PACKETLOGGER_DIR, filename))
 	if err != nil {
 		return fmt.Errorf("delete log error: %s", err)
+	}
+	return nil
+}
+func removeLogsAfterRetentionPeriod(storage storage.Iface, filename string, filenameDate time.Time, retentionDays int) error {
+	if time.Since(filenameDate) >= (time.Duration(retentionDays) * 24 * time.Hour) {
+		err := storage.Remove(path.Join(VPN_STATS_DIR, VPN_PACKETLOGGER_DIR, filename))
+		if err != nil {
+			return fmt.Errorf("cannot remove %s: %s", filename, err)
+		}
 	}
 	return nil
 }

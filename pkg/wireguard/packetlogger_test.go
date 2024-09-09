@@ -282,3 +282,45 @@ func TestGetTimeUntilTomorrowStartOfDay(t *testing.T) {
 		t.Fatalf("date is not tomorrow")
 	}
 }
+
+func TestPacketLoggerLogRotationDeletion(t *testing.T) {
+	prefix := path.Join(VPN_STATS_DIR, VPN_PACKETLOGGER_DIR)
+
+	storage := &memorystorage.MockMemoryStorage{
+		Data: map[string]*memorystorage.MockReadWriterData{},
+	}
+	for i := 0; i < 20; i++ {
+		timestamp := time.Now().AddDate(0, 0, -1*i)
+		suffix := ".log"
+		if i > 1 {
+			suffix = ".log.gz"
+		}
+		key1 := path.Join(prefix, fmt.Sprintf("1-2-3-4-%s%s", timestamp.Format("2006-01-02"), suffix))
+		value1 := []byte(timestamp.Format(TIMESTAMP_FORMAT) + `,https,10.189.184.2,64.233.180.104,60496,443,www.google.com`)
+		err := storage.WriteFile(key1, value1)
+		if err != nil {
+			t.Fatalf("write file error: %s", err)
+		}
+	}
+
+	before, err := storage.ReadDir(prefix)
+	if err != nil {
+		t.Fatalf("readdir error: %s", err)
+	}
+
+	err = packetLoggerLogRotation(storage)
+	if err != nil {
+		t.Fatalf("packetLoggerRotation error: %s", err)
+	}
+
+	after, err := storage.ReadDir(prefix)
+	if err != nil {
+		t.Fatalf("readdir error: %s", err)
+	}
+	if len(before) != 20 {
+		t.Fatalf("expected to have written 20 files. Got: %d", len(before))
+	}
+	if len(after) != 7 {
+		t.Fatalf("only expected 7 days of retention. Got: %d", len(after))
+	}
+}

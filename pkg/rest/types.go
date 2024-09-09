@@ -112,6 +112,7 @@ type VPNSetupRequest struct {
 	DisableNAT          bool     `json:"disableNAT"`
 	EnablePacketLogs    bool     `json:"enablePacketLogs"`
 	PacketLogsTypes     []string `json:"packetLogsTypes"`
+	PacketLogsRetention string   `json:"packetLogsRetention"`
 }
 
 type TemplateSetupRequest struct {
