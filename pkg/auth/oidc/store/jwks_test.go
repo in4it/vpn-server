@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/in4it/wireguard-server/pkg/auth/oidc"
-	testingmocks "github.com/in4it/wireguard-server/pkg/testing/mocks"
+	memorystorage "github.com/in4it/wireguard-server/pkg/storage/memory"
 )
 
 func TestGetJwks(t *testing.T) {
@@ -32,7 +32,7 @@ func TestGetJwks(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	store, err := NewStore(&testingmocks.MockMemoryStorage{})
+	store, err := NewStore(&memorystorage.MockMemoryStorage{})
 	if err != nil {
 		t.Fatalf("new store error: %s", err)
 	}

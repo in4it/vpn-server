@@ -8,13 +8,13 @@ import (
 	"testing"
 	"time"
 
-	testingmocks "github.com/in4it/wireguard-server/pkg/testing/mocks"
+	memorystorage "github.com/in4it/wireguard-server/pkg/storage/memory"
 	"github.com/in4it/wireguard-server/pkg/wireguard"
 )
 
 func TestUserStatsHandler(t *testing.T) {
 
-	storage := &testingmocks.MockMemoryStorage{}
+	storage := &memorystorage.MockMemoryStorage{}
 
 	c, err := newContext(storage, SERVER_TYPE_VPN)
 	if err != nil {

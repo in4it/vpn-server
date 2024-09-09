@@ -31,4 +31,6 @@ func startStats(storage storage.Iface) {
 func startPacketLogger(storage storage.Iface, clientCache *wireguard.ClientCache, vpnConfig *wireguard.VPNConfig) {
 	// run statistics go routine
 	go wireguard.RunPacketLogger(storage, clientCache, vpnConfig)
+	// run cleanup
+	go wireguard.PacketLoggerLogRotation(storage)
 }

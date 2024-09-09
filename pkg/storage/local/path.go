@@ -83,5 +83,5 @@ func (l *LocalStorage) Remove(name string) error {
 }
 
 func (l *LocalStorage) Rename(oldName, newName string) error {
-	return os.Rename(oldName, newName)
+	return os.Rename(path.Join(l.path, oldName), path.Join(l.path, newName))
 }

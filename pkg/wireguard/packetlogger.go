@@ -301,8 +301,19 @@ func checkDiskSpace() error {
 
 // Packet log rotation
 func PacketLoggerLogRotation(storage storage.Iface) {
-	err := packetLoggerLogRotation(storage)
-	logging.ErrorLog(fmt.Errorf("packet logger log rotation error: %s", err))
+	for {
+		err := packetLoggerLogRotation(storage)
+		if err != nil {
+			logging.ErrorLog(fmt.Errorf("packet logger log rotation error: %s", err))
+		}
+		time.Sleep(getTimeUntilTomorrowStartOfDay()) // sleep until tomorrow
+	}
+}
+
+func getTimeUntilTomorrowStartOfDay() time.Duration {
+	tomorrow := time.Now().AddDate(0, 0, 1)
+	tomorrowStartOfDay := time.Date(tomorrow.Year(), tomorrow.Month(), tomorrow.Day(), 0, 5, 0, 0, time.Local)
+	return time.Until(tomorrowStartOfDay)
 }
 
 func packetLoggerLogRotation(storage storage.Iface) error {
@@ -314,7 +325,7 @@ func packetLoggerLogRotation(storage storage.Iface) error {
 	for _, filename := range files {
 		filenameSplit := strings.Split(strings.TrimSuffix(filename, ".log"), "-")
 		if len(filenameSplit) > 3 {
-			dateParsed, err := time.Parse("2006-01-02", filenameSplit[len(filenameSplit)-3])
+			dateParsed, err := time.Parse("2006-01-02", strings.Join(filenameSplit[len(filenameSplit)-3:], "-"))
 			if err == nil {
 				if !dateutils.DateEqual(dateParsed, time.Now()) {
 					err := packetLoggerCompressLog(storage, filename)

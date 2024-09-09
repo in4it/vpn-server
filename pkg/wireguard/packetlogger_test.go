@@ -1,18 +1,25 @@
 package wireguard
 
 import (
+	"bytes"
+	"compress/gzip"
 	"encoding/hex"
+	"fmt"
+	"io"
 	"net"
+	"os"
 	"path"
 	"strings"
 	"testing"
 	"time"
 
-	testingmocks "github.com/in4it/wireguard-server/pkg/testing/mocks"
+	localstorage "github.com/in4it/wireguard-server/pkg/storage/local"
+	memorystorage "github.com/in4it/wireguard-server/pkg/storage/memory"
+	dateutils "github.com/in4it/wireguard-server/pkg/utils/date"
 )
 
 func TestParsePacket(t *testing.T) {
-	storage := &testingmocks.MockMemoryStorage{}
+	storage := &memorystorage.MockMemoryStorage{}
 	clientCache := &ClientCache{
 		Addresses: []ClientCacheAddresses{
 			{
@@ -75,7 +82,7 @@ func TestParsePacket(t *testing.T) {
 }
 
 func TestParsePacketSNI(t *testing.T) {
-	storage := &testingmocks.MockMemoryStorage{}
+	storage := &memorystorage.MockMemoryStorage{}
 	clientCache := &ClientCache{
 		Addresses: []ClientCacheAddresses{
 			{
@@ -167,5 +174,111 @@ func TestCheckDiskSpace(t *testing.T) {
 	err := checkDiskSpace()
 	if err != nil {
 		t.Fatalf("disk space error: %s", err)
+	}
+}
+
+func TestPacketLoggerLogRotation(t *testing.T) {
+	prefix := path.Join(VPN_STATS_DIR, VPN_PACKETLOGGER_DIR)
+	key1 := path.Join(prefix, fmt.Sprintf("1-2-3-4-%s.log", time.Now().AddDate(0, 0, -1).Format("2006-01-02")))
+	value1 := []byte(time.Now().Format(TIMESTAMP_FORMAT) + `,https,10.189.184.2,64.233.180.104,60496,443,www.google.com`)
+	key2 := path.Join(prefix, fmt.Sprintf("1-2-3-4-%s.log", time.Now().Format("2006-01-02")))
+	value2 := []byte(time.Now().Format(TIMESTAMP_FORMAT) + `,https,10.189.184.3,64.233.180.104,12345,443,www.google.com`)
+
+	storage := &memorystorage.MockMemoryStorage{
+		Data: map[string]*memorystorage.MockReadWriterData{},
+	}
+	err := storage.WriteFile(key1, value1)
+	if err != nil {
+		t.Fatalf("write file error: %s", err)
+	}
+	err = storage.WriteFile(key2, value2)
+	if err != nil {
+		t.Fatalf("write file error: %s", err)
+	}
+
+	err = packetLoggerLogRotation(storage)
+	if err != nil {
+		t.Fatalf("packetLoggerRotation error: %s", err)
+	}
+	body, err := storage.ReadFile(key1 + ".gz")
+	if err != nil {
+		t.Fatalf("can't read compressed file")
+	}
+	reader, err := gzip.NewReader(bytes.NewReader(body))
+	if err != nil {
+		t.Fatalf("can't open gzip reader")
+	}
+	bodyDecoded, err := io.ReadAll(reader)
+	if err != nil {
+		t.Fatalf("can't read gzip data")
+	}
+	if string(bodyDecoded) != string(value1) {
+		t.Fatalf("unexpected output. Got %s, expected: %s", bodyDecoded, value1)
+	}
+}
+
+func TestPacketLoggerLogRotationLocalStorage(t *testing.T) {
+	prefix := path.Join(VPN_STATS_DIR, VPN_PACKETLOGGER_DIR)
+	key1 := path.Join(prefix, fmt.Sprintf("1-2-3-4-%s.log", time.Now().AddDate(0, 0, -1).Format("2006-01-02")))
+	value1 := []byte(time.Now().Format(TIMESTAMP_FORMAT) + `,https,10.189.184.2,64.233.180.104,60496,443,www.google.com`)
+	key2 := path.Join(prefix, fmt.Sprintf("1-2-3-4-%s.log", time.Now().Format("2006-01-02")))
+	value2 := []byte(time.Now().Format(TIMESTAMP_FORMAT) + `,https,10.189.184.3,64.233.180.104,12345,443,www.google.com`)
+
+	pwd, err := os.Executable()
+	if err != nil {
+		t.Fatalf("os Executable error: %s", err)
+	}
+	storage, err := localstorage.NewWithPath(path.Dir(pwd))
+	if err != nil {
+		t.Fatalf("localstorage error: %s", err)
+	}
+	err = storage.EnsurePath(VPN_STATS_DIR)
+	if err != nil {
+		t.Fatalf("could not ensure path: %s", err)
+	}
+	storage.EnsurePath(path.Join(VPN_STATS_DIR, VPN_PACKETLOGGER_DIR))
+	if err != nil {
+		t.Fatalf("could not ensure path: %s", err)
+	}
+	err = storage.WriteFile(key1, value1)
+	if err != nil {
+		t.Fatalf("write file error: %s", err)
+	}
+	err = storage.WriteFile(key2, value2)
+	if err != nil {
+		t.Fatalf("write file error: %s", err)
+	}
+	t.Cleanup(func() {
+		os.Remove(path.Join(path.Dir(pwd), key1))
+		os.Remove(path.Join(path.Dir(pwd), key1+".gz.tmp"))
+		os.Remove(path.Join(path.Dir(pwd), key1+".gz"))
+		os.Remove(path.Join(path.Dir(pwd), key2))
+	})
+
+	err = packetLoggerLogRotation(storage)
+	if err != nil {
+		t.Fatalf("packetLoggerRotation error: %s", err)
+	}
+	body, err := storage.ReadFile(key1 + ".gz")
+	if err != nil {
+		t.Fatalf("can't read compressed file")
+	}
+	reader, err := gzip.NewReader(bytes.NewReader(body))
+	if err != nil {
+		t.Fatalf("can't open gzip reader")
+	}
+	bodyDecoded, err := io.ReadAll(reader)
+	if err != nil {
+		t.Fatalf("can't read gzip data")
+	}
+	if string(bodyDecoded) != string(value1) {
+		t.Fatalf("unexpected output. Got %s, expected: %s", bodyDecoded, value1)
+	}
+}
+
+func TestGetTimeUntilTomorrowStartOfDay(t *testing.T) {
+	duration := getTimeUntilTomorrowStartOfDay()
+	if !dateutils.DateEqual(time.Now().Add(duration), time.Now().AddDate(0, 0, 1)) {
+		t.Fatalf("date is not tomorrow")
 	}
 }

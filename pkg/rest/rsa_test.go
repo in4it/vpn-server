@@ -6,11 +6,11 @@ import (
 	"encoding/pem"
 	"testing"
 
-	testingmocks "github.com/in4it/wireguard-server/pkg/testing/mocks"
+	memorystorage "github.com/in4it/wireguard-server/pkg/storage/memory"
 )
 
 func TestGetJWTKeys(t *testing.T) {
-	mockStorage := testingmocks.MockMemoryStorage{}
+	mockStorage := memorystorage.MockMemoryStorage{}
 	keys, err := getJWTKeys(&mockStorage)
 	if err != nil {
 		t.Fatalf("error: %s", err)

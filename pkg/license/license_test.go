@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/in4it/wireguard-server/pkg/logging"
-	testingmocks "github.com/in4it/wireguard-server/pkg/testing/mocks"
+	memorystorage "github.com/in4it/wireguard-server/pkg/storage/memory"
 )
 
 func TestGetMaxUsersAzure(t *testing.T) {
@@ -39,7 +39,7 @@ func TestGetMaxUsersAWSMarketplace(t *testing.T) {
 		"t3.xlarge": 250,
 	}
 	for instanceType, v := range testCases {
-		if getMaxUsers(&testingmocks.MockReadWriter{}, "aws-marketplace", instanceType) != v {
+		if getMaxUsers(&memorystorage.MockMemoryStorage{}, "aws-marketplace", instanceType) != v {
 			t.Fatalf("Wrong output: %d vs %d", GetMaxUsersAWS(instanceType), v)
 		}
 	}
@@ -98,7 +98,7 @@ func TestGetMaxUsersAWSBYOL(t *testing.T) {
 	licenseURL = ts.URL
 	metadataIP = strings.Replace(ts.URL, "http://", "", -1)
 	for _, v := range testCases {
-		if v2 := GetMaxUsersAWSBYOL(http.Client{Timeout: 5 * time.Second}, &testingmocks.MockMemoryStorage{}); v2 != v {
+		if v2 := GetMaxUsersAWSBYOL(http.Client{Timeout: 5 * time.Second}, &memorystorage.MockMemoryStorage{}); v2 != v {
 			t.Fatalf("Wrong output: %d vs %d", v2, v)
 		}
 	}
@@ -111,7 +111,7 @@ func TestGetMaxUsersAWS(t *testing.T) {
 		"t3.xlarge": 3,
 	}
 	for instanceType, v := range testCases {
-		if getMaxUsers(&testingmocks.MockReadWriter{}, "aws", instanceType) != v {
+		if getMaxUsers(&memorystorage.MockMemoryStorage{}, "aws", instanceType) != v {
 			t.Fatalf("Wrong output: %d vs %d", GetMaxUsersAWS(instanceType), v)
 		}
 	}
@@ -212,7 +212,7 @@ func TestGuessInfrastructureAWS(t *testing.T) {
 		t.Fatalf("wrong infra returned: %s", infra)
 	}
 
-	if getMaxUsers(&testingmocks.MockReadWriter{}, infra, "t3.large") != 3 {
+	if getMaxUsers(&memorystorage.MockMemoryStorage{}, infra, "t3.large") != 3 {
 		t.Fatalf("wrong users returned")
 	}
 }
@@ -252,7 +252,7 @@ func TestGetAzureInstanceType(t *testing.T) {
 
 	usersPerVCPU := 25
 
-	users := getMaxUsers(&testingmocks.MockReadWriter{}, "azure", getAzureInstanceType(http.Client{Timeout: 5 * time.Second}))
+	users := getMaxUsers(&memorystorage.MockMemoryStorage{}, "azure", getAzureInstanceType(http.Client{Timeout: 5 * time.Second}))
 
 	if users != usersPerVCPU*2 {
 		t.Fatalf("Wrong user count returned")
@@ -302,7 +302,7 @@ func TestGuessInfrastructureDigitalOcean(t *testing.T) {
 		t.Fatalf("wrong infra returned: %s", infra)
 	}
 
-	if getMaxUsers(&testingmocks.MockReadWriter{}, infra, "t3.large") != 3 {
+	if getMaxUsers(&memorystorage.MockMemoryStorage{}, infra, "t3.large") != 3 {
 		t.Fatalf("wrong users returned")
 	}
 }
@@ -332,12 +332,11 @@ func TestGetMaxUsersDigitalOceanBYOL(t *testing.T) {
 	licenseURL = ts.URL
 	metadataIP = strings.Replace(ts.URL, "http://", "", -1)
 
-	mockStorage := &testingmocks.MockReadWriter{
-		Data: map[string][]byte{
-			"config/license.key": []byte("license-1234556-license"),
-		},
+	mockStorage := &memorystorage.MockMemoryStorage{}
+	err := mockStorage.WriteFile("config/license.key", []byte("license-1234556-license"))
+	if err != nil {
+		t.Fatalf("writefile error: %s", err)
 	}
-
 	for _, v := range []int{50} {
 		if v2 := GetMaxUsersDigitalOceanBYOL(http.Client{Timeout: 5 * time.Second}, mockStorage); v2 != v {
 			t.Fatalf("Wrong output: %d vs %d", v2, v)
@@ -387,19 +386,19 @@ func TestGetLicenseKey(t *testing.T) {
 	metadataIP = strings.Replace(ts.URL, "http://", "", -1)
 
 	logging.Loglevel = logging.LOG_DEBUG + logging.LOG_ERROR
-	key := GetLicenseKey(&testingmocks.MockMemoryStorage{}, "")
+	key := GetLicenseKey(&memorystorage.MockMemoryStorage{}, "")
 	if key == "" {
 		t.Fatalf("key is empty")
 	}
-	key = GetLicenseKey(&testingmocks.MockMemoryStorage{}, "aws")
+	key = GetLicenseKey(&memorystorage.MockMemoryStorage{}, "aws")
 	if key == "" {
 		t.Fatalf("aws key is empty")
 	}
-	key = GetLicenseKey(&testingmocks.MockMemoryStorage{}, "digitalocean")
+	key = GetLicenseKey(&memorystorage.MockMemoryStorage{}, "digitalocean")
 	if key == "" {
 		t.Fatalf("digitalocean key is empty")
 	}
-	key = GetLicenseKey(&testingmocks.MockMemoryStorage{}, "gcp")
+	key = GetLicenseKey(&memorystorage.MockMemoryStorage{}, "gcp")
 	if key == "" {
 		t.Fatalf("gcp key is empty")
 	}
@@ -407,7 +406,7 @@ func TestGetLicenseKey(t *testing.T) {
 func TestGetLicenseKeyNoCloudProvider(t *testing.T) {
 
 	logging.Loglevel = logging.LOG_DEBUG + logging.LOG_ERROR
-	key := GetLicenseKey(&testingmocks.MockMemoryStorage{}, "")
+	key := GetLicenseKey(&memorystorage.MockMemoryStorage{}, "")
 	if key == "" {
 		t.Fatalf("key is empty")
 	}

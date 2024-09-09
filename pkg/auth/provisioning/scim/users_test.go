@@ -11,7 +11,7 @@ import (
 	"path"
 	"testing"
 
-	testingmocks "github.com/in4it/wireguard-server/pkg/testing/mocks"
+	memorystorage "github.com/in4it/wireguard-server/pkg/storage/memory"
 	"github.com/in4it/wireguard-server/pkg/users"
 	"github.com/in4it/wireguard-server/pkg/wireguard"
 )
@@ -19,7 +19,7 @@ import (
 const USERSTORE_MAX_USERS = 1000
 
 func TestUsersGetCount100EmptyResult(t *testing.T) {
-	storage := &testingmocks.MockMemoryStorage{}
+	storage := &memorystorage.MockMemoryStorage{}
 
 	userStore, err := users.NewUserStore(storage, USERSTORE_MAX_USERS)
 	if err != nil {
@@ -48,7 +48,7 @@ func TestUsersGetCount100EmptyResult(t *testing.T) {
 }
 
 func TestUsersGetCount10(t *testing.T) {
-	storage := &testingmocks.MockMemoryStorage{}
+	storage := &memorystorage.MockMemoryStorage{}
 	userStore, err := users.NewUserStore(storage, USERSTORE_MAX_USERS)
 	if err != nil {
 		t.Fatalf("cannot create new user store")
@@ -88,7 +88,7 @@ func TestUsersGetCount10(t *testing.T) {
 func TestUsersGetCount10Start5(t *testing.T) {
 	count := 10
 	start := 5
-	storage := &testingmocks.MockMemoryStorage{}
+	storage := &memorystorage.MockMemoryStorage{}
 	userStore, err := users.NewUserStore(storage, USERSTORE_MAX_USERS)
 	if err != nil {
 		t.Fatalf("cannot create new user store")
@@ -138,12 +138,12 @@ func TestUsersGetCount10Start5(t *testing.T) {
 }
 
 func TestUsersGetNonExistentUser(t *testing.T) {
-	userStore, err := users.NewUserStore(&testingmocks.MockMemoryStorage{}, USERSTORE_MAX_USERS)
+	userStore, err := users.NewUserStore(&memorystorage.MockMemoryStorage{}, USERSTORE_MAX_USERS)
 	if err != nil {
 		t.Fatalf("cannot create new user stoer")
 	}
 
-	s := New(&testingmocks.MockMemoryStorage{}, userStore, "token")
+	s := New(&memorystorage.MockMemoryStorage{}, userStore, "token")
 	req := httptest.NewRequest("GET", "http://example.com/api/scim/v2/Users?filter=userName+eq+%22ward%40in4it.io%22&", nil)
 	w := httptest.NewRecorder()
 	s.getUsersHandler(w, req)
@@ -161,7 +161,7 @@ func TestUsersGetNonExistentUser(t *testing.T) {
 }
 
 func TestAddUser(t *testing.T) {
-	storage := &testingmocks.MockMemoryStorage{}
+	storage := &memorystorage.MockMemoryStorage{}
 	userStore, err := users.NewUserStore(storage, USERSTORE_MAX_USERS)
 	if err != nil {
 		t.Fatalf("cannot create new user store: %s", err)
@@ -208,7 +208,7 @@ func TestAddUser(t *testing.T) {
 }
 
 func TestCreateUserConnectionDeleteUserFlow(t *testing.T) {
-	storage := &testingmocks.MockMemoryStorage{}
+	storage := &memorystorage.MockMemoryStorage{}
 	userStore, err := users.NewUserStore(storage, USERSTORE_MAX_USERS)
 	if err != nil {
 		t.Fatalf("cannot create new user store: %s", err)
@@ -328,7 +328,7 @@ func TestCreateUserConnectionDeleteUserFlow(t *testing.T) {
 	}
 }
 func TestCreateUserConnectionSuspendUserFlow(t *testing.T) {
-	storage := &testingmocks.MockMemoryStorage{}
+	storage := &memorystorage.MockMemoryStorage{}
 
 	userStore, err := users.NewUserStore(storage, USERSTORE_MAX_USERS)
 	if err != nil {

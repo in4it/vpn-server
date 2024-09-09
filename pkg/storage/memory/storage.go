@@ -1,4 +1,4 @@
-package testingmocks
+package memorystorage
 
 import (
 	"bufio"
@@ -18,72 +18,18 @@ func (mwc *MyWriteCloser) Close() error {
 	return nil
 }
 
-type MockReadWriter struct {
-	Data map[string][]byte
-}
+type MockReadWriterData []byte
 
-func (m *MockReadWriter) ConfigPath(filename string) string {
-	return path.Join("config", filename)
-}
-func (m *MockReadWriter) FileExists(name string) bool {
-	if m.Data == nil {
-		m.Data = make(map[string][]byte)
-	}
-	_, ok := m.Data[name]
-	return ok
-}
-
-func (m *MockReadWriter) ReadFile(name string) ([]byte, error) {
-	if m.Data == nil {
-		m.Data = make(map[string][]byte)
-	}
-	val, ok := m.Data[name]
-	if !ok {
-		return val, fmt.Errorf("file does not exist")
-	}
-	return val, nil
-}
-func (m *MockReadWriter) WriteFile(name string, data []byte) error {
-	if m.Data == nil {
-		m.Data = make(map[string][]byte)
-	}
-	m.Data[name] = data
+func (m *MockReadWriterData) Close() error {
 	return nil
 }
-
-func (m *MockReadWriter) OpenFile(name string) (io.ReadCloser, error) {
-	if m.Data == nil {
-		m.Data = make(map[string][]byte)
-	}
-	val, ok := m.Data[name]
-	if !ok {
-		return nil, fmt.Errorf("file does not exist")
-	}
-
-	return io.NopCloser(bytes.NewBuffer(val)), nil
-}
-func (m *MockReadWriter) OpenFileForWriting(name string) (io.WriteCloser, error) {
-	if m.Data == nil {
-		m.Data = make(map[string][]byte)
-	}
-	buf := bufio.NewWriter(bytes.NewBuffer(m.Data[name]))
-	return &MyWriteCloser{buf}, nil
-}
-func (m *MockReadWriter) Rename(oldName, newName string) error {
-	if m.Data == nil {
-		m.Data = make(map[string][]byte)
-	}
-	_, ok := m.Data[oldName]
-	if !ok {
-		return fmt.Errorf("file doesn't exist")
-	}
-	m.Data[newName] = m.Data[oldName]
-	delete(m.Data, oldName)
-	return nil
+func (m *MockReadWriterData) Write(p []byte) (nn int, err error) {
+	*m = append(*m, p...)
+	return len(p), nil
 }
 
 type MockMemoryStorage struct {
-	Data map[string][]byte
+	Data map[string]*MockReadWriterData
 }
 
 func (m *MockMemoryStorage) ConfigPath(filename string) string {
@@ -91,7 +37,7 @@ func (m *MockMemoryStorage) ConfigPath(filename string) string {
 }
 func (m *MockMemoryStorage) Rename(oldName, newName string) error {
 	if m.Data == nil {
-		m.Data = make(map[string][]byte)
+		m.Data = make(map[string]*MockReadWriterData)
 	}
 	_, ok := m.Data[oldName]
 	if !ok {
@@ -103,7 +49,7 @@ func (m *MockMemoryStorage) Rename(oldName, newName string) error {
 }
 func (m *MockMemoryStorage) FileExists(name string) bool {
 	if m.Data == nil {
-		m.Data = make(map[string][]byte)
+		m.Data = make(map[string]*MockReadWriterData)
 	}
 	_, ok := m.Data[name]
 	return ok
@@ -111,26 +57,31 @@ func (m *MockMemoryStorage) FileExists(name string) bool {
 
 func (m *MockMemoryStorage) ReadFile(name string) ([]byte, error) {
 	if m.Data == nil {
-		m.Data = make(map[string][]byte)
+		m.Data = make(map[string]*MockReadWriterData)
 	}
 	val, ok := m.Data[name]
 	if !ok {
-		return val, fmt.Errorf("file does not exist")
+		return nil, fmt.Errorf("file does not exist")
 	}
-	return val, nil
+	return *val, nil
 }
 func (m *MockMemoryStorage) WriteFile(name string, data []byte) error {
 	if m.Data == nil {
-		m.Data = make(map[string][]byte)
+		m.Data = make(map[string]*MockReadWriterData)
 	}
-	m.Data[name] = data
+	m.Data[name] = (*MockReadWriterData)(&data)
 	return nil
 }
 func (m *MockMemoryStorage) AppendFile(name string, data []byte) error {
 	if m.Data == nil {
-		m.Data = make(map[string][]byte)
+		m.Data = make(map[string]*MockReadWriterData)
 	}
-	m.Data[name] = append(m.Data[name], data...)
+	if m.Data[name] == nil {
+		m.Data[name] = (*MockReadWriterData)(&data)
+	} else {
+		*m.Data[name] = append(*m.Data[name], data...)
+	}
+
 	return nil
 }
 
@@ -149,7 +100,7 @@ func (m *MockMemoryStorage) EnsureOwnership(filename, login string) error {
 
 func (m *MockMemoryStorage) ReadDir(path string) ([]string, error) {
 	if m.Data == nil {
-		m.Data = make(map[string][]byte)
+		m.Data = make(map[string]*MockReadWriterData)
 	}
 	res := []string{}
 	for k := range m.Data {
@@ -162,7 +113,7 @@ func (m *MockMemoryStorage) ReadDir(path string) ([]string, error) {
 
 func (m *MockMemoryStorage) Remove(name string) error {
 	if m.Data == nil {
-		m.Data = make(map[string][]byte)
+		m.Data = make(map[string]*MockReadWriterData)
 	}
 	delete(m.Data, name)
 	return nil
@@ -173,19 +124,19 @@ func (m *MockMemoryStorage) OpenFilesFromPos(names []string, pos int64) ([]io.Re
 }
 func (m *MockMemoryStorage) OpenFile(name string) (io.ReadCloser, error) {
 	if m.Data == nil {
-		m.Data = make(map[string][]byte)
+		m.Data = make(map[string]*MockReadWriterData)
 	}
 	val, ok := m.Data[name]
 	if !ok {
 		return nil, fmt.Errorf("file does not exist")
 	}
 
-	return io.NopCloser(bytes.NewBuffer(val)), nil
+	return io.NopCloser(bytes.NewBuffer(*val)), nil
 }
 func (m *MockMemoryStorage) OpenFileForWriting(name string) (io.WriteCloser, error) {
 	if m.Data == nil {
-		m.Data = make(map[string][]byte)
+		m.Data = make(map[string]*MockReadWriterData)
 	}
-	buf := bufio.NewWriter(bytes.NewBuffer(m.Data[name]))
-	return &MyWriteCloser{buf}, nil
+	m.Data[name] = (*MockReadWriterData)(&[]byte{})
+	return m.Data[name], nil
 }

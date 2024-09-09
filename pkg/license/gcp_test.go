@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	testingmocks "github.com/in4it/wireguard-server/pkg/testing/mocks"
+	memorystorage "github.com/in4it/wireguard-server/pkg/storage/memory"
 )
 
 func TestGuessInfrastructureGCP(t *testing.T) {
@@ -52,10 +52,10 @@ func TestGetMaxUsersGCPBYOL(t *testing.T) {
 	licenseURL = ts.URL
 	metadataIP = strings.Replace(ts.URL, "http://", "", -1)
 
-	mockStorage := &testingmocks.MockReadWriter{
-		Data: map[string][]byte{
-			"config/license.key": []byte("license-1234556-license"),
-		},
+	mockStorage := &memorystorage.MockMemoryStorage{}
+	err := mockStorage.WriteFile("config/license.key", []byte("license-1234556-license"))
+	if err != nil {
+		t.Fatalf("writefile error: %s", err)
 	}
 
 	for _, v := range []int{50} {

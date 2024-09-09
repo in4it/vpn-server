@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	testingmocks "github.com/in4it/wireguard-server/pkg/testing/mocks"
+	memorystorage "github.com/in4it/wireguard-server/pkg/storage/memory"
 )
 
 func TestWriteWireGuardServerConfig(t *testing.T) {
@@ -53,7 +53,7 @@ func TestWriteWireGuardServerConfig(t *testing.T) {
 	defer ts.Close()
 	defer l.Close()
 
-	storage := &testingmocks.MockMemoryStorage{}
+	storage := &memorystorage.MockMemoryStorage{}
 
 	// first create a new vpn config
 	vpnconfig, err := CreateNewVPNConfig(storage)
