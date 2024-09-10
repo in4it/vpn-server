@@ -3,8 +3,10 @@ package rest
 import (
 	"bufio"
 	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"fmt"
+	"io"
 	"math"
 	"net/http"
 	"path"
@@ -282,13 +284,19 @@ func (c *Context) packetLogsHandler(w http.ResponseWriter, r *http.Request) {
 		Data: []LogRow{},
 	}
 	// logs
-	statsFiles := []string{
-		path.Join(wireguard.VPN_STATS_DIR, wireguard.VPN_PACKETLOGGER_DIR, userID+"-"+date.Format("2006-01-02")+".log"),
+	statsFiles := []string{}
+	if offset > 0 {
+		statsFiles = append(statsFiles, path.Join(wireguard.VPN_STATS_DIR, wireguard.VPN_PACKETLOGGER_DIR, userID+"-"+date.AddDate(0, 0, -1).Format("2006-01-02")+".log"))
 	}
+	statsFiles = append(statsFiles, path.Join(wireguard.VPN_STATS_DIR, wireguard.VPN_PACKETLOGGER_DIR, userID+"-"+date.Format("2006-01-02")+".log"))
 	if !dateutils.DateEqual(time.Now(), date) { // date is in local timezone, and we are UTC, so also read next file
 		statsFiles = append(statsFiles, path.Join(wireguard.VPN_STATS_DIR, wireguard.VPN_PACKETLOGGER_DIR, userID+"-"+date.AddDate(0, 0, 1).Format("2006-01-02")+".log"))
 	}
-	statsFiles = filterNonExistentFiles(c.Storage.Client, statsFiles)
+	statsFiles, err = getCompressedFilesAndRemoveNonExistent(c.Storage.Client, statsFiles)
+	if err != nil {
+		c.returnError(w, fmt.Errorf("unable to get files for reading: %s", err), http.StatusBadRequest)
+		return
+	}
 	fileReaders, err := c.Storage.Client.OpenFilesFromPos(statsFiles, pos)
 	if err != nil {
 		c.returnError(w, fmt.Errorf("error while reading files: %s", err), http.StatusBadRequest)
@@ -353,14 +361,42 @@ func (c *Context) packetLogsHandler(w http.ResponseWriter, r *http.Request) {
 	c.write(w, out)
 }
 
-func filterNonExistentFiles(storage storage.Iface, files []string) []string {
+func getCompressedFilesAndRemoveNonExistent(storage storage.Iface, files []string) ([]string, error) {
 	res := []string{}
 	for _, file := range files {
+		tmpFile := path.Join(wireguard.VPN_PACKETLOGGER_TMP_DIR, path.Base(file))
 		if storage.FileExists(file) {
 			res = append(res, file)
+		} else if storage.FileExists(tmpFile) { // temporary file exists
+			res = append(res, tmpFile)
+		} else if storage.FileExists(file + ".gz") { // uncompress log file for random access
+			err := storage.EnsurePath(wireguard.VPN_PACKETLOGGER_TMP_DIR)
+			if err != nil {
+				return res, fmt.Errorf("ensure path error: %s", err)
+			}
+			compressedFile, err := storage.OpenFile(file + ".gz")
+			if err != nil {
+				return res, fmt.Errorf("unable to open compress filed (%s): %s", file+".gz", err)
+			}
+			gzipReader, err := gzip.NewReader(compressedFile)
+			if err != nil {
+				return res, fmt.Errorf("unable to open gzip reader (%s): %s", file+".gz", err)
+			}
+			fileWriter, err := storage.OpenFileForWriting(tmpFile)
+			if err != nil {
+				return res, fmt.Errorf("unable to open tmp file writer (%s): %s", tmpFile, err)
+			}
+			_, err = io.Copy(fileWriter, gzipReader)
+			if err != nil {
+				return res, fmt.Errorf("unable to uncompress to file (%s): %s", tmpFile, err)
+			}
+			fileWriter.Close()
+			gzipReader.Close()
+			compressedFile.Close()
+			res = append(res, tmpFile)
 		}
 	}
-	return res
+	return res, nil
 }
 
 func getColor(i int) string {

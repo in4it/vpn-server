@@ -145,6 +145,10 @@ func WriteVPNConfig(storage storage.Iface, vpnConfig VPNConfig) error {
 		}
 	}
 
+	return nil
+}
+
+func ReloadVPNServerConfig() error {
 	// notify configmanager
 	client := http.Client{
 		Timeout: 10 * time.Second,
@@ -157,7 +161,6 @@ func WriteVPNConfig(storage storage.Iface, vpnConfig VPNConfig) error {
 	if resp.StatusCode != http.StatusAccepted {
 		return fmt.Errorf("configmanager post error: received status code %d", resp.StatusCode)
 	}
-
 	return nil
 }
 

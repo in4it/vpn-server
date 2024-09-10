@@ -239,7 +239,7 @@ export function VPNSetup() {
                         Enable IP Packet logging
                     </Text>
                     <Text fz="sm" c="dimmed">
-                        Metadata of IP packets passing the VPN can be logged and displayed in this admin portal. Useful if you want to see TCP connection requests, DNS requests, or http/https requests passing the VPN.
+                        Metadata of IP packets passing the VPN can be logged and displayed. Useful if you want to see TCP connection requests, DNS requests, or http/https requests passing the VPN. Can generate a lot of logging data when all traffic is routed over the VPN (0.0.0.0/0 route), or when DNS requests are being logged.
                     </Text>
                     </div>
                 </UnstyledButton>
@@ -248,10 +248,11 @@ export function VPNSetup() {
                     <InputWrapper
                     id="input-packetlogger-type-input"
                     label="Select types of packets to log"
-                    description="Select the type of packets that need to be logged. Note: by default all DNS requests are tunneled over the VPN, which can generate a lot of log data."
+                    description="Select the type of packets that need to be logged. Note: Caution! By default all DNS requests are tunneled over the VPN. Enabling DNS will generate a lot of log data!"
                     style={{marginTop: 10}}
                     >
                       <MultiSelect
+                      style={{marginTop: 10}}
                       searchable
                       hidePickedOptions
                       comboboxProps={{ offset: 0 }}

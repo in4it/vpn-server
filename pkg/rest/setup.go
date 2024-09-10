@@ -312,6 +312,11 @@ func (c *Context) vpnSetupHandler(w http.ResponseWriter, r *http.Request) {
 				c.returnError(w, fmt.Errorf("could write vpn config: %s", err), http.StatusBadRequest)
 				return
 			}
+			err = wireguard.ReloadVPNServerConfig()
+			if err != nil {
+				c.returnError(w, fmt.Errorf("unable to reload server config: %s", err), http.StatusBadRequest)
+				return
+			}
 		}
 		if rewriteClientConfigs {
 			// rewrite client configs

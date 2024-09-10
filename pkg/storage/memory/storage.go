@@ -1,7 +1,6 @@
 package memorystorage
 
 import (
-	"bufio"
 	"bytes"
 	"fmt"
 	"io"
@@ -10,14 +9,6 @@ import (
 	"path"
 	"strings"
 )
-
-type MyWriteCloser struct {
-	*bufio.Writer
-}
-
-func (mwc *MyWriteCloser) Close() error {
-	return nil
-}
 
 type MockReadWriterData []byte
 
