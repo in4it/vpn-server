@@ -90,3 +90,7 @@ func (l *LocalStorage) Rename(oldName, newName string) error {
 func (l *LocalStorage) EnsurePermissions(name string, mode fs.FileMode) error {
 	return os.Chmod(path.Join(l.path, name), mode)
 }
+
+func (l *LocalStorage) FileInfo(name string) (fs.FileInfo, error) {
+	return os.Stat(name)
+}

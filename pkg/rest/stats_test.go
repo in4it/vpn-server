@@ -1,7 +1,10 @@
 package rest
 
 import (
+	"bytes"
+	"compress/gzip"
 	"encoding/json"
+	"io"
 	"net/http/httptest"
 	"path"
 	"strings"
@@ -75,6 +78,46 @@ func TestFilterLogRecord(t *testing.T) {
 		res := filterLogRecord(logTypeFilter, v)
 		if res != expected[k] {
 			t.Fatalf("unexpected result: %v, got: %v", res, expected[k])
+		}
+	}
+}
+
+func TestGetCompressedFilesAndRemoveNonExistent(t *testing.T) {
+	now := time.Now()
+	storage := &memorystorage.MockMemoryStorage{}
+	testData := now.Format(wireguard.TIMESTAMP_FORMAT) + ",3df97301-5f73-407a-a26b-91829f1e7f48,1,12729136,24348520,2024-08-23T18:30:42\n"
+	files := []string{
+		path.Join(wireguard.VPN_STATS_DIR, wireguard.VPN_PACKETLOGGER_DIR, "1-2-3-4-"+now.AddDate(0, 0, -1).Format("2006-01-02")+".log"),
+		path.Join(wireguard.VPN_STATS_DIR, wireguard.VPN_PACKETLOGGER_DIR, "1-2-3-4-"+now.Format("2006-01-02")+".log"),
+	}
+	for k, file := range files {
+		if k != len(files)-1 { // only the last file is not compressed
+			fileWriter, err := storage.OpenFileForWriting(file + ".gz")
+			if err != nil {
+				t.Fatalf("open file for wring error: %s", err)
+			}
+			writer := gzip.NewWriter(fileWriter)
+			io.Copy(writer, bytes.NewReader([]byte(testData)))
+			writer.Close()
+			fileWriter.Close()
+		} else {
+			storage.WriteFile(file, []byte(testData))
+		}
+	}
+	outFiles, err := getCompressedFilesAndRemoveNonExistent(storage, files)
+	if err != nil {
+		t.Fatalf("get files error: %s", err)
+	}
+	if len(outFiles) != 2 {
+		t.Fatalf("expected 2 files, got: %d", len(outFiles))
+	}
+	for _, file := range outFiles {
+		body, err := storage.ReadFile(file)
+		if err != nil {
+			t.Fatalf("readfile error: %s", err)
+		}
+		if string(body) != string(testData) {
+			t.Fatalf("mismatch: got: %s vs expected: %s\n", string(body), string(testData))
 		}
 	}
 }

@@ -14,6 +14,7 @@ type Iface interface {
 	Rename(oldName, newName string) error
 	AppendFile(name string, data []byte) error
 	EnsurePermissions(name string, mode fs.FileMode) error
+	FileInfo(name string) (fs.FileInfo, error)
 	ReadWriter
 	Seeker
 }

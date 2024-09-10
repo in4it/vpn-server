@@ -78,7 +78,7 @@ func RunPacketLogger(storage storage.Iface, clientCache *ClientCache, vpnConfig 
 	i := 0
 	openFiles := make(PacketLoggerOpenFiles)
 	for {
-		err := readPacket(storage, handle, clientCache, openFiles)
+		err := readPacket(storage, handle, clientCache, openFiles, vpnConfig.PacketLogsTypes)
 		if err != nil {
 			logging.DebugLog(fmt.Errorf("readPacket error: %s", err))
 		}
@@ -102,14 +102,14 @@ func RunPacketLogger(storage storage.Iface, clientCache *ClientCache, vpnConfig 
 		i++
 	}
 }
-func readPacket(storage storage.Iface, handle *pcap.Handle, clientCache *ClientCache, openFiles PacketLoggerOpenFiles) error {
+func readPacket(storage storage.Iface, handle *pcap.Handle, clientCache *ClientCache, openFiles PacketLoggerOpenFiles, packetLogsTypes map[string]bool) error {
 	data, _, err := handle.ReadPacketData()
 	if err != nil {
 		return fmt.Errorf("read packet error: %s", err)
 	}
-	return parsePacket(storage, data, clientCache, openFiles, time.Now())
+	return parsePacket(storage, data, clientCache, openFiles, packetLogsTypes, time.Now())
 }
-func parsePacket(storage storage.Iface, data []byte, clientCache *ClientCache, openFiles PacketLoggerOpenFiles, now time.Time) error {
+func parsePacket(storage storage.Iface, data []byte, clientCache *ClientCache, openFiles PacketLoggerOpenFiles, packetLogsTypes map[string]bool, now time.Time) error {
 	packet := gopacket.NewPacket(data, layers.IPProtocolIPv4, gopacket.DecodeOptions{Lazy: true, DecodeStreamsAsDatagrams: true})
 	var (
 		ip4   *layers.IPv4
@@ -180,89 +180,108 @@ func parsePacket(storage storage.Iface, data []byte, clientCache *ClientCache, o
 		openFiles[clientID+"-"+now.Format("2006-01-02")] = logWriter
 	}
 
-	if tcpLayer := packet.Layer(layers.LayerTypeTCP); tcpLayer != nil {
-		tcpPacket, _ := tcpLayer.(*layers.TCP)
-		if tcpPacket.SYN {
-			logWriter.Write([]byte(strings.Join([]string{
-				now.Format(TIMESTAMP_FORMAT),
-				"tcp",
-				srcIP.String(),
-				dstIP.String(),
-				strconv.FormatUint(uint64(tcpPacket.SrcPort), 10),
-				strconv.FormatUint(uint64(tcpPacket.DstPort), 10)},
-				",") + "\n",
-			))
-		}
-		switch tcpPacket.DstPort {
-		case 80:
-			if tcpPacket.DstPort == 80 {
-				appLayer := packet.ApplicationLayer()
-				if appLayer != nil {
-					req, err := http.ReadRequest(bufio.NewReader(bytes.NewReader(appLayer.Payload())))
-					if err != nil {
-						fmt.Printf("debug: can't parse http packet: %s", err)
-					} else {
-						logWriter.Write([]byte(strings.Join([]string{
-							now.Format(TIMESTAMP_FORMAT),
-							"http",
-							srcIP.String(),
-							dstIP.String(),
-							strconv.FormatUint(uint64(tcpPacket.SrcPort), 10),
-							strconv.FormatUint(uint64(tcpPacket.DstPort), 10),
-							"http://" + req.Host + req.URL.RequestURI()},
-							",") + "\n",
-						))
-					}
-				}
+	logTcpVal, logTCP := packetLogsTypes["tcp"]
+	logHttpVal, logHttp := packetLogsTypes["http+https"]
+	logDnsVal, logDns := packetLogsTypes["dns"]
+	if logTCP && !logTcpVal {
+		logTCP = false
+	}
+	if logHttp && !logHttpVal {
+		logHttp = false
+	}
+	if logDns && !logDnsVal {
+		logDns = false
+	}
+
+	if logTCP || logHttp {
+		if tcpLayer := packet.Layer(layers.LayerTypeTCP); tcpLayer != nil {
+			tcpPacket, _ := tcpLayer.(*layers.TCP)
+			if tcpPacket.SYN && logTCP {
+				logWriter.Write([]byte(strings.Join([]string{
+					now.Format(TIMESTAMP_FORMAT),
+					"tcp",
+					srcIP.String(),
+					dstIP.String(),
+					strconv.FormatUint(uint64(tcpPacket.SrcPort), 10),
+					strconv.FormatUint(uint64(tcpPacket.DstPort), 10)},
+					",") + "\n",
+				))
 			}
-		case 443:
-			if tls, ok := packet.Layer(layers.LayerTypeTLS).(*layers.TLS); ok {
-				for _, handshake := range tls.Handshake {
-					if sni := parseTLSExtensionSNI([]byte(handshake.ClientHello.Extensions)); sni != nil {
-						logWriter.Write([]byte(strings.Join([]string{
-							now.Format(TIMESTAMP_FORMAT),
-							"https",
-							srcIP.String(),
-							dstIP.String(),
-							strconv.FormatUint(uint64(tcpPacket.SrcPort), 10),
-							strconv.FormatUint(uint64(tcpPacket.DstPort), 10),
-							string(sni)},
-							",") + "\n",
-						))
+			if logHttp {
+				switch tcpPacket.DstPort {
+				case 80:
+					if tcpPacket.DstPort == 80 {
+						appLayer := packet.ApplicationLayer()
+						if appLayer != nil {
+							req, err := http.ReadRequest(bufio.NewReader(bytes.NewReader(appLayer.Payload())))
+							if err != nil {
+								fmt.Printf("debug: can't parse http packet: %s", err)
+							} else {
+								logWriter.Write([]byte(strings.Join([]string{
+									now.Format(TIMESTAMP_FORMAT),
+									"http",
+									srcIP.String(),
+									dstIP.String(),
+									strconv.FormatUint(uint64(tcpPacket.SrcPort), 10),
+									strconv.FormatUint(uint64(tcpPacket.DstPort), 10),
+									"http://" + req.Host + req.URL.RequestURI()},
+									",") + "\n",
+								))
+							}
+						}
+					}
+				case 443:
+					if tls, ok := packet.Layer(layers.LayerTypeTLS).(*layers.TLS); ok {
+						for _, handshake := range tls.Handshake {
+							if sni := parseTLSExtensionSNI([]byte(handshake.ClientHello.Extensions)); sni != nil {
+								logWriter.Write([]byte(strings.Join([]string{
+									now.Format(TIMESTAMP_FORMAT),
+									"https",
+									srcIP.String(),
+									dstIP.String(),
+									strconv.FormatUint(uint64(tcpPacket.SrcPort), 10),
+									strconv.FormatUint(uint64(tcpPacket.DstPort), 10),
+									string(sni)},
+									",") + "\n",
+								))
+							}
+						}
 					}
 				}
 			}
 		}
 	}
-	if udpLayer := packet.Layer(layers.LayerTypeUDP); udpLayer != nil {
-		udp, _ := udpLayer.(*layers.UDP)
+	if logDns {
+		if udpLayer := packet.Layer(layers.LayerTypeUDP); udpLayer != nil {
+			udp, _ := udpLayer.(*layers.UDP)
 
-		if udp.NextLayerType().Contains(layers.LayerTypeDNS) {
-			dnsPacket := packet.Layer(layers.LayerTypeDNS)
-			if dnsPacket != nil {
-				udpDNS := dnsPacket.(*layers.DNS)
-				questions := []string{}
-				for k := range udpDNS.Questions {
-					found := false
-					for _, question := range questions {
-						if question == string(udpDNS.Questions[k].Name) {
-							found = true
+			if udp.NextLayerType().Contains(layers.LayerTypeDNS) {
+				dnsPacket := packet.Layer(layers.LayerTypeDNS)
+				if dnsPacket != nil {
+					udpDNS := dnsPacket.(*layers.DNS)
+					questions := []string{}
+					for k := range udpDNS.Questions {
+						found := false
+						for _, question := range questions {
+							if question == string(udpDNS.Questions[k].Name) {
+								found = true
+							}
 						}
-					}
-					if !found {
-						questions = append(questions, string(udpDNS.Questions[k].Name))
-					}
+						if !found {
+							questions = append(questions, string(udpDNS.Questions[k].Name))
+						}
 
+					}
+					logWriter.Write([]byte(strings.Join([]string{
+						now.Format(TIMESTAMP_FORMAT),
+						"udp",
+						srcIP.String(),
+						dstIP.String(),
+						strconv.FormatUint(uint64(udp.SrcPort), 10),
+						strconv.FormatUint(uint64(udp.DstPort), 10),
+						strings.Join(questions, "#")},
+						",") + "\n"))
 				}
-				logWriter.Write([]byte(strings.Join([]string{
-					now.Format(TIMESTAMP_FORMAT),
-					"udp",
-					srcIP.String(),
-					dstIP.String(),
-					strconv.FormatUint(uint64(udp.SrcPort), 10),
-					strconv.FormatUint(uint64(udp.DstPort), 10),
-					strings.Join(questions, "#")},
-					",") + "\n"))
 			}
 		}
 	}
@@ -351,11 +370,15 @@ func checkDiskSpace() error {
 // Packet log rotation
 func PacketLoggerLogRotation(storage storage.Iface) {
 	for {
+		time.Sleep(getTimeUntilTomorrowStartOfDay()) // sleep until tomorrow
 		err := packetLoggerLogRotation(storage)
 		if err != nil {
 			logging.ErrorLog(fmt.Errorf("packet logger log rotation error: %s", err))
 		}
-		time.Sleep(getTimeUntilTomorrowStartOfDay()) // sleep until tomorrow
+		err = packetLoggerRemoveTmpFiles(storage)
+		if err != nil {
+			logging.ErrorLog(fmt.Errorf("packet logger remove tmp files error: %s", err))
+		}
 	}
 }
 
@@ -406,6 +429,28 @@ func packetLoggerLogRotation(storage storage.Iface) error {
 					}
 				}
 
+			}
+		}
+	}
+	return nil
+}
+
+func packetLoggerRemoveTmpFiles(storage storage.Iface) error {
+	files, err := storage.ReadDir(VPN_PACKETLOGGER_TMP_DIR)
+	if err != nil {
+		return fmt.Errorf("readDir error: %s", err)
+	}
+	for _, filename := range files {
+		if strings.HasSuffix(filename, ".log") {
+			fileInfo, err := storage.FileInfo(path.Join(VPN_PACKETLOGGER_TMP_DIR, filename))
+			if err != nil {
+				return fmt.Errorf("file info error (%s): %s", filename, err)
+			}
+			if time.Since(fileInfo.ModTime()) > (24 * time.Hour) {
+				err = storage.Remove(path.Join(VPN_PACKETLOGGER_TMP_DIR, filename))
+				if err != nil {
+					return fmt.Errorf("file remove error (%s): %s", filename, err)
+				}
 			}
 		}
 	}
