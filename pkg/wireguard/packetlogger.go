@@ -375,6 +375,10 @@ func PacketLoggerLogRotation(storage storage.Iface) {
 		if err != nil {
 			logging.ErrorLog(fmt.Errorf("packet logger log rotation error: %s", err))
 		}
+		err = packetLoggerRemoveTmpFiles(storage)
+		if err != nil {
+			logging.ErrorLog(fmt.Errorf("packet logger remove tmp files error: %s", err))
+		}
 	}
 }
 
@@ -425,6 +429,28 @@ func packetLoggerLogRotation(storage storage.Iface) error {
 					}
 				}
 
+			}
+		}
+	}
+	return nil
+}
+
+func packetLoggerRemoveTmpFiles(storage storage.Iface) error {
+	files, err := storage.ReadDir(VPN_PACKETLOGGER_TMP_DIR)
+	if err != nil {
+		return fmt.Errorf("readDir error: %s", err)
+	}
+	for _, filename := range files {
+		if strings.HasSuffix(filename, ".log") {
+			fileInfo, err := storage.FileInfo(path.Join(VPN_PACKETLOGGER_TMP_DIR, filename))
+			if err != nil {
+				return fmt.Errorf("file info error (%s): %s", filename, err)
+			}
+			if time.Since(fileInfo.ModTime()) > (24 * time.Hour) {
+				err = storage.Remove(path.Join(VPN_PACKETLOGGER_TMP_DIR, filename))
+				if err != nil {
+					return fmt.Errorf("file remove error (%s): %s", filename, err)
+				}
 			}
 		}
 	}

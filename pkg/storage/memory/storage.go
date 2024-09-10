@@ -21,7 +21,8 @@ func (m *MockReadWriterData) Write(p []byte) (nn int, err error) {
 }
 
 type MockMemoryStorage struct {
-	Data map[string]*MockReadWriterData
+	FileInfoData map[string]*FileInfo
+	Data         map[string]*MockReadWriterData
 }
 
 func (m *MockMemoryStorage) ConfigPath(filename string) string {
@@ -150,4 +151,11 @@ func (m *MockMemoryStorage) OpenFileForAppending(name string) (io.WriteCloser, e
 }
 func (m *MockMemoryStorage) EnsurePermissions(name string, mode fs.FileMode) error {
 	return nil
+}
+func (m *MockMemoryStorage) FileInfo(name string) (fs.FileInfo, error) {
+	val, ok := m.FileInfoData[name]
+	if !ok {
+		return FileInfo{}, fmt.Errorf("couldn't get file info for: %s", name)
+	}
+	return val, nil
 }

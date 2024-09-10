@@ -432,6 +432,47 @@ func TestPacketLoggerLogRotationDeletion(t *testing.T) {
 	}
 }
 
+func TestPacketLoggerRemoveTmpFiles(t *testing.T) {
+	storage := &memorystorage.MockMemoryStorage{
+		Data:         map[string]*memorystorage.MockReadWriterData{},
+		FileInfoData: map[string]*memorystorage.FileInfo{},
+	}
+	for i := 0; i < 20; i++ {
+		timestamp := time.Now().AddDate(0, 0, -1*i)
+		suffix := ".log"
+		key1 := path.Join(VPN_PACKETLOGGER_TMP_DIR, fmt.Sprintf("1-2-3-4-%s%s", timestamp.Format("2006-01-02"), suffix))
+		value1 := []byte(timestamp.Format(TIMESTAMP_FORMAT) + `,https,10.189.184.2,64.233.180.104,60496,443,www.google.com`)
+		err := storage.WriteFile(key1, value1)
+		if err != nil {
+			t.Fatalf("write file error: %s", err)
+		}
+		storage.FileInfoData[key1] = &memorystorage.FileInfo{
+			ModTimeOut: timestamp,
+		}
+	}
+
+	before, err := storage.ReadDir(VPN_PACKETLOGGER_TMP_DIR)
+	if err != nil {
+		t.Fatalf("readdir error: %s", err)
+	}
+
+	err = packetLoggerRemoveTmpFiles(storage)
+	if err != nil {
+		t.Fatalf("packetLoggerRotation error: %s", err)
+	}
+
+	after, err := storage.ReadDir(VPN_PACKETLOGGER_TMP_DIR)
+	if err != nil {
+		t.Fatalf("readdir error: %s", err)
+	}
+	if len(before) != 20 {
+		t.Fatalf("expected to have written 20 files. Got: %d", len(before))
+	}
+	if len(after) != 1 {
+		t.Fatalf("only expected 1 tmp files. Got: %d", len(after))
+	}
+}
+
 func TestParsePacketSwitchPacketLogTypes(t *testing.T) {
 	storage := &memorystorage.MockMemoryStorage{}
 	clientCache := &ClientCache{
