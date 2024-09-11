@@ -68,7 +68,8 @@ type ContextRequest struct {
 	Protocol      string `json:"protocol"`
 }
 type ContextSetupResponse struct {
-	SetupCompleted bool `json:"setupCompleted"`
+	SetupCompleted bool   `json:"setupCompleted"`
+	CloudType      string `json:"cloudType"`
 }
 
 type AuthMethodsResponse struct {

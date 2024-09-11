@@ -5,9 +5,10 @@ import React from 'react';
 
 type Props = {
   onCompleted: (newType: boolean) => void;
+  cloudType: string;
 };
 
-export function SetupBanner({onCompleted}:Props) {
+export function SetupBanner({onCompleted, cloudType}:Props) {
   const [step, setStep] = useState<number>(0);
   const [secret, setSecret] = useState<string>("");
 
@@ -18,7 +19,7 @@ export function SetupBanner({onCompleted}:Props) {
   }, [step]);
 
   if(step === 0) {
-    return <SetSecret onChangeStep={setStep} onChangeSecret={setSecret} />
+    return <SetSecret onChangeStep={setStep} onChangeSecret={setSecret} cloudType={cloudType} />
   } else if(step === 1) {
     return <SetAdminPassword onChangeStep={setStep} secret={secret} />
   }

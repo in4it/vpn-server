@@ -1,44 +1,97 @@
-import { Text, Title, TextInput, Button } from '@mantine/core';
+import { Text, Title, TextInput, Button, Card, Grid, Container, Center, Alert, ActionIcon } from '@mantine/core';
+import { useClipboard } from '@mantine/hooks';
+import { TbCheck, TbCopy } from 'react-icons/tb';
 import classes from './SetupBanner.module.css';
 import {useState} from 'react';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import { AppSettings } from '../Constants/Constants';
 import {
   useQueryClient,
   useMutation,
 } from '@tanstack/react-query'
+import { TbInfoCircle } from 'react-icons/tb';
 
 type Props = {
     onChangeStep: (newType: number) => void;
     onChangeSecret: (newType: string) => void;
-  };
+    cloudType: string;
+};
 
-export function SetSecret({onChangeStep, onChangeSecret}: Props) {
+type SetupResponse = {
+  secret: string;
+  tagHash: string;
+  instanceID: string;
+}
+type SetupResponseError = {
+  error: string;
+}
+
+const randomHex = (length:number) => {
+  const bytes = window.crypto.getRandomValues(new Uint8Array(length))
+  var hexstring='', h;
+  for(var i=0; i<bytes.length; i++) {
+      h=bytes[i].toString(16);
+      if(h.length==1) { h='0'+h; }
+      hexstring+=h;
+  }   
+  return hexstring;
+}
+
+
+export function SetSecret({onChangeStep, onChangeSecret, cloudType}: Props) {
+    const clipboard = useClipboard({ timeout: 120000 });
     const queryClient = useQueryClient()
-    const [secret, setSecret] = useState<string>("");
+    const [setupResponse, setSetupResponse] = useState<SetupResponse>({secret: "", tagHash: "", instanceID: ""});
     const [secretError, setSecretError] = useState<string>("");
+    const [randomHexValue] = useState(randomHex(16))
     const secretMutation = useMutation({
-    mutationFn: (newSecret: string) => {
+    mutationFn: (setupResponse: SetupResponse) => {
       setSecretError("")
-      return axios.post(AppSettings.url + '/context', {secret: newSecret})
+      return axios.post(AppSettings.url + '/context', setupResponse)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['context'] })
-      onChangeSecret(secret)
+      onChangeSecret(setupResponse.secret)
       onChangeStep(1)
     },
-    onError: (error) => {
-      if(error.message.includes("status code 403")) {
-        setSecretError("Invalid secret")
-      } else {
+    onError: (error:AxiosError) => {
+      const errorMessage = error.response?.data as SetupResponseError
+      if(errorMessage?.error === undefined) {
         setSecretError("Error: "+ error.message)
+      } else {
+        setSecretError(errorMessage.error)
       }
-    }
+    },
   })
+  const captureEnter = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === "Enter") {
+      secretMutation.mutate(setupResponse)
+    }
+  }
+  const alertIcon = <TbInfoCircle />
+  const hasMoreOptions = cloudType === "aws" || cloudType === "digitalocean" ? true : false
+  const colSpanWithSSH = hasMoreOptions ? 3 : 6
+
   return (
-    <div className={classes.wrapper}>
-      <div className={classes.body}>
-        <Title className={classes.title}>Start Setup...</Title>
+    <Container fluid style={{marginTop: 50}}>
+      <Center>
+      <Title order={1} style={{marginBottom: 20}}>Start Setup</Title>
+      </Center>
+      {secretError !== "" ? 
+           <Grid>
+            <Grid.Col span={3}></Grid.Col>
+            <Grid.Col span={6}>
+              <Alert variant="light" color="red" title="Error" radius="lg" icon={alertIcon} className={classes.error} style={{marginBottom: 20, paddingLeft: 20, paddingRight:35}}>{secretError}</Alert>
+            </Grid.Col>
+            </Grid>
+        :
+          null
+      }
+    <Grid>
+    <Grid.Col span={3}></Grid.Col>
+      <Grid.Col span={colSpanWithSSH}>
+        <Card withBorder radius="md" p="xl" className={classes.card}>
+        <Title order={3} style={{marginBottom: 20}}>{hasMoreOptions ? "Option 1: " : ""}With SSH Access</Title>
         <Text fw={500} fz="lg" mb={5}>
           Enter the secret to start the setup.
         </Text>
@@ -57,14 +110,69 @@ export function SetSecret({onChangeStep, onChangeSecret}: Props) {
             <TextInput
               placeholder="secret"
               classNames={{ input: classes.input, root: classes.inputWrapper }}
-              onChange={(event) => setSecret(event.currentTarget.value)}
-              value={secret}
-              error={secretError}
+              onChange={(event) => setSetupResponse({ ...setupResponse, secret: event.currentTarget.value})}
+              value={setupResponse.secret}
+              onKeyDown={(e) => captureEnter(e)}
             />
-            <Button className={classes.control} onClick={() => secretMutation.mutate(secret)}>Continue</Button>
+            <Button className={classes.control} onClick={() => secretMutation.mutate({ secret: setupResponse.secret, tagHash: "", instanceID: ""})}>Continue</Button>
           </div>
         )}
-      </div>
-    </div>
+        </Card>
+      </Grid.Col>
+      {cloudType === "aws" ? 
+        <Grid.Col span={3}>
+          <Card withBorder radius="md" p="xl" className={classes.card}>
+          <Title order={3} style={{marginBottom: 20}}>{hasMoreOptions ? "Option 2: " : ""}Without SSH Access</Title>
+
+          <Text>
+            Enter the EC2 Instance ID of the VPN Server
+          </Text>
+          {secretMutation.isPending ? (
+            <div>Checking Instance ID...</div>
+          ) : (
+            <div className={classes.controls}>
+              <TextInput
+                placeholder="i-1234567890abcdef0"
+                classNames={{ input: classes.input, root: classes.inputWrapper }}
+                onChange={(event) => setSetupResponse({ ...setupResponse, instanceID: event.currentTarget.value})}
+                value={setupResponse.instanceID}
+                onKeyDown={(e) => captureEnter(e)}
+              />
+              <Button className={classes.control} onClick={() => secretMutation.mutate({ secret: "", tagHash: "", instanceID: setupResponse.instanceID})}>Check Instance ID</Button>
+            </div>
+          )}
+          </Card>
+          </Grid.Col>
+        : null }
+        {cloudType === "digitalocean" ? 
+          <Grid.Col span={3}>
+            <Card withBorder radius="md" p="xl" className={classes.card}>
+            <Title order={3} style={{marginBottom: 20}}>{hasMoreOptions ? "Option 2: " : ""}Without SSH Access</Title>
+
+            <Text>
+              Add the following tag to the droplet by going to the <Text span fw={700}>droplet settings</Text> and opening the <Text span fw={700}>Tags</Text> page.
+            </Text>
+            {secretMutation.isPending ? (
+              <div>Checking tag...</div>
+            ) : (
+              <div className={classes.controls}>
+                <TextInput
+                  disabled
+                  classNames={{ input: classes.input, root: classes.inputWrapper }}
+                  value={randomHexValue}
+                  leftSection={
+                    <ActionIcon size={32} radius="xl" variant="transparent" onClick={() => clipboard.copy(randomHexValue)}>
+                      { clipboard.copied ? <TbCheck /> : <TbCopy /> }
+                    </ActionIcon>
+                  }
+                />
+                <Button className={classes.control} onClick={() => secretMutation.mutate({ secret: "", tagHash: randomHexValue, instanceID: ""})}>Check tag</Button>
+              </div>
+            )}
+            </Card>
+            </Grid.Col>
+        : null }
+      </Grid>
+      </Container>
   );
 }
