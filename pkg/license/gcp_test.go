@@ -22,7 +22,7 @@ func TestGuessInfrastructureGCP(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	metadataIP = strings.Replace(ts.URL, "http://", "", -1)
+	MetadataIP = strings.Replace(ts.URL, "http://", "", -1)
 
 	infra := guessInfrastructure()
 
@@ -50,7 +50,7 @@ func TestGetMaxUsersGCPBYOL(t *testing.T) {
 	defer ts.Close()
 
 	licenseURL = ts.URL
-	metadataIP = strings.Replace(ts.URL, "http://", "", -1)
+	MetadataIP = strings.Replace(ts.URL, "http://", "", -1)
 
 	mockStorage := &memorystorage.MockMemoryStorage{}
 	err := mockStorage.WriteFile("config/license.key", []byte("license-1234556-license"))

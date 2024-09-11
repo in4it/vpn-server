@@ -61,9 +61,15 @@ type Storage struct {
 
 type ContextRequest struct {
 	Secret        string `json:"secret"`
+	TagHash       string `json:"tagHash"`
+	InstanceID    string `json:"instanceID"`
 	AdminPassword string `json:"adminPassword"`
 	Hostname      string `json:"hostname"`
 	Protocol      string `json:"protocol"`
+}
+type ContextSetupResponse struct {
+	SetupCompleted bool   `json:"setupCompleted"`
+	CloudType      string `json:"cloudType"`
 }
 
 type AuthMethodsResponse struct {

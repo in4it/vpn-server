@@ -96,7 +96,7 @@ func TestGetMaxUsersAWSBYOL(t *testing.T) {
 		"t3.xlarge": 50,
 	}
 	licenseURL = ts.URL
-	metadataIP = strings.Replace(ts.URL, "http://", "", -1)
+	MetadataIP = strings.Replace(ts.URL, "http://", "", -1)
 	for _, v := range testCases {
 		if v2 := GetMaxUsersAWSBYOL(http.Client{Timeout: 5 * time.Second}, &memorystorage.MockMemoryStorage{}); v2 != v {
 			t.Fatalf("Wrong output: %d vs %d", v2, v)
@@ -127,7 +127,7 @@ func TestGuessInfrastructureAzure(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	metadataIP = strings.Replace(ts.URL, "http://", "", -1)
+	MetadataIP = strings.Replace(ts.URL, "http://", "", -1)
 
 	infra := guessInfrastructure()
 
@@ -170,7 +170,7 @@ func TestGuessInfrastructureAWSMarketplace(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	metadataIP = strings.Replace(ts.URL, "http://", "", -1)
+	MetadataIP = strings.Replace(ts.URL, "http://", "", -1)
 
 	infra := guessInfrastructure()
 
@@ -204,7 +204,7 @@ func TestGuessInfrastructureAWS(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	metadataIP = strings.Replace(ts.URL, "http://", "", -1)
+	MetadataIP = strings.Replace(ts.URL, "http://", "", -1)
 
 	infra := guessInfrastructure()
 
@@ -223,7 +223,7 @@ func TestGuessInfrastructureOther(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	metadataIP = strings.Replace(ts.URL, "http://", "", -1)
+	MetadataIP = strings.Replace(ts.URL, "http://", "", -1)
 
 	infra := guessInfrastructure()
 
@@ -248,7 +248,7 @@ func TestGetAzureInstanceType(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	metadataIP = strings.Replace(ts.URL, "http://", "", -1)
+	MetadataIP = strings.Replace(ts.URL, "http://", "", -1)
 
 	usersPerVCPU := 25
 
@@ -275,7 +275,7 @@ func TestGetAWSInstanceType(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	metadataIP = strings.Replace(ts.URL, "http://", "", -1)
+	MetadataIP = strings.Replace(ts.URL, "http://", "", -1)
 
 	users := GetMaxUsersAWS(getAWSInstanceType(http.Client{Timeout: 5 * time.Second}))
 
@@ -294,7 +294,7 @@ func TestGuessInfrastructureDigitalOcean(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	metadataIP = strings.Replace(ts.URL, "http://", "", -1)
+	MetadataIP = strings.Replace(ts.URL, "http://", "", -1)
 
 	infra := guessInfrastructure()
 
@@ -330,7 +330,7 @@ func TestGetMaxUsersDigitalOceanBYOL(t *testing.T) {
 	defer ts.Close()
 
 	licenseURL = ts.URL
-	metadataIP = strings.Replace(ts.URL, "http://", "", -1)
+	MetadataIP = strings.Replace(ts.URL, "http://", "", -1)
 
 	mockStorage := &memorystorage.MockMemoryStorage{}
 	err := mockStorage.WriteFile("config/license.key", []byte("license-1234556-license"))
@@ -383,7 +383,7 @@ func TestGetLicenseKey(t *testing.T) {
 		w.WriteHeader(http.StatusNotFound)
 	}))
 
-	metadataIP = strings.Replace(ts.URL, "http://", "", -1)
+	MetadataIP = strings.Replace(ts.URL, "http://", "", -1)
 
 	logging.Loglevel = logging.LOG_DEBUG + logging.LOG_ERROR
 	key := GetLicenseKey(&memorystorage.MockMemoryStorage{}, "")

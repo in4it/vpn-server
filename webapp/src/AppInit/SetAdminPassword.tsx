@@ -5,26 +5,23 @@ import axios from 'axios';
 import { AppSettings } from '../Constants/Constants';
 import {
   useMutation,
-  useQueryClient,
 } from '@tanstack/react-query'
 
 type Props = {
     onChangeStep: (newType: number) => void;
-    secret: string
+    secrets: SetupResponse
   };
 
-export function SetAdminPassword({onChangeStep, secret}: Props) {
-    const queryClient = useQueryClient()
+export function SetAdminPassword({onChangeStep, secrets}: Props) {
     const [password, setPassword] = useState<string>("");
     const [password2, setPassword2] = useState<string>("");
     const [passwordError, setPasswordError] = useState<string>("");
     const [password2Error, setPassword2Error] = useState<string>("");
     const passwordMutation = useMutation({
     mutationFn: (newPassword: string) => {
-      return axios.post(AppSettings.url + '/context', {secret: secret, adminPassword: newPassword, hostname: window.location.host, protocol: window.location.protocol})
+      return axios.post(AppSettings.url + '/context', {...secrets, adminPassword: newPassword, hostname: window.location.host, protocol: window.location.protocol})
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['context'] })
       onChangeStep(2)
     },
     onError: (error) => {
@@ -40,8 +37,16 @@ export function SetAdminPassword({onChangeStep, secret}: Props) {
     }
     if(password === "") {
         setPasswordError("admin password cannot be blank")
+        return
     }
     passwordMutation.mutate(password)
+  }
+  const captureEnter = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === "Enter") {
+      if(password !== "" && password2 !== "") {
+        changePassword()
+      }
+    }
   }
   return (
     <div className={classes.wrapper}>
@@ -51,16 +56,20 @@ export function SetAdminPassword({onChangeStep, secret}: Props) {
           Set a password for the admin user. At the next screen you'll be able to login with the username "admin" and the password you'll set now.
         </Text>
         {passwordMutation.isPending ? (
-          <div>Setting Password...</div>
+          <div>Setting Password for user 'admin'...</div>
         ) : (
           <div>
             <Text component="label" htmlFor="your-password" size="sm" fw={500}>
             Your password
             </Text>
-            <PasswordInput placeholder="Your password" id="your-password-1"
+            <PasswordInput
+                placeholder="Your password for user admin"
+                id="your-password-1"
+                autoComplete="new-password"
                 onChange={(event) => setPassword(event.currentTarget.value)}
                 value={password}
                 error={passwordError}
+                onKeyDown={(e) => captureEnter(e)}
                 />
             <Text component="label" htmlFor="your-password" size="sm" fw={500}>
             Repeat password
@@ -68,9 +77,11 @@ export function SetAdminPassword({onChangeStep, secret}: Props) {
             <PasswordInput
                 placeholder="Repeat your password"
                 id="your-password-2"
+                autoComplete="new-password"
                 onChange={(event) => setPassword2(event.currentTarget.value)}
                 value={password2}
-                error={password2Error} 
+                error={password2Error}
+                onKeyDown={(e) => captureEnter(e)}
                 />
             <br />
             <Button onClick={() => changePassword()}>Set Admin Password</Button>

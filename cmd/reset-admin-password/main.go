@@ -29,7 +29,7 @@ func main() {
 		os.Exit(1)
 	}
 	if !newAdminUserCreated {
-		resetMFA, err := getLine("Also remove MFA if present? [Y/n] ")
+		resetMFA, err := getLine("\nAlso remove MFA if present? [Y/n] ")
 		if err != nil {
 			fmt.Printf("Failed to changed admin password: %s", err)
 			os.Exit(1)

@@ -110,6 +110,7 @@ func getEmptyContext(appDir string) (*Context, error) {
 		TokenRenewalTimeMinutes: oidcrenewal.DEFAULT_RENEWAL_TIME_MINUTES,
 		LogLevel:                logging.LOG_ERROR,
 		SCIM:                    &SCIM{EnableSCIM: false},
+		SAML:                    &SAML{Providers: &[]saml.Provider{}},
 	}
 	return c, nil
 }

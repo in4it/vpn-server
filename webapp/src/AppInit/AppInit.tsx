@@ -27,7 +27,7 @@ import { AppSettings } from '../Constants/Constants';
     }
 
     if (!setupCompleted) {
-        return <SetupBanner onCompleted={setSetupCompleted} />
+        return <SetupBanner onCompleted={setSetupCompleted} cloudType={data.cloudType} />
     } else {
         return children
     }
