@@ -41,6 +41,10 @@ func (c *Context) contextHandler(w http.ResponseWriter, r *http.Request) {
 			switch c.CloudType {
 			case "digitalocean": // check if the hashtag is set
 				if contextReq.TagHash != "" {
+					if !strings.HasPrefix(contextReq.TagHash, "vpnsecret-") {
+						c.returnError(w, fmt.Errorf("tag doesn't have the correct prefix. The tag needs to start with 'vpnsecret-'"), http.StatusUnauthorized)
+						return
+					}
 					accessGranted, err = license.HasDigitalOceanTagSet(http.Client{Timeout: 5 * time.Second}, contextReq.TagHash)
 					if err != nil {
 						c.returnError(w, fmt.Errorf("could not retrieve tags at this time: %s", err), http.StatusUnauthorized)
@@ -60,6 +64,9 @@ func (c *Context) contextHandler(w http.ResponseWriter, r *http.Request) {
 					}
 					if strings.TrimPrefix(instanceID, "i-") == strings.TrimPrefix(contextReq.InstanceID, "i-") {
 						accessGranted = true
+					} else {
+						c.returnError(w, fmt.Errorf("instance id doesn't match"), http.StatusUnauthorized)
+						return
 					}
 				}
 			}

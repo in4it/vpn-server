@@ -1,27 +1,19 @@
-import { Text, Title, TextInput, Button, Card, Grid, Container, Center, Alert, ActionIcon } from '@mantine/core';
-import { useClipboard } from '@mantine/hooks';
-import { TbCheck, TbCopy } from 'react-icons/tb';
+import { Text, Title, TextInput, Button, Card, Grid, Container, Center, Alert } from '@mantine/core';
 import classes from './SetupBanner.module.css';
 import {useState} from 'react';
 import axios, { AxiosError } from 'axios';
 import { AppSettings } from '../Constants/Constants';
 import {
-  useQueryClient,
   useMutation,
 } from '@tanstack/react-query'
 import { TbInfoCircle } from 'react-icons/tb';
 
 type Props = {
     onChangeStep: (newType: number) => void;
-    onChangeSecret: (newType: string) => void;
+    onChangeSecrets: (newType: SetupResponse) => void;
     cloudType: string;
 };
 
-type SetupResponse = {
-  secret: string;
-  tagHash: string;
-  instanceID: string;
-}
 type SetupResponseError = {
   error: string;
 }
@@ -34,24 +26,21 @@ const randomHex = (length:number) => {
       if(h.length==1) { h='0'+h; }
       hexstring+=h;
   }   
-  return hexstring;
+  return "vpnsecret-"+hexstring;
 }
 
 
-export function SetSecret({onChangeStep, onChangeSecret, cloudType}: Props) {
-    const clipboard = useClipboard({ timeout: 120000 });
-    const queryClient = useQueryClient()
+export function SetSecret({onChangeStep, onChangeSecrets, cloudType}: Props) {
     const [setupResponse, setSetupResponse] = useState<SetupResponse>({secret: "", tagHash: "", instanceID: ""});
     const [secretError, setSecretError] = useState<string>("");
     const [randomHexValue] = useState(randomHex(16))
     const secretMutation = useMutation({
-    mutationFn: (setupResponse: SetupResponse) => {
+    mutationFn: (setupResponseParam: SetupResponse) => {
       setSecretError("")
-      return axios.post(AppSettings.url + '/context', setupResponse)
+      return axios.post(AppSettings.url + '/context', setupResponseParam)
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['context'] })
-      onChangeSecret(setupResponse.secret)
+    onSuccess: (_, setupResponseParam) => {
+      onChangeSecrets(setupResponseParam)
       onChangeStep(1)
     },
     onError: (error:AxiosError) => {
@@ -150,21 +139,16 @@ export function SetSecret({onChangeStep, onChangeSecret, cloudType}: Props) {
             <Title order={3} style={{marginBottom: 20}}>{hasMoreOptions ? "Option 2: " : ""}Without SSH Access</Title>
 
             <Text>
-              Add the following tag to the droplet by going to the <Text span fw={700}>droplet settings</Text> and opening the <Text span fw={700}>Tags</Text> page.
+              Add the following tag to the droplet by going to the <Text span fw={700}>droplet settings</Text> and opening the <Text span fw={700}>Tags</Text> page. You can remove the tag once the setup is complete.
             </Text>
             {secretMutation.isPending ? (
               <div>Checking tag...</div>
             ) : (
               <div className={classes.controls}>
                 <TextInput
-                  disabled
+                  readOnly={true}
                   classNames={{ input: classes.input, root: classes.inputWrapper }}
                   value={randomHexValue}
-                  leftSection={
-                    <ActionIcon size={32} radius="xl" variant="transparent" onClick={() => clipboard.copy(randomHexValue)}>
-                      { clipboard.copied ? <TbCheck /> : <TbCopy /> }
-                    </ActionIcon>
-                  }
                 />
                 <Button className={classes.control} onClick={() => secretMutation.mutate({ secret: "", tagHash: randomHexValue, instanceID: ""})}>Check tag</Button>
               </div>

@@ -5,26 +5,23 @@ import axios from 'axios';
 import { AppSettings } from '../Constants/Constants';
 import {
   useMutation,
-  useQueryClient,
 } from '@tanstack/react-query'
 
 type Props = {
     onChangeStep: (newType: number) => void;
-    secret: string
+    secrets: SetupResponse
   };
 
-export function SetAdminPassword({onChangeStep, secret}: Props) {
-    const queryClient = useQueryClient()
+export function SetAdminPassword({onChangeStep, secrets}: Props) {
     const [password, setPassword] = useState<string>("");
     const [password2, setPassword2] = useState<string>("");
     const [passwordError, setPasswordError] = useState<string>("");
     const [password2Error, setPassword2Error] = useState<string>("");
     const passwordMutation = useMutation({
     mutationFn: (newPassword: string) => {
-      return axios.post(AppSettings.url + '/context', {secret: secret, adminPassword: newPassword, hostname: window.location.host, protocol: window.location.protocol})
+      return axios.post(AppSettings.url + '/context', {...secrets, adminPassword: newPassword, hostname: window.location.host, protocol: window.location.protocol})
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['context'] })
       onChangeStep(2)
     },
     onError: (error) => {
@@ -40,6 +37,7 @@ export function SetAdminPassword({onChangeStep, secret}: Props) {
     }
     if(password === "") {
         setPasswordError("admin password cannot be blank")
+        return
     }
     passwordMutation.mutate(password)
   }

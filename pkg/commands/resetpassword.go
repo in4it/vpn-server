@@ -20,6 +20,9 @@ func ResetPassword(appDir, password string) (bool, error) {
 	if err != nil {
 		return adminCreated, fmt.Errorf("config retrieval error: %s", err)
 	}
+	c.Storage = &rest.Storage{
+		Client: localstorage,
+	}
 	c.UserStore, err = users.NewUserStore(localstorage, -1)
 	if err != nil {
 		return adminCreated, fmt.Errorf("userstore initialization error: %s", err)

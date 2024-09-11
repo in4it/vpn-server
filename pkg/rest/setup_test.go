@@ -233,7 +233,7 @@ func TestContextHandlerSetupAWSInstanceID(t *testing.T) {
 func TestContextHandlerSetupDigitalOceanTag(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.RequestURI == "/metadata/v1/tags" {
-			w.Write([]byte("this-is-a-secret-tag"))
+			w.Write([]byte("vpnsecret-this-is-a-secret-tag"))
 			return
 		}
 		w.WriteHeader(http.StatusBadRequest)
@@ -258,7 +258,7 @@ func TestContextHandlerSetupDigitalOceanTag(t *testing.T) {
 	c.CloudType = "digitalocean"
 
 	payload := ContextRequest{
-		TagHash:       "this-is-a-secret-tag",
+		TagHash:       "vpnsecret-this-is-a-secret-tag",
 		AdminPassword: "adminPassword",
 	}
 	payloadBytes, err := json.Marshal(payload)
