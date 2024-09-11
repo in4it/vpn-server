@@ -11,7 +11,7 @@ import (
 )
 
 func isOnGCP(client http.Client) bool {
-	endpoint := "http://" + metadataIP + "/computeMetadata/v1/"
+	endpoint := "http://" + MetadataIP + "/computeMetadata/v1/"
 	req, err := http.NewRequest("GET", endpoint, nil)
 	if err != nil {
 		return false
@@ -62,7 +62,7 @@ func getGCPLicenseKey(storage storage.ReadWriter, client http.Client) (string, e
 
 func getGCPIdentifier(client http.Client) (string, error) {
 	id := ""
-	endpoint := "http://" + metadataIP + "/computeMetadata/v1/project/project-id"
+	endpoint := "http://" + MetadataIP + "/computeMetadata/v1/project/project-id"
 	req, err := http.NewRequest("GET", endpoint, nil)
 	if err != nil {
 		return id, err

@@ -1,5 +1,14 @@
 # Release Notes
 
+## Version v1.1.4
+* Improved setup flow for AWS & DigitalOcean
+
+## Version v1.1.3
+* New Feature: Log packets traversing the VPN Server. This release supports logging TCP / DNS / HTTP / HTTPS packets and inspecting the destination of http/https packets.
+
+## Version v1.1.2
+* UI: fixes in user creation
+
 ## Version v1.1.0
 * UI: change VPN configuration within the admin UI
 * UI: ability to reload WireGuard® configuration 

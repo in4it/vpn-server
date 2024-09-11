@@ -11,7 +11,7 @@ import (
 	randomutils "github.com/in4it/wireguard-server/pkg/utils/random"
 )
 
-var metadataIP = "169.254.169.254"
+var MetadataIP = "169.254.169.254"
 var licenseURL = "https://in4it-vpn-server.s3.amazonaws.com/licenses"
 
 func guessInfrastructure() string {

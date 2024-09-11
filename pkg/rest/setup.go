@@ -18,6 +18,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/in4it/wireguard-server/pkg/auth/oidc"
 	"github.com/in4it/wireguard-server/pkg/auth/saml"
+	"github.com/in4it/wireguard-server/pkg/license"
 	"github.com/in4it/wireguard-server/pkg/users"
 	"github.com/in4it/wireguard-server/pkg/wireguard"
 )
@@ -35,14 +36,44 @@ func (c *Context) contextHandler(w http.ResponseWriter, r *http.Request) {
 			c.SetupCompleted = true
 		}
 		if !c.SetupCompleted {
-			localSecret, err := c.Storage.Client.ReadFile(SETUP_CODE_FILE)
-			if err != nil {
-				c.returnError(w, fmt.Errorf("secret file read error: %s", err), http.StatusBadRequest)
-				return
+			// check if tag hash is chosen
+			accessGranted := false
+			switch c.CloudType {
+			case "digitalocean": // check if the hashtag is set
+				if contextReq.TagHash != "" {
+					accessGranted, err = license.HasDigitalOceanTagSet(http.Client{Timeout: 5 * time.Second}, contextReq.TagHash)
+					if err != nil {
+						c.returnError(w, fmt.Errorf("could not retrieve tags at this time: %s", err), http.StatusUnauthorized)
+						return
+					}
+					if !accessGranted {
+						c.returnError(w, fmt.Errorf("tag not found. Make sure the correct tag is attached to the droplet"), http.StatusUnauthorized)
+						return
+					}
+				}
+			case "aws": // check if the instance id is set
+				if contextReq.InstanceID != "" {
+					instanceID, err := license.GetAWSInstanceID(http.Client{Timeout: 5 * time.Second})
+					if err != nil {
+						c.returnError(w, fmt.Errorf("could not retrieve instance id at this time: %s", err), http.StatusUnauthorized)
+						return
+					}
+					if strings.TrimPrefix(instanceID, "i-") == strings.TrimPrefix(contextReq.InstanceID, "i-") {
+						accessGranted = true
+					}
+				}
 			}
-			if strings.TrimSpace(string(localSecret)) != contextReq.Secret {
-				c.returnError(w, fmt.Errorf("wrong secret provided"), http.StatusUnauthorized)
-				return
+			// check secret
+			if !accessGranted {
+				localSecret, err := c.Storage.Client.ReadFile(SETUP_CODE_FILE)
+				if err != nil {
+					c.returnError(w, fmt.Errorf("secret file read error: %s", err), http.StatusBadRequest)
+					return
+				}
+				if strings.TrimSpace(string(localSecret)) != contextReq.Secret {
+					c.returnError(w, fmt.Errorf("wrong secret provided"), http.StatusUnauthorized)
+					return
+				}
 			}
 			if contextReq.AdminPassword != "" {
 				adminUser := users.User{
@@ -95,10 +126,8 @@ func (c *Context) contextHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	cOut := Context{
-		SetupCompleted: c.SetupCompleted,
-	}
-	out, err := json.Marshal(cOut)
+
+	out, err := json.Marshal(ContextSetupResponse{SetupCompleted: c.SetupCompleted})
 	if err != nil {
 		c.returnError(w, err, http.StatusBadRequest)
 		return

@@ -13,7 +13,7 @@ import (
 const AWS_PRODUCT_CODE = "7h7h3bnutjn0ziamv7npi8a69"
 
 func getMetadataToken(client http.Client) string {
-	metadataEndpoint := "http://" + metadataIP + "/latest/api/token"
+	metadataEndpoint := "http://" + MetadataIP + "/latest/api/token"
 
 	req, err := http.NewRequest("PUT", metadataEndpoint, nil)
 	if err != nil {
@@ -62,7 +62,7 @@ func isOnAWS(client http.Client) bool {
 func getInstanceIdentityDocument(client http.Client, token string) (InstanceIdentityDocument, error) {
 	var instanceIdentityDocument InstanceIdentityDocument
 
-	endpoint := "http://" + metadataIP + "/2022-09-24/dynamic/instance-identity/document"
+	endpoint := "http://" + MetadataIP + "/2022-09-24/dynamic/instance-identity/document"
 	req, err := http.NewRequest("GET", endpoint, nil)
 	if err != nil {
 		return instanceIdentityDocument, err
@@ -145,7 +145,7 @@ func getLicense(client http.Client, key string) (License, error) {
 }
 
 func getLicenseFromMetaData(token string, client http.Client) (string, error) {
-	endpoint := "http://" + metadataIP + "/2022-09-24/meta-data/tags/instance/license"
+	endpoint := "http://" + MetadataIP + "/2022-09-24/meta-data/tags/instance/license"
 	req, err := http.NewRequest("GET", endpoint, nil)
 	if err != nil {
 		return "", err
@@ -173,7 +173,7 @@ func getLicenseFromMetaData(token string, client http.Client) (string, error) {
 func getAWSInstanceType(client http.Client) string {
 	token := getMetadataToken(client)
 
-	endpoint := "http://" + metadataIP + "/latest/meta-data/instance-type"
+	endpoint := "http://" + MetadataIP + "/latest/meta-data/instance-type"
 	req, err := http.NewRequest("GET", endpoint, nil)
 	if err != nil {
 		return ""
@@ -192,6 +192,30 @@ func getAWSInstanceType(client http.Client) string {
 		return string(bodyBytes)
 	}
 	return ""
+}
+
+func GetAWSInstanceID(client http.Client) (string, error) {
+	token := getMetadataToken(client)
+
+	endpoint := "http://" + MetadataIP + "/latest/meta-data/instance-id"
+	req, err := http.NewRequest("GET", endpoint, nil)
+	if err != nil {
+		return "", err
+	}
+	if token != "" {
+		req.Header.Add("X-aws-ec2-metadata-token", token)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode == 200 {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return string(bodyBytes), err
+	}
+	return "", fmt.Errorf("received statuscode %d from aws metadata api", resp.StatusCode)
 }
 
 func GetMaxUsersAWS(instanceType string) int {

@@ -1,6 +1,7 @@
 package license
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 	"net/http"
@@ -11,7 +12,7 @@ import (
 )
 
 func isOnDigitalOcean(client http.Client) bool {
-	endpoint := "http://" + metadataIP + "/metadata/v1/interfaces/private/0/type"
+	endpoint := "http://" + MetadataIP + "/metadata/v1/interfaces/private/0/type"
 	req, err := http.NewRequest("GET", endpoint, nil)
 	if err != nil {
 		return false
@@ -60,7 +61,7 @@ func getDigitalOceanLicenseKey(storage storage.ReadWriter, client http.Client) (
 
 func getDigitalOceanIdentifier(client http.Client) (string, error) {
 	id := ""
-	endpoint := "http://" + metadataIP + "/metadata/v1/id"
+	endpoint := "http://" + MetadataIP + "/metadata/v1/id"
 	req, err := http.NewRequest("GET", endpoint, nil)
 	if err != nil {
 		return id, err
@@ -80,5 +81,41 @@ func getDigitalOceanIdentifier(client http.Client) (string, error) {
 	}
 
 	return strings.TrimSpace(string(body)), nil
+
+}
+
+func HasDigitalOceanTagSet(client http.Client, tag string) (bool, error) {
+	endpoint := "http://" + MetadataIP + "/metadata/v1/tags"
+	req, err := http.NewRequest("GET", endpoint, nil)
+	if err != nil {
+		return false, err
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return false, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return false, err
+		}
+		return false, fmt.Errorf("wrong statuscode returned: %d; body: %s", resp.StatusCode, body)
+	}
+
+	scanner := bufio.NewScanner(resp.Body)
+	for scanner.Scan() {
+		if tag == strings.TrimSpace(scanner.Text()) {
+			return true, nil
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		return false, err
+	}
+
+	return false, nil
 
 }

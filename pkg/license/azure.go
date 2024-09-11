@@ -9,7 +9,7 @@ import (
 )
 
 func isOnAzure(client http.Client) bool {
-	req, err := http.NewRequest("GET", "http://"+metadataIP+"/metadata/versions", nil)
+	req, err := http.NewRequest("GET", "http://"+MetadataIP+"/metadata/versions", nil)
 	if err != nil {
 		return false
 	}
@@ -51,7 +51,7 @@ func GetMaxUsersAzure(instanceType string) int {
 	return 3
 }
 func getAzureInstanceType(client http.Client) string {
-	metadataEndpoint := "http://" + metadataIP + "/metadata/instance?api-version=2021-02-01"
+	metadataEndpoint := "http://" + MetadataIP + "/metadata/instance?api-version=2021-02-01"
 	req, err := http.NewRequest("GET", metadataEndpoint, nil)
 	if err != nil {
 		return ""
