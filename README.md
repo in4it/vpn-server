@@ -8,6 +8,7 @@ https://azuremarketplace.microsoft.com/en-us/marketplace/apps/in4it.vpn-server),
 * Easy to use admin UI
 * SAML, OpenID Connect, SCIM support
 * WireGuard® as VPN technology, a fast and modern VPN Solution
+* Packet logging allows administrators to inspect TCP/UDP packets to understand http/https/dns traffic patterns
 
 ## Bugs or Issues
 Use the GitHub Issues to report any bugs or issues. We are monitoring new issues and will respond in a timely matter.
