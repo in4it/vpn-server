@@ -97,7 +97,9 @@ func (m *MockMemoryStorage) ReadDir(path string) ([]string, error) {
 	}
 	res := []string{}
 	for k := range m.Data {
-		if strings.HasPrefix(k, path+"/") {
+		if path == "" {
+			res = append(res, strings.ReplaceAll(k, path+"/", ""))
+		} else if strings.HasPrefix(k, path+"/") {
 			res = append(res, strings.ReplaceAll(k, path+"/", ""))
 		}
 	}
