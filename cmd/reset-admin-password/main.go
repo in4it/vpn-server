@@ -11,6 +11,8 @@ import (
 	"syscall"
 
 	"github.com/in4it/wireguard-server/pkg/commands"
+	localstorage "github.com/in4it/wireguard-server/pkg/storage/local"
+
 	"golang.org/x/term"
 )
 
@@ -23,8 +25,14 @@ func main() {
 	flag.StringVar(&appDir, "vpn-dir", "/vpn", "directory where vpn files are located")
 	flag.Parse()
 
+	localstorage, err := localstorage.NewWithPath(appDir)
+	if err != nil {
+		fmt.Printf("Failed to intialize storage: %s", err)
+		os.Exit(1)
+	}
+
 	password, _ := getPassword()
-	if newAdminUserCreated, err = commands.ResetPassword(appDir, password); err != nil {
+	if newAdminUserCreated, err = commands.ResetPassword(localstorage, password); err != nil {
 		fmt.Printf("Failed to changed admin password: %s", err)
 		os.Exit(1)
 	}
@@ -35,7 +43,7 @@ func main() {
 			os.Exit(1)
 		}
 		if strings.TrimSpace(strings.ToUpper(resetMFA)) == "" || strings.TrimSpace(strings.ToUpper(resetMFA)) == "Y" {
-			err = commands.ResetAdminMFA(appDir)
+			err = commands.ResetAdminMFA(localstorage)
 			if err != nil {
 				fmt.Printf("Failed to reset admin MFA: %s", err)
 				os.Exit(1)
