@@ -4,20 +4,16 @@ import (
 	"fmt"
 
 	"github.com/in4it/wireguard-server/pkg/rest"
-	localstorage "github.com/in4it/wireguard-server/pkg/storage/local"
+	"github.com/in4it/wireguard-server/pkg/storage"
 	"github.com/in4it/wireguard-server/pkg/users"
 )
 
-func ResetAdminMFA(appDir string) error {
-	localstorage, err := localstorage.NewWithPath(appDir)
+func ResetAdminMFA(storage storage.Iface) error {
+	c, err := rest.GetConfig(storage)
 	if err != nil {
 		return fmt.Errorf("config retrieval error: %s", err)
 	}
-	c, err := rest.GetConfig(localstorage)
-	if err != nil {
-		return fmt.Errorf("config retrieval error: %s", err)
-	}
-	c.UserStore, err = users.NewUserStore(localstorage, -1)
+	c.UserStore, err = users.NewUserStore(storage, -1)
 	if err != nil {
 		return fmt.Errorf("userstore initialization error: %s", err)
 	}
