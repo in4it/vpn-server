@@ -14,7 +14,7 @@ func (o *Observability) WriteBufferToStorage(n int64) error {
 	o.ActiveBufferWriters.Add(1)
 	defer o.ActiveBufferWriters.Done()
 	// copy first to temporary buffer (storage might have latency)
-	tempBuf := bytes.NewBuffer(make([]byte, n))
+	tempBuf := bytes.NewBuffer(make([]byte, 0, n))
 	_, err := io.CopyN(tempBuf, o.Buffer, n)
 	o.LastFlushed = time.Now()
 	if err != nil && err != io.EOF {
