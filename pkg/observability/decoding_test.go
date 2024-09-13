@@ -2,13 +2,22 @@ package observability
 
 import (
 	"bytes"
-	"fmt"
+	"encoding/json"
 	"testing"
 )
 
 func TestDecoding(t *testing.T) {
-	data := `[{"date":1720613813.197045,"rand_value":"rand"}]`
-	messages, err := Decode(bytes.NewBuffer([]byte(data)))
+	payload := IncomingData{
+		{
+			"date":       1720613813.197045,
+			"rand_value": "rand",
+		},
+	}
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		t.Fatalf("json marshal error: %s", err)
+	}
+	messages, err := Decode(bytes.NewBuffer(payloadBytes))
 	if err != nil {
 		t.Fatalf("error: %s", err)
 	}
@@ -37,16 +46,15 @@ func TestDecodeMsg(t *testing.T) {
 				"third key":  "this is my third value",
 			},
 		},
-		/*{
+		{
 			Date: 1720613813.197099,
 			Data: map[string]string{
 				"second data set": "my value",
 			},
-		},*/
+		},
 	}
 	encoded := encodeMessage(msgs)
 	decoded := decodeMessage(encoded)
-	fmt.Printf("decoded: %+v\n", decoded)
 
 	if len(msgs) != len(decoded) {
 		t.Fatalf("length doesn't match")

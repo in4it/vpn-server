@@ -32,15 +32,17 @@ func Decode(r io.Reader) ([]FluentBitMessage, error) {
 				fluentBitMessage.Date = val.(float64)
 			}
 			for key, value := range m2 {
-				switch valueTyped := value.(type) {
-				case string:
-					fluentBitMessage.Data[key] = valueTyped
-				case float64:
-					fluentBitMessage.Data[key] = strconv.FormatFloat(valueTyped, 'f', -1, 64)
-				case []byte:
-					fluentBitMessage.Data[key] = string(valueTyped)
-				default:
-					fmt.Printf("no hit on type: %s", reflect.TypeOf(valueTyped))
+				if key != "date" {
+					switch valueTyped := value.(type) {
+					case string:
+						fluentBitMessage.Data[key] = valueTyped
+					case float64:
+						fluentBitMessage.Data[key] = strconv.FormatFloat(valueTyped, 'f', -1, 64)
+					case []byte:
+						fluentBitMessage.Data[key] = string(valueTyped)
+					default:
+						fmt.Printf("no hit on type: %s", reflect.TypeOf(valueTyped))
+					}
 				}
 			}
 			result = append(result, fluentBitMessage)
@@ -66,15 +68,15 @@ func decodeMessage(msgs []byte) []FluentBitMessage {
 			isKey := false
 			key := ""
 			start := 8 + recordOffset
-			for kk := 8 + recordOffset; kk < k; kk++ {
+			for kk := start; kk < k; kk++ {
 				if msgs[kk] == 0xff {
 					if isKey {
 						isKey = false
-						msg.Data[key] = string(msgs[recordOffset+start+1 : recordOffset+kk])
+						msg.Data[key] = string(msgs[start+1 : kk])
 						start = kk + 1
 					} else {
 						isKey = true
-						key = string(msgs[recordOffset+start : recordOffset+kk])
+						key = string(msgs[start:kk])
 						start = kk
 					}
 				}

@@ -3,7 +3,6 @@ package observability
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -18,7 +17,7 @@ func TestIngestionHandler(t *testing.T) {
 	}
 	payload := IncomingData{
 		{
-			"Date": 1720613813.197045,
+			"date": 1720613813.197045,
 			"log":  "this is a string",
 		},
 	}
@@ -44,11 +43,18 @@ func TestIngestionHandler(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read dir error: %s", err)
 	}
-	for _, filename := range dirlist {
-		filenameOut, err := storage.ReadFile(filename)
-		if err != nil {
-			t.Fatalf("read file error: %s", err)
-		}
-		fmt.Printf("filenameOut: %s", filenameOut)
+	if len(dirlist) == 0 {
+		t.Fatalf("dir is empty")
+	}
+	messages, err := storage.ReadFile(dirlist[0])
+	if err != nil {
+		t.Fatalf("read file error: %s", err)
+	}
+	decodedMessages := decodeMessage(messages)
+	if decodedMessages[0].Date != 1720613813.197045 {
+		t.Fatalf("unexpected date")
+	}
+	if decodedMessages[0].Data["log"] != "this is a string" {
+		t.Fatalf("unexpected log data")
 	}
 }
