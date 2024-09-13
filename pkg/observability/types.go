@@ -18,9 +18,15 @@ type FluentBitMessage struct {
 
 type Observability struct {
 	Storage               storage.Iface
-	Buffer                bytes.Buffer
+	Buffer                *ConcurrentRWBuffer
 	LastFlushed           time.Time
-	BufferMu              sync.Mutex
 	FlushOverflow         atomic.Bool
 	FlushOverflowSequence atomic.Uint64
+	ActiveBufferWriters   sync.WaitGroup
+	MaxBufferSize         int
+}
+
+type ConcurrentRWBuffer struct {
+	buffer bytes.Buffer
+	mu     sync.Mutex
 }

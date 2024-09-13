@@ -1,14 +1,19 @@
 package observability
 
-import "net/http"
+import (
+	"net/http"
+)
 
 func New() *Observability {
-	o := &Observability{}
+	o := NewWithoutMonitor(MAX_BUFFER_SIZE)
 	go o.monitorBuffer()
 	return o
 }
-func NewWithoutMonitor() *Observability {
-	o := &Observability{}
+func NewWithoutMonitor(maxBufferSize int) *Observability {
+	o := &Observability{
+		Buffer:        &ConcurrentRWBuffer{},
+		MaxBufferSize: maxBufferSize,
+	}
 	return o
 }
 

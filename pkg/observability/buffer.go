@@ -1,6 +1,7 @@
 package observability
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"strconv"
@@ -10,17 +11,24 @@ import (
 )
 
 func (o *Observability) WriteBufferToStorage(n int64) error {
-	o.BufferMu.Lock()
-	defer o.BufferMu.Unlock()
+	o.ActiveBufferWriters.Add(1)
+	defer o.ActiveBufferWriters.Done()
+	// copy first to temporary buffer (storage might have latency)
+	tempBuf := bytes.NewBuffer(make([]byte, n))
+	_, err := io.CopyN(tempBuf, o.Buffer, n)
+	o.LastFlushed = time.Now()
+	if err != nil && err != io.EOF {
+		return fmt.Errorf("write error from buffer to temporary buffer: %s", err)
+	}
+
 	file, err := o.Storage.OpenFileForWriting("data-" + time.Now().Format("2003-01-02T15:04:05") + "-" + strconv.FormatUint(o.FlushOverflowSequence.Add(1), 10))
 	if err != nil {
 		return fmt.Errorf("open file for writing error: %s", err)
 	}
-	_, err = io.CopyN(file, &o.Buffer, n)
+	_, err = io.Copy(file, tempBuf)
 	if err != nil {
 		return fmt.Errorf("file write error: %s", err)
 	}
-	o.LastFlushed = time.Now()
 	return file.Close()
 }
 
@@ -50,13 +58,11 @@ func (o *Observability) Ingest(data io.ReadCloser) error {
 	_, err = o.Buffer.Write(encodeMessage(msgs))
 	if err != nil {
 		return fmt.Errorf("write error: %s", err)
-
 	}
-	fmt.Printf("Buffer size: %d\n", o.Buffer.Len())
-	if o.Buffer.Len() >= MAX_BUFFER_SIZE {
+	if o.Buffer.Len() >= o.MaxBufferSize {
 		if o.FlushOverflow.CompareAndSwap(false, true) {
 			go func() { // write to storage
-				if n := o.Buffer.Len(); n >= MAX_BUFFER_SIZE {
+				if n := o.Buffer.Len(); n >= o.MaxBufferSize {
 					err := o.WriteBufferToStorage(int64(n))
 					if err != nil {
 						logging.ErrorLog(fmt.Errorf("write log buffer to storage error (buffer: %d): %s", o.Buffer.Len(), err))
@@ -67,4 +73,21 @@ func (o *Observability) Ingest(data io.ReadCloser) error {
 		}
 	}
 	return nil
+}
+
+func (c *ConcurrentRWBuffer) Write(p []byte) (n int, err error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.buffer.Write(p)
+}
+func (c *ConcurrentRWBuffer) Read(p []byte) (n int, err error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.buffer.Read(p)
+}
+func (c *ConcurrentRWBuffer) Len() int {
+	return c.buffer.Len()
+}
+func (c *ConcurrentRWBuffer) Cap() int {
+	return c.buffer.Cap()
 }
