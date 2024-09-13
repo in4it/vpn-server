@@ -35,7 +35,7 @@ func TestIngestionHandler(t *testing.T) {
 		t.Fatalf("expected status code OK. Got: %d", res.StatusCode)
 	}
 
-	err = o.WriteBufferToStorage()
+	err = o.WriteBufferToStorage(int64(o.Buffer.Len()))
 	if err != nil {
 		t.Fatalf("write buffer to storage error: %s", err)
 	}

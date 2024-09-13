@@ -2,6 +2,9 @@ package observability
 
 import (
 	"bytes"
+	"sync"
+	"sync/atomic"
+	"time"
 
 	"github.com/in4it/wireguard-server/pkg/storage"
 )
@@ -14,6 +17,10 @@ type FluentBitMessage struct {
 }
 
 type Observability struct {
-	Storage storage.Iface
-	Buffer  bytes.Buffer
+	Storage               storage.Iface
+	Buffer                bytes.Buffer
+	LastFlushed           time.Time
+	BufferMu              sync.Mutex
+	FlushOverflow         atomic.Bool
+	FlushOverflowSequence atomic.Uint64
 }
