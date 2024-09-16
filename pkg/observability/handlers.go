@@ -1,8 +1,11 @@
 package observability
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
+	"time"
 )
 
 func (o *Observability) observabilityHandler(w http.ResponseWriter, r *http.Request) {
@@ -20,4 +23,63 @@ func (o *Observability) ingestionHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
+}
+
+func (o *Observability) logsHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	if r.FormValue("fromDate") == "" {
+		o.returnError(w, fmt.Errorf("no from date supplied"), http.StatusBadRequest)
+		return
+	}
+	fromDate, err := time.Parse("2006-01-02", r.FormValue("fromDate"))
+	if err != nil {
+		o.returnError(w, fmt.Errorf("invalid date: %s", err), http.StatusBadRequest)
+		return
+	}
+	if r.FormValue("endDate") == "" {
+		o.returnError(w, fmt.Errorf("no end date supplied"), http.StatusBadRequest)
+		return
+	}
+	endDate, err := time.Parse("2006-01-02", r.FormValue("endDate"))
+	if err != nil {
+		o.returnError(w, fmt.Errorf("invalid date: %s", err), http.StatusBadRequest)
+		return
+	}
+	offset := 0
+	if r.FormValue("offset") != "" {
+		i, err := strconv.Atoi(r.PathValue("offset"))
+		if err == nil {
+			offset = i
+		}
+	}
+	maxLines := 0
+	if r.FormValue("maxLines") != "" {
+		i, err := strconv.Atoi(r.PathValue("maxLines"))
+		if err == nil {
+			maxLines = i
+		}
+	}
+	pos := int64(0)
+	if r.FormValue("pos") != "" {
+		i, err := strconv.ParseInt(r.PathValue("pos"), 10, 64)
+		if err == nil {
+			pos = i
+		}
+	}
+	out, err := o.getLogs(fromDate, endDate, pos, maxLines, offset)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Printf("get logs error: %s", err)
+		return
+	}
+	outBytes, err := json.Marshal(out)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Printf("marshal error: %s", err)
+		return
+	}
+	w.Write(outBytes)
 }

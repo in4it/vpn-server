@@ -30,3 +30,12 @@ type ConcurrentRWBuffer struct {
 	buffer bytes.Buffer
 	mu     sync.Mutex
 }
+
+type LogEntryResponse struct {
+	LogEntries []LogEntry `json:"logEntries"`
+}
+
+type LogEntry struct {
+	Timestamp string `json:"timestamp"`
+	Data      string `json:"data"`
+}

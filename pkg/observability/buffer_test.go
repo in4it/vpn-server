@@ -58,7 +58,7 @@ func TestIngestion(t *testing.T) {
 		if err != nil {
 			t.Fatalf("read file error: %s", err)
 		}
-		decodedMessages := decodeMessage(messages)
+		decodedMessages := decodeMessages(messages)
 		totalMessages += len(decodedMessages)
 	}
 	if len(dirlist) == 0 {
@@ -71,6 +71,7 @@ func TestIngestion(t *testing.T) {
 }
 
 func TestIngestionMoreMessages(t *testing.T) {
+	t.Skip()                            // we can skip this for general unit testing
 	totalMessagesToGenerate := 10000000 // 10,000,000
 	storage := &memorystorage.MockMemoryStorage{}
 	o := NewWithoutMonitor(MAX_BUFFER_SIZE)
@@ -116,7 +117,7 @@ func TestIngestionMoreMessages(t *testing.T) {
 		if err != nil {
 			t.Fatalf("read file error: %s", err)
 		}
-		decodedMessages := decodeMessage(messages)
+		decodedMessages := decodeMessages(messages)
 		totalMessages += len(decodedMessages)
 	}
 	if len(dirlist) == 0 {

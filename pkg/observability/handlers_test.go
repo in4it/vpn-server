@@ -56,7 +56,7 @@ func TestIngestionHandler(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read file error: %s", err)
 	}
-	decodedMessages := decodeMessage(messages)
+	decodedMessages := decodeMessages(messages)
 	if decodedMessages[0].Date != 1720613813.197045 {
 		t.Fatalf("unexpected date. Got %f, expected: %f", decodedMessages[0].Date, 1720613813.197045)
 	}

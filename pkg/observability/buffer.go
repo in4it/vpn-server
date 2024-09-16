@@ -20,8 +20,8 @@ func (o *Observability) WriteBufferToStorage(n int64) error {
 	if err != nil && err != io.EOF {
 		return fmt.Errorf("write error from buffer to temporary buffer: %s", err)
 	}
-
-	file, err := o.Storage.OpenFileForWriting("data-" + time.Now().Format("2003-01-02T15:04:05") + "-" + strconv.FormatUint(o.FlushOverflowSequence.Add(1), 10))
+	now := time.Now()
+	file, err := o.Storage.OpenFileForWriting(now.Format("2006/01/02") + "/data-" + now.Format("150405") + "-" + strconv.FormatUint(o.FlushOverflowSequence.Add(1), 10))
 	if err != nil {
 		return fmt.Errorf("open file for writing error: %s", err)
 	}
