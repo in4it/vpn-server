@@ -6,11 +6,13 @@ import React, { useState } from 'react';
 import { SetupBanner } from './SetupBanner';
 import { AppSettings } from '../Constants/Constants';
 
-  type Props = {
-    children?: React.ReactNode
-  };
 
- export const AppInit: React.FC<Props> = ({children}) => {
+type Props = {
+  children?: React.ReactNode
+  serverType: string
+};
+
+ export const AppInit: React.FC<Props> = ({children, serverType}) => {
     const [setupCompleted, setSetupCompleted] = useState<boolean>(false);
     const { isPending, error, data } = useQuery({
       queryKey: ['context'],
@@ -21,6 +23,10 @@ import { AppSettings } from '../Constants/Constants';
     })
     if (isPending) return ''
     if (error) return 'An backend error has occurred: ' + error.message
+
+    if (data.serverType !== serverType) {
+      return ''
+    }
 
     if(!setupCompleted && data.setupCompleted) {
       setSetupCompleted(true)

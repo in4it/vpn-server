@@ -90,10 +90,10 @@ func newContext(storage storage.Iface, serverType string) (*Context, error) {
 
 	if c.Observability == nil {
 		c.Observability = &Observability{
-			Client: observability.New(),
+			Client: observability.New(storage),
 		}
 	} else {
-		c.Observability.Client = observability.New()
+		c.Observability.Client = observability.New(storage)
 	}
 
 	return c, nil

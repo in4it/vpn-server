@@ -35,7 +35,7 @@ func (o *Observability) WriteBufferToStorage(n int64) error {
 func (o *Observability) monitorBuffer() {
 	for {
 		time.Sleep(FLUSH_TIME_MAX_MINUTES * time.Minute)
-		if time.Since(o.LastFlushed) >= (FLUSH_TIME_MAX_MINUTES * time.Minute) {
+		if time.Since(o.LastFlushed) >= (FLUSH_TIME_MAX_MINUTES*time.Minute) && o.Buffer.Len() > 0 {
 			if o.FlushOverflow.CompareAndSwap(false, true) {
 				err := o.WriteBufferToStorage(int64(o.Buffer.Len()))
 				o.FlushOverflow.Swap(true)

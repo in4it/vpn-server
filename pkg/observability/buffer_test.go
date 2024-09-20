@@ -14,7 +14,7 @@ import (
 func TestIngestion(t *testing.T) {
 	totalMessagesToGenerate := 1000
 	storage := &memorystorage.MockMemoryStorage{}
-	o := NewWithoutMonitor(20)
+	o := NewWithoutMonitor(storage, 20)
 	o.Storage = storage
 	payload := IncomingData{
 		{

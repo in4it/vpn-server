@@ -12,7 +12,7 @@ import (
 
 func TestIngestionHandler(t *testing.T) {
 	storage := &memorystorage.MockMemoryStorage{}
-	o := NewWithoutMonitor(20)
+	o := NewWithoutMonitor(storage, 20)
 	o.Storage = storage
 	payload := IncomingData{
 		{

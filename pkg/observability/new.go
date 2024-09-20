@@ -2,17 +2,20 @@ package observability
 
 import (
 	"net/http"
+
+	"github.com/in4it/wireguard-server/pkg/storage"
 )
 
-func New() *Observability {
-	o := NewWithoutMonitor(MAX_BUFFER_SIZE)
+func New(storage storage.Iface) *Observability {
+	o := NewWithoutMonitor(storage, MAX_BUFFER_SIZE)
 	go o.monitorBuffer()
 	return o
 }
-func NewWithoutMonitor(maxBufferSize int) *Observability {
+func NewWithoutMonitor(storage storage.Iface, maxBufferSize int) *Observability {
 	o := &Observability{
 		Buffer:        &ConcurrentRWBuffer{},
 		MaxBufferSize: maxBufferSize,
+		Storage:       storage,
 	}
 	return o
 }

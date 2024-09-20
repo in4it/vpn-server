@@ -3,6 +3,7 @@ package observability
 import (
 	"bufio"
 	"fmt"
+	"math"
 	"time"
 )
 
@@ -44,8 +45,10 @@ func (o *Observability) getLogs(fromDate, endDate time.Time, pos int64, offset, 
 			logMessage := decodeMessage(scanner.Bytes())
 			val, ok := logMessage.Data["log"]
 			if ok {
+				timestamp := floatToDate(logMessage.Date).Add(time.Duration(offset) * time.Minute)
 				logEntry := LogEntry{
-					Data: val,
+					Timestamp: timestamp.Format(TIMESTAMP_FORMAT),
+					Data:      val,
 				}
 				logEntryResponse.LogEntries = append(logEntryResponse.LogEntries, logEntry)
 			}
@@ -56,4 +59,11 @@ func (o *Observability) getLogs(fromDate, endDate time.Time, pos int64, offset, 
 	}
 
 	return logEntryResponse, nil
+}
+
+func floatToDate(datetime float64) time.Time {
+	datetimeInt := int64(datetime)
+	decimals := datetime - float64(datetimeInt)
+	nsecs := int64(math.Round(decimals * 1_000_000)) // precision to match golang's time.Time
+	return time.Unix(datetimeInt, nsecs*1000)
 }

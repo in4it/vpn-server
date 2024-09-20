@@ -14,8 +14,7 @@ import (
 func TestGetLogs(t *testing.T) {
 	totalMessagesToGenerate := 100
 	storage := &memorystorage.MockMemoryStorage{}
-	o := NewWithoutMonitor(20)
-	o.Storage = storage
+	o := NewWithoutMonitor(storage, 20)
 	payload := IncomingData{
 		{
 			"date": 1720613813.197045,
@@ -56,5 +55,17 @@ func TestGetLogs(t *testing.T) {
 	}
 	if len(logEntryResponse.LogEntries) != totalMessagesToGenerate {
 		t.Fatalf("didn't get the same log entries as messaged we generated: got: %d, expected: %d", len(logEntryResponse.LogEntries), totalMessagesToGenerate)
+	}
+	if logEntryResponse.LogEntries[0].Timestamp != floatToDate(1720613813.197045).Format(TIMESTAMP_FORMAT) {
+		t.Fatalf("unexpected timestamp")
+	}
+}
+
+func TestFloatToDate(t *testing.T) {
+	now := time.Now()
+	floatDate := float64(now.Unix()) + float64(now.Nanosecond())/1e9
+	floatToDate := floatToDate(floatDate)
+	if !now.Equal(floatToDate) {
+		t.Fatalf("times are not equal. Got: %s, expected: %s", floatToDate, now)
 	}
 }
