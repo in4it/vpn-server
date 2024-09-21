@@ -6,8 +6,8 @@ import (
 	"github.com/in4it/wireguard-server/pkg/storage"
 )
 
-func New(storage storage.Iface) *Observability {
-	o := NewWithoutMonitor(storage, MAX_BUFFER_SIZE)
+func New(defaultStorage storage.Iface) *Observability {
+	o := NewWithoutMonitor(defaultStorage, MAX_BUFFER_SIZE)
 	go o.monitorBuffer()
 	return o
 }

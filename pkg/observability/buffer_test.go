@@ -74,8 +74,7 @@ func TestIngestionMoreMessages(t *testing.T) {
 	t.Skip()                            // we can skip this for general unit testing
 	totalMessagesToGenerate := 10000000 // 10,000,000
 	storage := &memorystorage.MockMemoryStorage{}
-	o := NewWithoutMonitor(MAX_BUFFER_SIZE)
-	o.Storage = storage
+	o := NewWithoutMonitor(storage, MAX_BUFFER_SIZE)
 	payload := IncomingData{
 		{
 			"date": 1720613813.197045,
@@ -134,8 +133,7 @@ func TestIngestionMoreMessages(t *testing.T) {
 func BenchmarkIngest10000000(b *testing.B) {
 	totalMessagesToGenerate := 10000000 // 10,000,000
 	storage := &memorystorage.MockMemoryStorage{}
-	o := NewWithoutMonitor(MAX_BUFFER_SIZE)
-	o.Storage = storage
+	o := NewWithoutMonitor(storage, MAX_BUFFER_SIZE)
 	payload := IncomingData{
 		{
 			"date": 1720613813.197045,
@@ -170,7 +168,7 @@ func BenchmarkIngest10000000(b *testing.B) {
 func BenchmarkIngest100000000(b *testing.B) {
 	totalMessagesToGenerate := 10000000 // 10,000,000
 	storage := &memorystorage.MockMemoryStorage{}
-	o := NewWithoutMonitor(MAX_BUFFER_SIZE)
+	o := NewWithoutMonitor(storage, MAX_BUFFER_SIZE)
 	o.Storage = storage
 	payload := IncomingData{
 		{
@@ -200,5 +198,13 @@ func BenchmarkIngest100000000(b *testing.B) {
 		if err != nil {
 			b.Fatalf("write log buffer to storage error (buffer: %d): %s", o.Buffer.Len(), err)
 		}
+	}
+}
+
+func TestEnsurePath(t *testing.T) {
+	storage := &memorystorage.MockMemoryStorage{}
+	err := ensurePath(storage, "a/b/c/filename.txt")
+	if err != nil {
+		t.Fatalf("error: %s", err)
 	}
 }

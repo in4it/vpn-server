@@ -32,7 +32,9 @@ type ConcurrentRWBuffer struct {
 }
 
 type LogEntryResponse struct {
-	LogEntries []LogEntry `json:"logEntries"`
+	Enabled      bool       `json:"enabled"`
+	LogEntries   []LogEntry `json:"logEntries"`
+	Environments []string   `json:"environments"`
 }
 
 type LogEntry struct {

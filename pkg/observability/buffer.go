@@ -4,10 +4,13 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"path"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/in4it/wireguard-server/pkg/logging"
+	"github.com/in4it/wireguard-server/pkg/storage"
 )
 
 func (o *Observability) WriteBufferToStorage(n int64) error {
@@ -21,7 +24,12 @@ func (o *Observability) WriteBufferToStorage(n int64) error {
 		return fmt.Errorf("write error from buffer to temporary buffer: %s", err)
 	}
 	now := time.Now()
-	file, err := o.Storage.OpenFileForWriting(now.Format("2006/01/02") + "/data-" + now.Format("150405") + "-" + strconv.FormatUint(o.FlushOverflowSequence.Add(1), 10))
+	filename := now.Format("2006/01/02") + "/data-" + now.Format("150405") + "-" + strconv.FormatUint(o.FlushOverflowSequence.Add(1), 10)
+	err = ensurePath(o.Storage, filename)
+	if err != nil {
+		return fmt.Errorf("ensure path error: %s", err)
+	}
+	file, err := o.Storage.OpenFileForWriting(filename)
 	if err != nil {
 		return fmt.Errorf("open file for writing error: %s", err)
 	}
@@ -29,6 +37,7 @@ func (o *Observability) WriteBufferToStorage(n int64) error {
 	if err != nil {
 		return fmt.Errorf("file write error: %s", err)
 	}
+	logging.DebugLog(fmt.Errorf("wrote file: %s", filename))
 	return file.Close()
 }
 
@@ -90,4 +99,18 @@ func (c *ConcurrentRWBuffer) Len() int {
 }
 func (c *ConcurrentRWBuffer) Cap() int {
 	return c.buffer.Cap()
+}
+
+func ensurePath(storage storage.Iface, filename string) error {
+	base := path.Dir(filename)
+	baseSplit := strings.Split(base, "/")
+	fullPath := ""
+	for _, v := range baseSplit {
+		fullPath = path.Join(fullPath, v)
+		err := storage.EnsurePath(fullPath)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

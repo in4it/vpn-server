@@ -8,9 +8,16 @@ import (
 )
 
 func (o *Observability) getLogs(fromDate, endDate time.Time, pos int64, offset, maxLogLines int) (LogEntryResponse, error) {
-	logEntryResponse := LogEntryResponse{}
+	logEntryResponse := LogEntryResponse{
+		Enabled:      true,
+		Environments: []string{"dev", "qa", "prod"},
+	}
 
 	logFiles := []string{}
+
+	if maxLogLines == 0 {
+		maxLogLines = 100
+	}
 
 	for d := fromDate; d.Before(endDate) || d.Equal(endDate); d = d.AddDate(0, 0, 1) {
 		fileList, err := o.Storage.ReadDir(d.Format("2006/01/02"))
