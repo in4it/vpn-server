@@ -23,31 +23,33 @@ func Decode(r io.Reader) ([]FluentBitMessage, error) {
 		if len(m1) == 0 {
 			return result, fmt.Errorf("empty array")
 		}
-		switch m2 := m1[0].(type) {
-		case map[string]interface{}:
-			var fluentBitMessage FluentBitMessage
-			fluentBitMessage.Data = make(map[string]string)
-			val, ok := m2["date"]
-			if ok {
-				fluentBitMessage.Date = val.(float64)
-			}
-			for key, value := range m2 {
-				if key != "date" {
-					switch valueTyped := value.(type) {
-					case string:
-						fluentBitMessage.Data[key] = valueTyped
-					case float64:
-						fluentBitMessage.Data[key] = strconv.FormatFloat(valueTyped, 'f', -1, 64)
-					case []byte:
-						fluentBitMessage.Data[key] = string(valueTyped)
-					default:
-						fmt.Printf("no hit on type: %s", reflect.TypeOf(valueTyped))
+		for _, m1Element := range m1 {
+			switch m2 := m1Element.(type) {
+			case map[string]interface{}:
+				var fluentBitMessage FluentBitMessage
+				fluentBitMessage.Data = make(map[string]string)
+				val, ok := m2["date"]
+				if ok {
+					fluentBitMessage.Date = val.(float64)
+				}
+				for key, value := range m2 {
+					if key != "date" {
+						switch valueTyped := value.(type) {
+						case string:
+							fluentBitMessage.Data[key] = valueTyped
+						case float64:
+							fluentBitMessage.Data[key] = strconv.FormatFloat(valueTyped, 'f', -1, 64)
+						case []byte:
+							fluentBitMessage.Data[key] = string(valueTyped)
+						default:
+							fmt.Printf("no hit on type: %s", reflect.TypeOf(valueTyped))
+						}
 					}
 				}
+				result = append(result, fluentBitMessage)
+			default:
+				return result, fmt.Errorf("invalid type: no map found in array")
 			}
-			result = append(result, fluentBitMessage)
-		default:
-			return result, fmt.Errorf("invalid type: no map found in array")
 		}
 	default:
 		return result, fmt.Errorf("invalid type: no array found")

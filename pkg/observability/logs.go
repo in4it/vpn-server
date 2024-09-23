@@ -4,13 +4,16 @@ import (
 	"bufio"
 	"fmt"
 	"math"
+	"strings"
 	"time"
 )
 
-func (o *Observability) getLogs(fromDate, endDate time.Time, pos int64, offset, maxLogLines int) (LogEntryResponse, error) {
+func (o *Observability) getLogs(fromDate, endDate time.Time, pos int64, maxLogLines, offset int, search string) (LogEntryResponse, error) {
 	logEntryResponse := LogEntryResponse{
 		Enabled:      true,
 		Environments: []string{"dev", "qa", "prod"},
+		LogEntries:   []LogEntry{},
+		Keys:         make(map[KeyValue]int),
 	}
 
 	logFiles := []string{}
@@ -22,7 +25,8 @@ func (o *Observability) getLogs(fromDate, endDate time.Time, pos int64, offset, 
 	for d := fromDate; d.Before(endDate) || d.Equal(endDate); d = d.AddDate(0, 0, 1) {
 		fileList, err := o.Storage.ReadDir(d.Format("2006/01/02"))
 		if err != nil {
-			return logEntryResponse, fmt.Errorf("can't read log directly: %s", err)
+			logEntryResponse.NextPos = -1
+			return logEntryResponse, nil // can't read directory, return empty response
 		}
 		for _, filename := range fileList {
 			logFiles = append(logFiles, d.Format("2006/01/02")+"/"+filename)
@@ -50,19 +54,31 @@ func (o *Observability) getLogs(fromDate, endDate time.Time, pos int64, offset, 
 		for scanner.Scan() && len(logEntryResponse.LogEntries) < maxLogLines { // read multiple lines
 			// decode, store as logentry
 			logMessage := decodeMessage(scanner.Bytes())
-			val, ok := logMessage.Data["log"]
+			logline, ok := logMessage.Data["log"]
 			if ok {
 				timestamp := floatToDate(logMessage.Date).Add(time.Duration(offset) * time.Minute)
-				logEntry := LogEntry{
-					Timestamp: timestamp.Format(TIMESTAMP_FORMAT),
-					Data:      val,
+				if search == "" || strings.Contains(logline, search) {
+					logEntry := LogEntry{
+						Timestamp: timestamp.Format(TIMESTAMP_FORMAT),
+						Data:      logline,
+					}
+					logEntryResponse.LogEntries = append(logEntryResponse.LogEntries, logEntry)
+					for k, v := range logMessage.Data {
+						if k != "log" {
+							logEntryResponse.Keys[KeyValue{Key: k, Value: v}] += 1
+						}
+					}
 				}
-				logEntryResponse.LogEntries = append(logEntryResponse.LogEntries, logEntry)
 			}
 		}
 		if err := scanner.Err(); err != nil {
 			return logEntryResponse, fmt.Errorf("log file read (scanner) error: %s", err)
 		}
+	}
+	if len(logEntryResponse.LogEntries) < maxLogLines {
+		logEntryResponse.NextPos = -1 // no more records
+	} else {
+		logEntryResponse.NextPos = pos
 	}
 
 	return logEntryResponse, nil

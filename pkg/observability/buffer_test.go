@@ -94,15 +94,9 @@ func TestIngestionMoreMessages(t *testing.T) {
 		}
 	}
 
-	// wait until all data is flushed
-	o.ActiveBufferWriters.Wait()
-
-	// flush remaining data that hasn't been flushed
-	if n := o.Buffer.Len(); n >= 0 {
-		err := o.WriteBufferToStorage(int64(n))
-		if err != nil {
-			t.Fatalf("write log buffer to storage error (buffer: %d): %s", o.Buffer.Len(), err)
-		}
+	err = o.Flush()
+	if err != nil {
+		t.Fatalf("flush error: %s", err)
 	}
 
 	dirlist, err := storage.ReadDir("")

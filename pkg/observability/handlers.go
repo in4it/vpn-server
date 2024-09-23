@@ -50,26 +50,27 @@ func (o *Observability) logsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	offset := 0
 	if r.FormValue("offset") != "" {
-		i, err := strconv.Atoi(r.PathValue("offset"))
+		i, err := strconv.Atoi(r.FormValue("offset"))
 		if err == nil {
 			offset = i
 		}
 	}
 	maxLines := 0
 	if r.FormValue("maxLines") != "" {
-		i, err := strconv.Atoi(r.PathValue("maxLines"))
+		i, err := strconv.Atoi(r.FormValue("maxLines"))
 		if err == nil {
 			maxLines = i
 		}
 	}
 	pos := int64(0)
 	if r.FormValue("pos") != "" {
-		i, err := strconv.ParseInt(r.PathValue("pos"), 10, 64)
+		i, err := strconv.ParseInt(r.FormValue("pos"), 10, 64)
 		if err == nil {
 			pos = i
 		}
 	}
-	out, err := o.getLogs(fromDate, endDate, pos, maxLines, offset)
+	search := r.FormValue("search")
+	out, err := o.getLogs(fromDate, endDate, pos, maxLines, offset, search)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Printf("get logs error: %s", err)

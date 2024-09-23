@@ -47,10 +47,10 @@ export function NavBar({serverType}: Props) {
   const observabilityLinks = {
     "admin": [
       { link: '/', label: 'Status', icon: TbBellRinging },
-      { link: '/users', label: 'Users', icon: TbUser },
-      { link: '/setup', label: 'VPN Setup', icon: TbSettings },
-      { link: '/auth-setup', label: 'Authentication & Provisioning', icon: TbCloudDataConnection },
       { link: '/logs', label: 'Logs', icon: FaStream },
+      { link: '/users', label: 'Users', icon: TbUser },
+      { link: '/setup', label: 'Setup', icon: TbSettings },
+      { link: '/auth-setup', label: 'Authentication & Provisioning', icon: TbCloudDataConnection },
       { link: 'https://vpn-documentation.in4it.com', label: 'Documentation', icon: TbBook },
     ],
     "user": [
@@ -99,7 +99,7 @@ export function NavBar({serverType}: Props) {
     <nav className={classes.navbar}>
       <div className={classes.navbarMain}>
         <Group className={classes.header} justify="space-between">
-          VPN Server
+          {serverType === "vpn" ? "VPN Server" : "Observability Server"}
           <Code fw={700}><Version /></Code>
         </Group>
         {links}

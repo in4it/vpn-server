@@ -64,6 +64,7 @@ func (o *Observability) Ingest(data io.ReadCloser) error {
 	if err != nil {
 		return fmt.Errorf("decode error: %s", err)
 	}
+	logging.DebugLog(fmt.Errorf("messages ingested: %d", len(msgs)))
 	_, err = o.Buffer.Write(encodeMessage(msgs))
 	if err != nil {
 		return fmt.Errorf("write error: %s", err)
@@ -79,6 +80,20 @@ func (o *Observability) Ingest(data io.ReadCloser) error {
 				}
 				o.FlushOverflow.Swap(false)
 			}()
+		}
+	}
+	return nil
+}
+
+func (o *Observability) Flush() error {
+	// wait until all data is flushed
+	o.ActiveBufferWriters.Wait()
+
+	// flush remaining data that hasn't been flushed
+	if n := o.Buffer.Len(); n >= 0 {
+		err := o.WriteBufferToStorage(int64(n))
+		if err != nil {
+			return fmt.Errorf("write log buffer to storage error (buffer: %d): %s", o.Buffer.Len(), err)
 		}
 	}
 	return nil

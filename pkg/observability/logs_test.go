@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"io"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -48,8 +49,9 @@ func TestGetLogs(t *testing.T) {
 
 	now := time.Now()
 	maxLogLines := 100
+	search := ""
 
-	logEntryResponse, err := o.getLogs(now, now, 0, 0, maxLogLines)
+	logEntryResponse, err := o.getLogs(now, now, 0, 0, maxLogLines, search)
 	if err != nil {
 		t.Fatalf("get logs error: %s", err)
 	}
@@ -67,5 +69,20 @@ func TestFloatToDate(t *testing.T) {
 	floatToDate := floatToDate(floatDate)
 	if !now.Equal(floatToDate) {
 		t.Fatalf("times are not equal. Got: %s, expected: %s", floatToDate, now)
+	}
+}
+
+func TestKeyValue(t *testing.T) {
+	logEntryResponse := LogEntryResponse{
+		Keys: map[KeyValue]int{
+			{Key: "k", Value: "v"}: 4,
+		},
+	}
+	out, err := json.Marshal(logEntryResponse)
+	if err != nil {
+		t.Fatalf("error: %s", err)
+	}
+	if !strings.Contains(string(out), `"keys":[{"key":"k","value":"v","total":4}]`) {
+		t.Fatalf("wrong output: %s", out)
 	}
 }

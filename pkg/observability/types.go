@@ -2,6 +2,8 @@ package observability
 
 import (
 	"bytes"
+	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -32,12 +34,31 @@ type ConcurrentRWBuffer struct {
 }
 
 type LogEntryResponse struct {
-	Enabled      bool       `json:"enabled"`
-	LogEntries   []LogEntry `json:"logEntries"`
-	Environments []string   `json:"environments"`
+	Enabled      bool        `json:"enabled"`
+	LogEntries   []LogEntry  `json:"logEntries"`
+	Environments []string    `json:"environments"`
+	Keys         KeyValueInt `json:"keys"`
+	NextPos      int64       `json:"nextPos"`
 }
 
 type LogEntry struct {
 	Timestamp string `json:"timestamp"`
 	Data      string `json:"data"`
+}
+
+type KeyValueInt map[KeyValue]int
+
+type KeyValue struct {
+	Key   string
+	Value string
+}
+
+func (kv KeyValueInt) MarshalJSON() ([]byte, error) {
+	res := "["
+	for k, v := range kv {
+		res += `{ "key" : "` + k.Key + `", "value": "` + k.Value + `", "total": ` + strconv.Itoa(v) + ` },`
+	}
+	res = strings.TrimRight(res, ",")
+	res += "]"
+	return []byte(res), nil
 }

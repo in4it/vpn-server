@@ -36,6 +36,50 @@ func TestDecoding(t *testing.T) {
 	}
 }
 
+func TestDecodingMultiMessage(t *testing.T) {
+	payload := IncomingData{
+		{
+			"date":           1727119152.0,
+			"container_name": "/fluentbit-nginx-1",
+			"source":         "stdout",
+			"log":            "/docker-entrypoint.sh: /docker-entrypoint.d/ is not empty, will attempt to perform configuration",
+			"container_id":   "7a9c8ae0ca6c5434b778fa0a2e74e038710b3f18dedb3478235291832f121186",
+		},
+		{
+			"date":           1727119152.0,
+			"source":         "stdout",
+			"log":            "/docker-entrypoint.sh: Looking for shell scripts in /docker-entrypoint.d/",
+			"container_id":   "7a9c8ae0ca6c5434b778fa0a2e74e038710b3f18dedb3478235291832f121186",
+			"container_name": "/fluentbit-nginx-1",
+		},
+		{
+			"date":           1727119152.0,
+			"container_id":   "7a9c8ae0ca6c5434b778fa0a2e74e038710b3f18dedb3478235291832f121186",
+			"container_name": "/fluentbit-nginx-1",
+			"source":         "stdout",
+			"log":            "/docker-entrypoint.sh: Launching /docker-entrypoint.d/10-listen-on-ipv6-by-default.sh",
+		},
+	}
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		t.Fatalf("json marshal error: %s", err)
+	}
+	messages, err := Decode(bytes.NewBuffer(payloadBytes))
+	if err != nil {
+		t.Fatalf("error: %s", err)
+	}
+	if len(messages) != len(payload) {
+		t.Fatalf("incorrect messages returned. Got %d, expected %d", len(messages), len(payload))
+	}
+	val, ok := messages[2].Data["container_id"]
+	if !ok {
+		t.Fatalf("container_id key not found")
+	}
+	if string(val) != "7a9c8ae0ca6c5434b778fa0a2e74e038710b3f18dedb3478235291832f121186" {
+		t.Fatalf("wrong data returned: %s", val)
+	}
+}
+
 func TestDecodeMessages(t *testing.T) {
 	msgs := []FluentBitMessage{
 		{
