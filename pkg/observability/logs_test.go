@@ -64,11 +64,16 @@ func TestGetLogs(t *testing.T) {
 }
 
 func TestFloatToDate(t *testing.T) {
-	now := time.Now()
-	floatDate := float64(now.Unix()) + float64(now.Nanosecond())/1e9
-	floatToDate := floatToDate(floatDate)
-	if !now.Equal(floatToDate) {
-		t.Fatalf("times are not equal. Got: %s, expected: %s", floatToDate, now)
+	for i := 0; i < 10; i++ {
+		now := time.Now()
+		floatDate := float64(now.Unix()) + float64(now.Nanosecond())/1e9
+		floatToDate := floatToDate(floatDate)
+		if now.Unix() != floatToDate.Unix() {
+			t.Fatalf("times are not equal. Got: %v, expected: %v", floatToDate, now)
+		}
+		if now.UnixNano() != floatToDate.UnixNano() {
+			t.Fatalf("times are not equal. Got: %v, expected: %v", floatToDate, now)
+		}
 	}
 }
 
