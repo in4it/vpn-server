@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"math"
+	"sort"
 	"strings"
 	"time"
 )
@@ -13,8 +14,10 @@ func (o *Observability) getLogs(fromDate, endDate time.Time, pos int64, maxLogLi
 		Enabled:      true,
 		Environments: []string{"dev", "qa", "prod"},
 		LogEntries:   []LogEntry{},
-		Keys:         make(map[KeyValue]int),
+		Keys:         KeyValueInt{},
 	}
+
+	keys := make(map[KeyValue]int)
 
 	logFiles := []string{}
 
@@ -65,7 +68,7 @@ func (o *Observability) getLogs(fromDate, endDate time.Time, pos int64, maxLogLi
 					logEntryResponse.LogEntries = append(logEntryResponse.LogEntries, logEntry)
 					for k, v := range logMessage.Data {
 						if k != "log" {
-							logEntryResponse.Keys[KeyValue{Key: k, Value: v}] += 1
+							keys[KeyValue{Key: k, Value: v}] += 1
 						}
 					}
 				}
@@ -80,6 +83,15 @@ func (o *Observability) getLogs(fromDate, endDate time.Time, pos int64, maxLogLi
 	} else {
 		logEntryResponse.NextPos = pos
 	}
+
+	for k, v := range keys {
+		logEntryResponse.Keys = append(logEntryResponse.Keys, KeyValueTotal{
+			Key:   k.Key,
+			Value: k.Value,
+			Total: v,
+		})
+	}
+	sort.Sort(logEntryResponse.Keys)
 
 	return logEntryResponse, nil
 }

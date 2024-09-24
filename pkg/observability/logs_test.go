@@ -74,8 +74,8 @@ func TestFloatToDate(t *testing.T) {
 
 func TestKeyValue(t *testing.T) {
 	logEntryResponse := LogEntryResponse{
-		Keys: map[KeyValue]int{
-			{Key: "k", Value: "v"}: 4,
+		Keys: KeyValueInt{
+			{Key: "k", Value: "v", Total: 4},
 		},
 	}
 	out, err := json.Marshal(logEntryResponse)

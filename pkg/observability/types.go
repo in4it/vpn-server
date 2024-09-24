@@ -46,8 +46,13 @@ type LogEntry struct {
 	Data      string `json:"data"`
 }
 
-type KeyValueInt map[KeyValue]int
+type KeyValueInt []KeyValueTotal
 
+type KeyValueTotal struct {
+	Key   string
+	Value string
+	Total int
+}
 type KeyValue struct {
 	Key   string
 	Value string
@@ -55,10 +60,23 @@ type KeyValue struct {
 
 func (kv KeyValueInt) MarshalJSON() ([]byte, error) {
 	res := "["
-	for k, v := range kv {
-		res += `{ "key" : "` + k.Key + `", "value": "` + k.Value + `", "total": ` + strconv.Itoa(v) + ` },`
+	for _, v := range kv {
+		res += `{ "key" : "` + v.Key + `", "value": "` + v.Value + `", "total": ` + strconv.Itoa(v.Total) + ` },`
 	}
 	res = strings.TrimRight(res, ",")
 	res += "]"
 	return []byte(res), nil
+}
+
+func (kv KeyValueInt) Len() int {
+	return len(kv)
+}
+func (kv KeyValueInt) Less(i, j int) bool {
+	if kv[i].Key == kv[j].Key {
+		return kv[i].Value < kv[j].Value
+	}
+	return kv[i].Key < kv[j].Key
+}
+func (kv KeyValueInt) Swap(i, j int) {
+	kv[i], kv[j] = kv[j], kv[i]
 }
