@@ -25,12 +25,19 @@ type Observability struct {
 	FlushOverflow         atomic.Bool
 	FlushOverflowSequence atomic.Uint64
 	ActiveBufferWriters   sync.WaitGroup
+	WriteLock             sync.Mutex
 	MaxBufferSize         int
 }
 
 type ConcurrentRWBuffer struct {
 	buffer bytes.Buffer
+	prefix []BufferPosAndPrefix
 	mu     sync.Mutex
+}
+
+type BufferPosAndPrefix struct {
+	prefix string
+	offset int
 }
 
 type LogEntryResponse struct {

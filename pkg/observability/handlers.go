@@ -17,6 +17,7 @@ func (o *Observability) ingestionHandler(w http.ResponseWriter, r *http.Request)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+
 	if err := o.Ingest(r.Body); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Printf("error: %s", err)

@@ -3,7 +3,6 @@ package observability
 import (
 	"bufio"
 	"fmt"
-	"math"
 	"sort"
 	"strings"
 	"time"
@@ -26,13 +25,13 @@ func (o *Observability) getLogs(fromDate, endDate time.Time, pos int64, maxLogLi
 	}
 
 	for d := fromDate; d.Before(endDate) || d.Equal(endDate); d = d.AddDate(0, 0, 1) {
-		fileList, err := o.Storage.ReadDir(d.Format("2006/01/02"))
+		fileList, err := o.Storage.ReadDir(d.Format(DATE_PREFIX))
 		if err != nil {
 			logEntryResponse.NextPos = -1
 			return logEntryResponse, nil // can't read directory, return empty response
 		}
 		for _, filename := range fileList {
-			logFiles = append(logFiles, d.Format("2006/01/02")+"/"+filename)
+			logFiles = append(logFiles, d.Format(DATE_PREFIX)+"/"+filename)
 		}
 	}
 
@@ -94,11 +93,4 @@ func (o *Observability) getLogs(fromDate, endDate time.Time, pos int64, maxLogLi
 	sort.Sort(logEntryResponse.Keys)
 
 	return logEntryResponse, nil
-}
-
-func floatToDate(datetime float64) time.Time {
-	datetimeInt := int64(datetime)
-	decimals := datetime - float64(datetimeInt)
-	nsecs := int64(math.Round(decimals * 1_000_000)) // precision to match golang's time.Time
-	return time.Unix(datetimeInt, nsecs*1000)
 }

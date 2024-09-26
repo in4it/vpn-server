@@ -9,16 +9,19 @@ import (
 	"testing"
 	"time"
 
+	"github.com/in4it/wireguard-server/pkg/logging"
 	memorystorage "github.com/in4it/wireguard-server/pkg/storage/memory"
 )
 
 func TestGetLogs(t *testing.T) {
+	logging.Loglevel = logging.LOG_DEBUG
 	totalMessagesToGenerate := 100
 	storage := &memorystorage.MockMemoryStorage{}
 	o := NewWithoutMonitor(storage, 20)
+	timestamp := DateToFloat(time.Now())
 	payload := IncomingData{
 		{
-			"date": 1720613813.197045,
+			"date": timestamp,
 			"log":  "this is string: ",
 		},
 	}
@@ -51,15 +54,15 @@ func TestGetLogs(t *testing.T) {
 	maxLogLines := 100
 	search := ""
 
-	logEntryResponse, err := o.getLogs(now, now, 0, 0, maxLogLines, search)
+	logEntryResponse, err := o.getLogs(now, now, 0, maxLogLines, 0, search)
 	if err != nil {
 		t.Fatalf("get logs error: %s", err)
 	}
 	if len(logEntryResponse.LogEntries) != totalMessagesToGenerate {
 		t.Fatalf("didn't get the same log entries as messaged we generated: got: %d, expected: %d", len(logEntryResponse.LogEntries), totalMessagesToGenerate)
 	}
-	if logEntryResponse.LogEntries[0].Timestamp != floatToDate(1720613813.197045).Format(TIMESTAMP_FORMAT) {
-		t.Fatalf("unexpected timestamp")
+	if logEntryResponse.LogEntries[0].Timestamp != floatToDate(timestamp).Format(TIMESTAMP_FORMAT) {
+		t.Fatalf("unexpected timestamp: %s vs %s", logEntryResponse.LogEntries[0].Timestamp, floatToDate(timestamp).Format(TIMESTAMP_FORMAT))
 	}
 }
 

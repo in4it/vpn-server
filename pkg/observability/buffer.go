@@ -16,29 +16,40 @@ import (
 func (o *Observability) WriteBufferToStorage(n int64) error {
 	o.ActiveBufferWriters.Add(1)
 	defer o.ActiveBufferWriters.Done()
+	o.WriteLock.Lock()
+	defer o.WriteLock.Unlock()
 	// copy first to temporary buffer (storage might have latency)
 	tempBuf := bytes.NewBuffer(make([]byte, 0, n))
 	_, err := io.CopyN(tempBuf, o.Buffer, n)
-	o.LastFlushed = time.Now()
 	if err != nil && err != io.EOF {
 		return fmt.Errorf("write error from buffer to temporary buffer: %s", err)
 	}
-	now := time.Now()
-	filename := now.Format("2006/01/02") + "/data-" + now.Format("150405") + "-" + strconv.FormatUint(o.FlushOverflowSequence.Add(1), 10)
-	err = ensurePath(o.Storage, filename)
-	if err != nil {
-		return fmt.Errorf("ensure path error: %s", err)
+	prefix := o.Buffer.ReadPrefix(n)
+	o.LastFlushed = time.Now()
+
+	for _, bufferPosAndPrefix := range mergeBufferPosAndPrefix(prefix) {
+
+		now := time.Now()
+		filename := bufferPosAndPrefix.prefix + "/data-" + strconv.FormatInt(now.Unix(), 10) + "-" + strconv.FormatUint(o.FlushOverflowSequence.Add(1), 10)
+		err = ensurePath(o.Storage, filename)
+		if err != nil {
+			return fmt.Errorf("ensure path error: %s", err)
+		}
+		file, err := o.Storage.OpenFileForWriting(filename)
+		if err != nil {
+			return fmt.Errorf("open file for writing error: %s", err)
+		}
+		_, err = io.CopyN(file, tempBuf, int64(bufferPosAndPrefix.offset))
+		if err != nil && err != io.EOF {
+			return fmt.Errorf("file write error: %s", err)
+		}
+		logging.DebugLog(fmt.Errorf("wrote file: %s", filename))
+		err = file.Close()
+		if err != nil {
+			return fmt.Errorf("file close error: %s", err)
+		}
 	}
-	file, err := o.Storage.OpenFileForWriting(filename)
-	if err != nil {
-		return fmt.Errorf("open file for writing error: %s", err)
-	}
-	_, err = io.Copy(file, tempBuf)
-	if err != nil {
-		return fmt.Errorf("file write error: %s", err)
-	}
-	logging.DebugLog(fmt.Errorf("wrote file: %s", filename))
-	return file.Close()
+	return nil
 }
 
 func (o *Observability) monitorBuffer() {
@@ -65,7 +76,10 @@ func (o *Observability) Ingest(data io.ReadCloser) error {
 		return fmt.Errorf("decode error: %s", err)
 	}
 	logging.DebugLog(fmt.Errorf("messages ingested: %d", len(msgs)))
-	_, err = o.Buffer.Write(encodeMessage(msgs))
+	if len(msgs) == 0 {
+		return nil // no messages to ingest
+	}
+	_, err = o.Buffer.Write(encodeMessage(msgs), floatToDate(msgs[0].Date).Format(DATE_PREFIX))
 	if err != nil {
 		return fmt.Errorf("write error: %s", err)
 	}
@@ -99,15 +113,32 @@ func (o *Observability) Flush() error {
 	return nil
 }
 
-func (c *ConcurrentRWBuffer) Write(p []byte) (n int, err error) {
+func (c *ConcurrentRWBuffer) Write(p []byte, prefix string) (n int, err error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+	c.prefix = append(c.prefix, BufferPosAndPrefix{prefix: prefix, offset: len(p)})
 	return c.buffer.Write(p)
 }
 func (c *ConcurrentRWBuffer) Read(p []byte) (n int, err error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	return c.buffer.Read(p)
+}
+func (c *ConcurrentRWBuffer) ReadPrefix(n int64) []BufferPosAndPrefix {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	totalOffset := 0
+	for k, v := range c.prefix {
+		if int64(totalOffset+v.offset) == n {
+			part1 := c.prefix[:k+1]
+			part2 := make([]BufferPosAndPrefix, len(c.prefix[k+1:]))
+			copy(part2, c.prefix[k+1:])
+			c.prefix = part2
+			return part1
+		}
+		totalOffset += v.offset
+	}
+	return nil
 }
 func (c *ConcurrentRWBuffer) Len() int {
 	return c.buffer.Len()
@@ -128,4 +159,20 @@ func ensurePath(storage storage.Iface, filename string) error {
 		}
 	}
 	return nil
+}
+
+func mergeBufferPosAndPrefix(a []BufferPosAndPrefix) []BufferPosAndPrefix {
+	bufferPosAndPrefix := []BufferPosAndPrefix{}
+	for i := 0; i < len(a); i++ {
+		offset := a[i].offset
+		for y := i; y+1 < len(a) && a[y].prefix == a[y+1].prefix; y++ {
+			offset += a[y+1].offset
+			i++
+		}
+		bufferPosAndPrefix = append(bufferPosAndPrefix, BufferPosAndPrefix{
+			prefix: a[i].prefix,
+			offset: offset,
+		})
+	}
+	return bufferPosAndPrefix
 }
