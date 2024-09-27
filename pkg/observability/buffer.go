@@ -18,6 +18,7 @@ func (o *Observability) WriteBufferToStorage(n int64) error {
 	defer o.ActiveBufferWriters.Done()
 	o.WriteLock.Lock()
 	defer o.WriteLock.Unlock()
+	logging.DebugLog(fmt.Errorf("writing buffer to file. Buffer has: %d bytes", n))
 	// copy first to temporary buffer (storage might have latency)
 	tempBuf := bytes.NewBuffer(make([]byte, 0, n))
 	_, err := io.CopyN(tempBuf, o.Buffer, n)
@@ -28,7 +29,6 @@ func (o *Observability) WriteBufferToStorage(n int64) error {
 	o.LastFlushed = time.Now()
 
 	for _, bufferPosAndPrefix := range mergeBufferPosAndPrefix(prefix) {
-
 		now := time.Now()
 		filename := bufferPosAndPrefix.prefix + "/data-" + strconv.FormatInt(now.Unix(), 10) + "-" + strconv.FormatUint(o.FlushOverflowSequence.Add(1), 10)
 		err = ensurePath(o.Storage, filename)
@@ -79,7 +79,7 @@ func (o *Observability) Ingest(data io.ReadCloser) error {
 	if len(msgs) == 0 {
 		return nil // no messages to ingest
 	}
-	_, err = o.Buffer.Write(encodeMessage(msgs), floatToDate(msgs[0].Date).Format(DATE_PREFIX))
+	_, err = o.Buffer.Write(encodeMessage(msgs), FloatToDate(msgs[0].Date).Format(DATE_PREFIX))
 	if err != nil {
 		return fmt.Errorf("write error: %s", err)
 	}

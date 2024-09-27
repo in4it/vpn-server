@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -70,8 +71,16 @@ func (o *Observability) logsHandler(w http.ResponseWriter, r *http.Request) {
 			pos = i
 		}
 	}
-	search := r.FormValue("search")
-	out, err := o.getLogs(fromDate, endDate, pos, maxLines, offset, search)
+	displayTags := strings.Split(r.FormValue("display-tags"), ",")
+	filterTagsSplit := strings.Split(r.FormValue("filter-tags"), ",")
+	filterTags := []KeyValue{}
+	for _, tag := range filterTagsSplit {
+		kv := strings.Split(tag, "=")
+		if len(kv) == 2 {
+			filterTags = append(filterTags, KeyValue{Key: kv[0], Value: kv[1]})
+		}
+	}
+	out, err := o.getLogs(fromDate, endDate, pos, maxLines, offset, r.FormValue("search"), displayTags, filterTags)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Printf("get logs error: %s", err)

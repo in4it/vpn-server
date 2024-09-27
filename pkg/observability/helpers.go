@@ -16,7 +16,7 @@ func (o *Observability) returnError(w http.ResponseWriter, err error, statusCode
 	w.Write([]byte(`{"error": "` + strings.Replace(err.Error(), `"`, `\"`, -1) + `"}`))
 }
 
-func floatToDate(datetime float64) time.Time {
+func FloatToDate(datetime float64) time.Time {
 	datetimeInt := int64(datetime)
 	decimals := datetime - float64(datetimeInt)
 	nsecs := int64(math.Round(decimals * 1_000_000)) // precision to match golang's time.Time

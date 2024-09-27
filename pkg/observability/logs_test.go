@@ -61,8 +61,8 @@ func TestGetLogs(t *testing.T) {
 	if len(logEntryResponse.LogEntries) != totalMessagesToGenerate {
 		t.Fatalf("didn't get the same log entries as messaged we generated: got: %d, expected: %d", len(logEntryResponse.LogEntries), totalMessagesToGenerate)
 	}
-	if logEntryResponse.LogEntries[0].Timestamp != floatToDate(timestamp).Format(TIMESTAMP_FORMAT) {
-		t.Fatalf("unexpected timestamp: %s vs %s", logEntryResponse.LogEntries[0].Timestamp, floatToDate(timestamp).Format(TIMESTAMP_FORMAT))
+	if logEntryResponse.LogEntries[0].Timestamp != FloatToDate(timestamp).Format(TIMESTAMP_FORMAT) {
+		t.Fatalf("unexpected timestamp: %s vs %s", logEntryResponse.LogEntries[0].Timestamp, FloatToDate(timestamp).Format(TIMESTAMP_FORMAT))
 	}
 }
 
@@ -70,7 +70,7 @@ func TestFloatToDate(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		now := time.Now()
 		floatDate := float64(now.Unix()) + float64(now.Nanosecond())/1e9
-		floatToDate := floatToDate(floatDate)
+		floatToDate := FloatToDate(floatDate)
 		if now.Unix() != floatToDate.Unix() {
 			t.Fatalf("times are not equal. Got: %v, expected: %v", floatToDate, now)
 		}
@@ -82,7 +82,7 @@ func TestFloatToDate(t *testing.T) {
 
 func TestKeyValue(t *testing.T) {
 	logEntryResponse := LogEntryResponse{
-		Keys: KeyValueInt{
+		Tags: KeyValueInt{
 			{Key: "k", Value: "v", Total: 4},
 		},
 	}

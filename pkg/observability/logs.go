@@ -8,12 +8,11 @@ import (
 	"time"
 )
 
-func (o *Observability) getLogs(fromDate, endDate time.Time, pos int64, maxLogLines, offset int, search string) (LogEntryResponse, error) {
+func (o *Observability) getLogs(fromDate, endDate time.Time, pos int64, maxLogLines, offset int, search string, displayTags []string, filterTags []KeyValue) (LogEntryResponse, error) {
 	logEntryResponse := LogEntryResponse{
-		Enabled:      true,
-		Environments: []string{"dev", "qa", "prod"},
-		LogEntries:   []LogEntry{},
-		Keys:         KeyValueInt{},
+		Enabled:    true,
+		LogEntries: []LogEntry{},
+		Tags:       KeyValueInt{},
 	}
 
 	keys := make(map[KeyValue]int)
@@ -58,16 +57,37 @@ func (o *Observability) getLogs(fromDate, endDate time.Time, pos int64, maxLogLi
 			logMessage := decodeMessage(scanner.Bytes())
 			logline, ok := logMessage.Data["log"]
 			if ok {
-				timestamp := floatToDate(logMessage.Date).Add(time.Duration(offset) * time.Minute)
+				timestamp := FloatToDate(logMessage.Date).Add(time.Duration(offset) * time.Minute)
 				if search == "" || strings.Contains(logline, search) {
-					logEntry := LogEntry{
-						Timestamp: timestamp.Format(TIMESTAMP_FORMAT),
-						Data:      logline,
+					tags := []KeyValue{}
+					for _, tag := range displayTags {
+						if tagValue, ok := logMessage.Data[tag]; ok {
+							tags = append(tags, KeyValue{Key: tag, Value: tagValue})
+						}
 					}
-					logEntryResponse.LogEntries = append(logEntryResponse.LogEntries, logEntry)
-					for k, v := range logMessage.Data {
-						if k != "log" {
-							keys[KeyValue{Key: k, Value: v}] += 1
+					filterMessage := true
+					if len(filterTags) == 0 {
+						filterMessage = false
+					} else {
+						for _, filter := range filterTags {
+							if tagValue, ok := logMessage.Data[filter.Key]; ok {
+								if tagValue == filter.Value {
+									filterMessage = false
+								}
+							}
+						}
+					}
+					if !filterMessage {
+						logEntry := LogEntry{
+							Timestamp: timestamp.Format(TIMESTAMP_FORMAT),
+							Data:      logline,
+							Tags:      tags,
+						}
+						logEntryResponse.LogEntries = append(logEntryResponse.LogEntries, logEntry)
+						for k, v := range logMessage.Data {
+							if k != "log" {
+								keys[KeyValue{Key: k, Value: v}] += 1
+							}
 						}
 					}
 				}
@@ -84,13 +104,13 @@ func (o *Observability) getLogs(fromDate, endDate time.Time, pos int64, maxLogLi
 	}
 
 	for k, v := range keys {
-		logEntryResponse.Keys = append(logEntryResponse.Keys, KeyValueTotal{
+		logEntryResponse.Tags = append(logEntryResponse.Tags, KeyValueTotal{
 			Key:   k.Key,
 			Value: k.Value,
 			Total: v,
 		})
 	}
-	sort.Sort(logEntryResponse.Keys)
+	sort.Sort(logEntryResponse.Tags)
 
 	return logEntryResponse, nil
 }

@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -104,8 +103,10 @@ func fetchLogEvents(svc *cloudwatchlogs.Client, logGroupName, logStreamName stri
 		}
 
 		for _, event := range result.Events {
+			seconds := float64(*event.Timestamp / 1000)
+			microseconds := float64(*event.Timestamp%1000) * 1000
 			messages = append(messages, map[string]any{
-				"date":       float64(*event.Timestamp * int64(time.Millisecond)),
+				"date":       seconds + (microseconds / 1e6),
 				"log":        *event.Message,
 				"log-group":  logGroupName,
 				"log-stream": logStreamWithoutRandom,

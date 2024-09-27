@@ -41,16 +41,16 @@ type BufferPosAndPrefix struct {
 }
 
 type LogEntryResponse struct {
-	Enabled      bool        `json:"enabled"`
-	LogEntries   []LogEntry  `json:"logEntries"`
-	Environments []string    `json:"environments"`
-	Keys         KeyValueInt `json:"keys"`
-	NextPos      int64       `json:"nextPos"`
+	Enabled    bool        `json:"enabled"`
+	LogEntries []LogEntry  `json:"logEntries"`
+	Tags       KeyValueInt `json:"tags"`
+	NextPos    int64       `json:"nextPos"`
 }
 
 type LogEntry struct {
-	Timestamp string `json:"timestamp"`
-	Data      string `json:"data"`
+	Timestamp string     `json:"timestamp"`
+	Data      string     `json:"data"`
+	Tags      []KeyValue `json:"tags"`
 }
 
 type KeyValueInt []KeyValueTotal
@@ -61,8 +61,8 @@ type KeyValueTotal struct {
 	Total int
 }
 type KeyValue struct {
-	Key   string
-	Value string
+	Key   string `json:"key"`
+	Value string `json:"value"`
 }
 
 func (kv KeyValueInt) MarshalJSON() ([]byte, error) {

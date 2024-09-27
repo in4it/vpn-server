@@ -1,4 +1,4 @@
-import { Card, Container, Text, Table, Title, Button, Grid, Select, Popover, Group, TextInput, rem, ActionIcon, Checkbox, Highlight} from "@mantine/core";
+import { Card, Container, Text, Table, Title, Button, Grid, Popover, Group, TextInput, rem, ActionIcon, Checkbox, Highlight, MultiSelect} from "@mantine/core";
 import { AppSettings } from "../../Constants/Constants";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useAuthContext } from "../../Auth/Auth";
@@ -13,13 +13,14 @@ type LogsDataResponse = {
     logEntries: LogEntry[];
     environments: string[];
     nextPos: number;
-    keys: Keys[];
+    tags: Tags[];
 }
 type LogEntry = {
     data: string;
     timestamp: string;
+    tags: Tag[];
 }
-type Keys = {
+type Tags = {
   key: string;
   value: string;
   total: number;
@@ -41,16 +42,15 @@ export function Logs() {
     const timezoneOffset = new Date().getTimezoneOffset() * -1
     const [currentQueryParameters] = useSearchParams();
     const dateParam = currentQueryParameters.get("date")
-    const environmentParam = currentQueryParameters.get("environment")
     const [tags, setTags] = useState<Tag[]>([])
     const [search, setSearch] = useState<string>("")
     const [searchParam, setSearchParam] = useState<string>("")
+    const [columns, setColumns] = useState<string[]>([])
     const [logsDate, setLogsDate] = useState<Date | null>(dateParam === null ? new Date() : new Date(dateParam));
-    const [environment, setEnvironment] = useState<string>(environmentParam === null ? "all" : environmentParam)
     const { isPending, fetchNextPage, hasNextPage, error, data } = useInfiniteQuery<LogsDataResponse>({
-      queryKey: ['logs', environment, logsDate, tags, searchParam],
+      queryKey: ['logs', logsDate, tags, columns, searchParam],
       queryFn: async ({ pageParam }) =>
-        fetch(AppSettings.url + '/observability/logs?environment='+(environment === undefined || environment === "" ? "all" : environment)+'&fromDate='+(logsDate == undefined ? getDate(new Date()) : getDate(logsDate)) + '&endDate='+(logsDate == undefined ? getDate(new Date()) : getDate(logsDate)) + "&pos="+pageParam+"&offset="+timezoneOffset+"&tags="+encodeURIComponent(tags.map(t => t.key + "=" + t.value).join(","))+"&search="+encodeURIComponent(searchParam), {
+        fetch(AppSettings.url + '/observability/logs?display-tags='+encodeURIComponent(columns.join(","))+'&fromDate='+(logsDate == undefined ? getDate(new Date()) : getDate(logsDate)) + '&endDate='+(logsDate == undefined ? getDate(new Date()) : getDate(logsDate)) + "&pos="+pageParam+"&offset="+timezoneOffset+"&filter-tags="+encodeURIComponent(tags.map(t => t.key + "=" + t.value).join(","))+"&search="+encodeURIComponent(searchParam), {
           headers: {
             "Content-Type": "application/json",
             "Authorization": "Bearer " + authInfo.token
@@ -84,40 +84,17 @@ export function Logs() {
       };
     }, [fetchNextPage])
 
-    if(isPending) return "Loading..."
+
     if(error) return 'A backend error has occurred: ' + error.message
 
-    if(data.pages.length === 0 || !data.pages[0].enabled) { // show disabled page if not enabled
-      return (
-        <Container my={40}>
-          <Title ta="center" style={{marginBottom: 20}}>
-            Logs
-          </Title>
-          <Card withBorder radius="md" padding="xl" bg="var(--mantine-color-body)">
-            <Text fz="xs" tt="uppercase" fw={700} c="dimmed">
-              { !data.pages[0].enabled ? 
-                "Logs are not enabled." 
-              : 
-                null
-              }
-            </Text>
-            <Card.Section inheritPadding mt="sm" pb="md">
-              <Link to="/setup/vpn">
-                <Button leftSection={<TbSettings size={14} />} fz="sm" mt="md" radius="md" variant="default" size="sm">
-                  Logs Settings
-                </Button>
-              </Link>
-            </Card.Section>
-          </Card>
-        </Container>
-      )
-    }
-
-    const rows = data.pages.map((group, groupIndex) => (
+    const rows = isPending ? [] : data.pages.map((group, groupIndex) => (
       <React.Fragment key={groupIndex}>
         {group.logEntries.map((row, i) => (
           <Table.Tr key={i}>
             <Table.Td>{row.timestamp}</Table.Td>
+            {columns.map(function(column){
+                    return <Table.Td>{row.tags.filter((tag) => tag.key === column).map((tag => { return tag.value }))}</Table.Td>;
+            })}
             <Table.Td>{searchParam === "" ? row.data : <Highlight color="lime" highlight={searchParam}>{row.data}</Highlight>}</Table.Td>
           </Table.Tr>
         ))}
@@ -153,47 +130,57 @@ export function Logs() {
                 />
                 </Grid.Col>
             <Grid.Col span={2}>
-            <Select
-                data={data.pages[0].environments.map((key, index) => {
-                  return {
-                    label: key,
-                    value: index.toString(),
-                  }
-                })}
-                size="xs"
-                withCheckIcon={false}
-                value={environment}
-                onChange={(_value) => setEnvironment(_value === null ? "" : _value)}
-                placeholder="Environment"
-                />
+           
+
             </Grid.Col>
             <Grid.Col span={2}>
+            <Group>
               <Popover width={300} position="bottom" withArrow shadow="md">
-                <Popover.Target>
-                  <Button variant="default" size="xs">Filter</Button>
-                </Popover.Target>
-                <Popover.Dropdown>
-                {data.pages[0].keys.map((element) => {
-                  return (
-                    <Checkbox
-                      key={element.key +"="+element.value}
-                      label={element.key + " = " + element.value.substring(0, 10) + (element.value.length > 10 ? "..." : "") + " (" + element.total + ")"}
-                      radius="xs"
-                      size="xs"
-                      style={{marginBottom: 3}}
-                      onChange={(event) => event.currentTarget.checked ? setTags([...tags, {key: element.key, value: element.value }]) : setTags(tags.filter((tag) => { return tag.key !== element.key || tag.value !== element.value } ))}
-                      checked={tags.some((tag) => tag.key === element.key && tag.value === element.value)}
-                    />
-                  )
-                })}
-                </Popover.Dropdown>
-              </Popover>           
+                  <Popover.Target>
+                    <Button variant="default" size="xs">Columns</Button>
+                  </Popover.Target>
+                  <Popover.Dropdown>
+                    <MultiSelect
+                          searchable
+                          hidePickedOptions
+                          comboboxProps={{ offset: 0, withinPortal: false}}
+                          data={data?.pages[0].tags.map((tag) => { return tag.key })}
+                          value={columns}
+                          onChange={setColumns}
+                          size="xs"
+                      />
+                  </Popover.Dropdown>
+                </Popover>   
+                <Popover width={300} position="bottom" withArrow shadow="md">
+                  <Popover.Target>
+                    <Button variant="default" size="xs">Filter</Button>
+                  </Popover.Target>
+                  <Popover.Dropdown>
+                  {data?.pages[0].tags.map((element) => {
+                    return (
+                      <Checkbox
+                        key={element.key +"="+element.value}
+                        label={element.key + " = " + element.value.substring(0, 10) + (element.value.length > 10 ? "..." : "") + " (" + element.total + ")"}
+                        radius="xs"
+                        size="xs"
+                        style={{marginBottom: 3}}
+                        onChange={(event) => event.currentTarget.checked ? setTags([...tags, {key: element.key, value: element.value }]) : setTags(tags.filter((tag) => { return tag.key !== element.key || tag.value !== element.value } ))}
+                        checked={tags.some((tag) => tag.key === element.key && tag.value === element.value)}
+                      />
+                    )
+                  })}
+                  </Popover.Dropdown>
+                </Popover>
+              </Group>      
             </Grid.Col>
           </Grid>
           <Table>
               <Table.Thead>
                   <Table.Tr key="heading">
                   <Table.Th>Timestamp</Table.Th>
+                  {columns.map(function(column){
+                    return <Table.Th>{column}</Table.Th>;
+                  })}
                   <Table.Th>Log</Table.Th>
                   </Table.Tr>
               </Table.Thead>
