@@ -54,7 +54,7 @@ func TestGetLogs(t *testing.T) {
 	maxLogLines := 100
 	search := ""
 
-	logEntryResponse, err := o.getLogs(now, now, 0, maxLogLines, 0, search)
+	logEntryResponse, err := o.getLogs(now, now, 0, maxLogLines, 0, search, []string{}, []KeyValue{})
 	if err != nil {
 		t.Fatalf("get logs error: %s", err)
 	}

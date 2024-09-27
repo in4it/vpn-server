@@ -140,15 +140,27 @@ export function Logs() {
                     <Button variant="default" size="xs">Columns</Button>
                   </Popover.Target>
                   <Popover.Dropdown>
-                    <MultiSelect
-                          searchable
-                          hidePickedOptions
-                          comboboxProps={{ offset: 0, withinPortal: false}}
-                          data={data?.pages[0].tags.map((tag) => { return tag.key })}
-                          value={columns}
-                          onChange={setColumns}
-                          size="xs"
-                      />
+                      {data?.pages[0].tags
+                      .filter((element, i) => {
+                        if(i === 0 || element.key !== data?.pages[0].tags[i-1].key) {
+                          return true
+                        } else {
+                          return false
+                        }
+                      })
+                      .map((element) => {
+                        return (
+                          <Checkbox
+                            key={element.key}
+                            label={element.key}
+                            radius="xs"
+                            size="xs"
+                            style={{marginBottom: 3}}
+                            onChange={(event) => event.currentTarget.checked ? setColumns([...columns, element.key]) : setColumns(columns.filter((column) => { return column !== element.key } ))}
+                            checked={columns.some((column) => column === element.key)}
+                          />
+                        )
+                      })}
                   </Popover.Dropdown>
                 </Popover>   
                 <Popover width={300} position="bottom" withArrow shadow="md">
