@@ -27,9 +27,27 @@ data "amazon-ami" "ubuntu" {
     owners = ["099720109477"]
     most_recent = true
 }
+// BYOL
+source "amazon-ebs" "vpn-server-byol" {
+  ami_name      = "in4it-vpn-server-byol-${local.timestamp}"
+  ami_users     = var.ami_users
+  instance_type = "m7a.medium"
+  launch_block_device_mappings {
+    delete_on_termination = true
+    device_name           = "/dev/sda1"
+    volume_size           = 30
+    volume_type           = "gp3"
+  }
+  profile      = "${var.aws_profile}"
+  region       = "us-east-1"
+  ami_regions  = ["eu-west-1"]
+  source_ami   = data.amazon-ami.ubuntu.id
+  ssh_username = "ubuntu"
+}
 
-source "amazon-ebs" "vpn-server" {
-  ami_name      = "in4it-vpn-server-${local.timestamp}"
+// License included
+source "amazon-ebs" "vpn-server-licensed" {
+  ami_name      = "in4it-vpn-server-licensed-${local.timestamp}"
   ami_users     = var.ami_users
   instance_type = "m7a.medium"
   launch_block_device_mappings {
@@ -46,7 +64,10 @@ source "amazon-ebs" "vpn-server" {
 }
 
 build {
-  sources = ["source.amazon-ebs.vpn-server"]
+  sources = [
+    "source.amazon-ebs.vpn-server-byol",
+    "source.amazon-ebs.vpn-server-licensed"
+  ]
 
   provisioner "file" {
     destination = "/tmp/configmanager-linux-amd64"
