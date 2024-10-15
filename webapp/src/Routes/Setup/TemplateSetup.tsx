@@ -23,7 +23,7 @@ export function TemplateSetup() {
     const { isPending, error, data, isSuccess } = useQuery({
       queryKey: ['templates-setup'],
       queryFn: () =>
-        fetch(AppSettings.url + '/setup/templates', {
+        fetch(AppSettings.url + '/vpn/setup/templates', {
           headers: {
             "Content-Type": "application/json",
             "Authorization": "Bearer " + authInfo.token
@@ -44,7 +44,7 @@ export function TemplateSetup() {
     const alertIcon = <TbInfoCircle />;
     const setupMutation = useMutation({
       mutationFn: (setupRequest: TemplateSetupRequest) => {
-        return axios.post(AppSettings.url + '/setup/templates', setupRequest, {
+        return axios.post(AppSettings.url + '/vpn/setup/templates', setupRequest, {
           headers: {
               "Authorization": "Bearer " + authInfo.token
           },

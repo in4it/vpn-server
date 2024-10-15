@@ -17,7 +17,7 @@ export function ListConnections() {
     const { isPending, error, data } = useQuery({
         queryKey: ['connections'],
         queryFn: () =>
-          fetch(AppSettings.url + '/connections', {
+          fetch(AppSettings.url + '/vpn/connections', {
             headers: {
               "Content-Type": "application/json",
               "Authorization": "Bearer " + authInfo.token
@@ -30,7 +30,7 @@ export function ListConnections() {
       })
     const deleteConnection = useMutation({
         mutationFn: (id:string) => {
-          return axios.delete(AppSettings.url + '/connection/'+id, {
+          return axios.delete(AppSettings.url + '/vpn/connection/'+id, {
             headers: {
                 "Authorization": "Bearer " + authInfo.token
             },

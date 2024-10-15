@@ -18,7 +18,7 @@ export function Restart() {
     const alertIcon = <TbInfoCircle />;
     const setupMutation = useMutation({
       mutationFn: () => {
-        return axios.post(AppSettings.url + '/setup/restart-vpn', {}, {
+        return axios.post(AppSettings.url + '/vpn/setup/restart-vpn', {}, {
           headers: {
               "Authorization": "Bearer " + authInfo.token
           },
