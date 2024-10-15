@@ -90,7 +90,7 @@ func TestKeyValue(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error: %s", err)
 	}
-	if !strings.Contains(string(out), `"keys":[{"key":"k","value":"v","total":4}]`) {
+	if !strings.Contains(string(out), `"tags":[{"key":"k","value":"v","total":4}]`) {
 		t.Fatalf("wrong output: %s", out)
 	}
 }
