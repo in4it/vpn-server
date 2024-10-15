@@ -12,7 +12,8 @@ import (
 	"testing"
 	"time"
 
-	memorystorage "github.com/in4it/wireguard-server/pkg/storage/memory"
+	memorystorage "github.com/in4it/go-devops-platform/storage/memory"
+	"github.com/in4it/go-devops-platform/users"
 )
 
 func TestGetNextFreeIPFromList(t *testing.T) {
@@ -482,7 +483,7 @@ func TestCreateAndDisableAllClientConfig(t *testing.T) {
 		t.Errorf("Peer config is disabled")
 	}
 
-	err = DisableAllClientConfigs(storage, "2-2-2-2")
+	err = DisableAllClientConfigs(storage, users.User{ID: "2-2-2-2"})
 	if err != nil {
 		t.Fatalf("DisableAllClientConfigs error: %s", err)
 	}
@@ -504,7 +505,7 @@ func TestCreateAndDisableAllClientConfig(t *testing.T) {
 		t.Errorf("peer config not disabled")
 	}
 
-	err = ReactivateAllClientConfigs(storage, "2-2-2-2")
+	err = ReactivateAllClientConfigs(storage, users.User{ID: "2-2-2-2"})
 	if err != nil {
 		t.Fatalf("DisableAllClientConfigs error: %s", err)
 	}

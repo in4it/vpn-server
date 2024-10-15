@@ -15,7 +15,8 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/in4it/wireguard-server/pkg/storage"
+	"github.com/in4it/go-devops-platform/storage"
+	"github.com/in4it/go-devops-platform/users"
 )
 
 var clientConfigMutex sync.Mutex
@@ -377,7 +378,7 @@ func DeleteClientConfig(storage storage.Iface, connectionID, userID string) erro
 	}
 	return nil
 }
-func DisableAllClientConfigs(storage storage.Iface, userID string) error {
+func DisableAllClientConfigs(storage storage.Iface, user users.User) error {
 	clientConfigMutex.Lock()
 	defer clientConfigMutex.Unlock()
 	clients, err := storage.ReadDir(storage.ConfigPath(VPN_CLIENTS_DIR))
@@ -387,7 +388,7 @@ func DisableAllClientConfigs(storage storage.Iface, userID string) error {
 
 	toDelete := []string{}
 	for _, clientFilename := range clients {
-		if HasClientUserID(clientFilename, userID) {
+		if HasClientUserID(clientFilename, user.ID) {
 			toDelete = append(toDelete, clientFilename)
 		}
 	}
@@ -438,7 +439,7 @@ func DisableAllClientConfigs(storage storage.Iface, userID string) error {
 	}
 	return nil
 }
-func ReactivateAllClientConfigs(storage storage.Iface, userID string) error {
+func ReactivateAllClientConfigs(storage storage.Iface, user users.User) error {
 	clientConfigMutex.Lock()
 	defer clientConfigMutex.Unlock()
 	clients, err := storage.ReadDir(storage.ConfigPath(VPN_CLIENTS_DIR))
@@ -448,7 +449,7 @@ func ReactivateAllClientConfigs(storage storage.Iface, userID string) error {
 
 	toAdd := []string{}
 	for _, clientFilename := range clients {
-		if HasClientUserID(clientFilename, userID) {
+		if HasClientUserID(clientFilename, user.ID) {
 			toAdd = append(toAdd, clientFilename)
 		}
 	}

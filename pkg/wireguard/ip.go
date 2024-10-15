@@ -8,7 +8,7 @@ import (
 	"path"
 	"strings"
 
-	"github.com/in4it/wireguard-server/pkg/storage"
+	"github.com/in4it/go-devops-platform/storage"
 )
 
 func getNextFreeIP(storage storage.Iface, addressRange netip.Prefix, addressPrefix string) (net.IP, error) {

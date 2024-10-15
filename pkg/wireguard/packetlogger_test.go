@@ -13,9 +13,9 @@ import (
 	"testing"
 	"time"
 
-	localstorage "github.com/in4it/wireguard-server/pkg/storage/local"
-	memorystorage "github.com/in4it/wireguard-server/pkg/storage/memory"
-	dateutils "github.com/in4it/wireguard-server/pkg/utils/date"
+	localstorage "github.com/in4it/go-devops-platform/storage/local"
+	memorystorage "github.com/in4it/go-devops-platform/storage/memory"
+	dateutils "github.com/in4it/go-devops-platform/utils/date"
 )
 
 func TestParsePacket(t *testing.T) {

@@ -7,7 +7,7 @@ import (
 	"path"
 	"text/template"
 
-	"github.com/in4it/wireguard-server/pkg/storage"
+	"github.com/in4it/go-devops-platform/storage"
 )
 
 func WriteWireGuardServerConfig(storage storage.Iface) error {

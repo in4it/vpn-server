@@ -5,8 +5,8 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/in4it/wireguard-server/pkg/storage"
-	localstorage "github.com/in4it/wireguard-server/pkg/storage/local"
+	"github.com/in4it/go-devops-platform/storage"
+	localstorage "github.com/in4it/go-devops-platform/storage/local"
 	"github.com/in4it/wireguard-server/pkg/wireguard"
 )
 
