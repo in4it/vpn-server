@@ -1,6 +1,7 @@
 package vpn
 
 import (
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"net/http"

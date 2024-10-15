@@ -296,7 +296,7 @@ func TestCreateAndDeleteAllClientConfig(t *testing.T) {
 		t.Errorf("Public key not found in client config")
 	}
 
-	err = DeleteAllClientConfigs(storage, "2-2-2-2")
+	err = DeleteAllClientConfigs(storage, users.User{ID: "2-2-2-2"})
 	if err != nil {
 		t.Fatalf("DeleteAllClientConfigs error: %s", err)
 	}

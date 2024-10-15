@@ -32,7 +32,7 @@ func TestSCIMCreateUserConnectionDeleteUserFlow(t *testing.T) {
 	if err != nil {
 		t.Fatalf("cannot empty user store")
 	}
-	s := scim.New(storage, userStore, "token", nil, nil)
+	s := scim.New(storage, userStore, "token", wireguard.DisableAllClientConfigs, wireguard.ReactivateAllClientConfigs)
 
 	l, err := net.Listen("tcp", wireguard.CONFIGMANAGER_URI)
 	if err != nil {
@@ -153,7 +153,7 @@ func TestCreateUserConnectionSuspendUserFlow(t *testing.T) {
 	if err != nil {
 		t.Fatalf("cannot empty user store")
 	}
-	s := scim.New(storage, userStore, "token", nil, nil)
+	s := scim.New(storage, userStore, "token", wireguard.DisableAllClientConfigs, wireguard.ReactivateAllClientConfigs)
 
 	l, err := net.Listen("tcp", wireguard.CONFIGMANAGER_URI)
 	if err != nil {

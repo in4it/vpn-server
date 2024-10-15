@@ -314,14 +314,14 @@ func GenerateNewClientConfig(storage storage.Iface, connectionID, userID string)
 
 	return out.Bytes(), nil
 }
-func DeleteAllClientConfigs(storage storage.Iface, userID string) error {
+func DeleteAllClientConfigs(storage storage.Iface, user users.User) error {
 	clients, err := storage.ReadDir(storage.ConfigPath(VPN_CLIENTS_DIR))
 	if err != nil {
 		return fmt.Errorf("cannot list files in users clients directory: %s", err)
 	}
 
 	for _, clientFilename := range clients {
-		if HasClientUserID(clientFilename, userID) {
+		if HasClientUserID(clientFilename, user.ID) {
 			filename := storage.ConfigPath(path.Join(VPN_CLIENTS_DIR, clientFilename))
 			err = storage.Remove(filename)
 			if err != nil {

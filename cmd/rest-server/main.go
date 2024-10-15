@@ -34,7 +34,11 @@ func main() {
 	}
 	licenseUserCount, cloudType := licensing.GetMaxUsers(localStorage)
 
-	userStore, err := users.NewUserStore(localStorage, licenseUserCount)
+	userStore, err := users.NewUserStoreWithHooks(localStorage, licenseUserCount, users.UserHooks{
+		DisableFunc:    wireguard.DisableAllClientConfigs,
+		DeleteFunc:     wireguard.DeleteAllClientConfigs,
+		ReactivateFunc: wireguard.ReactivateAllClientConfigs,
+	})
 	if err != nil {
 		log.Fatalf("startup failed: userstore initialization error: %s", err)
 	}
