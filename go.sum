@@ -104,6 +104,10 @@ github.com/in4it/go-devops-platform v0.0.0-20241015173130-0b49ea0db408 h1:iQl/CX
 github.com/in4it/go-devops-platform v0.0.0-20241015173130-0b49ea0db408/go.mod h1:xugWZer+8U7DcIWlE95SiPvtVPmJzhB9YCYiIScLK5Q=
 github.com/in4it/go-devops-platform v0.0.0-20241015173332-a45080cabae5 h1:pcZ2PeYjk5/Bis6llji5uTqocjbIpxPlm4flLoweVt0=
 github.com/in4it/go-devops-platform v0.0.0-20241015173332-a45080cabae5/go.mod h1:xugWZer+8U7DcIWlE95SiPvtVPmJzhB9YCYiIScLK5Q=
+github.com/in4it/go-devops-platform v0.0.0-20241015191019-e2183445416a h1:y0pHhwuhAZYB4v99PHYScjyPv45mfCM5iiUWL6rAhIg=
+github.com/in4it/go-devops-platform v0.0.0-20241015191019-e2183445416a/go.mod h1:xugWZer+8U7DcIWlE95SiPvtVPmJzhB9YCYiIScLK5Q=
+github.com/in4it/go-devops-platform v0.0.0-20241015191315-e2f711a32e69 h1:/1BTKr5cqiQKAf8KMhR8z6Pup7eqzDbh32qQb+xh4Tw=
+github.com/in4it/go-devops-platform v0.0.0-20241015191315-e2f711a32e69/go.mod h1:xugWZer+8U7DcIWlE95SiPvtVPmJzhB9YCYiIScLK5Q=
 github.com/jmespath/go-jmespath v0.4.0 h1:BEgLn5cpjn8UN1mAw4NjwDrS35OdebyEtFe+9YPoQUg=
 github.com/jmespath/go-jmespath v0.4.0/go.mod h1:T8mJZnbsbmF+m6zOOFylbeCJqk5+pHWvzYPziyZiYoo=
 github.com/jmespath/go-jmespath/internal/testify v1.5.1/go.mod h1:L3OGu8Wl2/fWfCI6z80xFu9LTZmf1ZRjMHUOPmWr69U=

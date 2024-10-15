@@ -17,7 +17,7 @@ require (
 	golang.org/x/term v0.25.0
 )
 
-require github.com/in4it/go-devops-platform v0.0.0-20241015173332-a45080cabae5 // indirect
+require github.com/in4it/go-devops-platform v0.0.0-20241015191315-e2f711a32e69 // indirect
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.32.2 // indirect

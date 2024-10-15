@@ -24,7 +24,11 @@ const USERSTORE_MAX_USERS = 1000
 
 func TestSCIMCreateUserConnectionDeleteUserFlow(t *testing.T) {
 	storage := &memorystorage.MockMemoryStorage{}
-	userStore, err := users.NewUserStore(storage, USERSTORE_MAX_USERS)
+	userStore, err := users.NewUserStoreWithHooks(storage, USERSTORE_MAX_USERS, users.UserHooks{
+		DisableFunc:    wireguard.DisableAllClientConfigs,
+		DeleteFunc:     wireguard.DeleteAllClientConfigs,
+		ReactivateFunc: wireguard.ReactivateAllClientConfigs,
+	})
 	if err != nil {
 		t.Fatalf("cannot create new user store: %s", err)
 	}
@@ -32,7 +36,7 @@ func TestSCIMCreateUserConnectionDeleteUserFlow(t *testing.T) {
 	if err != nil {
 		t.Fatalf("cannot empty user store")
 	}
-	s := scim.New(storage, userStore, "token", wireguard.DisableAllClientConfigs, wireguard.ReactivateAllClientConfigs)
+	s := scim.New(storage, userStore, "token")
 
 	l, err := net.Listen("tcp", wireguard.CONFIGMANAGER_URI)
 	if err != nil {
@@ -145,7 +149,11 @@ func TestSCIMCreateUserConnectionDeleteUserFlow(t *testing.T) {
 func TestCreateUserConnectionSuspendUserFlow(t *testing.T) {
 	storage := &memorystorage.MockMemoryStorage{}
 
-	userStore, err := users.NewUserStore(storage, USERSTORE_MAX_USERS)
+	userStore, err := users.NewUserStoreWithHooks(storage, USERSTORE_MAX_USERS, users.UserHooks{
+		DisableFunc:    wireguard.DisableAllClientConfigs,
+		DeleteFunc:     wireguard.DeleteAllClientConfigs,
+		ReactivateFunc: wireguard.ReactivateAllClientConfigs,
+	})
 	if err != nil {
 		t.Fatalf("cannot create new user store: %s", err)
 	}
@@ -153,7 +161,7 @@ func TestCreateUserConnectionSuspendUserFlow(t *testing.T) {
 	if err != nil {
 		t.Fatalf("cannot empty user store")
 	}
-	s := scim.New(storage, userStore, "token", wireguard.DisableAllClientConfigs, wireguard.ReactivateAllClientConfigs)
+	s := scim.New(storage, userStore, "token")
 
 	l, err := net.Listen("tcp", wireguard.CONFIGMANAGER_URI)
 	if err != nil {
@@ -316,7 +324,16 @@ func TestCreateUserConnectionDeleteUserFlow(t *testing.T) {
 	// first create a new user
 	storage := &memorystorage.MockMemoryStorage{}
 
-	v := New(storage, &users.UserStore{})
+	userStore, err := users.NewUserStoreWithHooks(storage, USERSTORE_MAX_USERS, users.UserHooks{
+		DisableFunc:    wireguard.DisableAllClientConfigs,
+		DeleteFunc:     wireguard.DeleteAllClientConfigs,
+		ReactivateFunc: wireguard.ReactivateAllClientConfigs,
+	})
+	if err != nil {
+		t.Fatalf("cannot create new user store: %s", err)
+	}
+
+	v := New(storage, userStore)
 
 	err = v.UserStore.Empty()
 	if err != nil {
@@ -390,6 +407,12 @@ func TestCreateUserConnectionDeleteUserFlow(t *testing.T) {
 	err = v.UserStore.DeleteUserByID(user.ID)
 	if err != nil {
 		t.Fatalf("user deletion error: %s", err)
+	}
+
+	err = v.UserStore.UserHooks.DeleteFunc(v.Storage, users.User{ID: user.ID})
+	if err != nil {
+		t.Fatalf("could not delete all clients for user %s: %s", user.ID, err)
+
 	}
 
 	_, err = storage.ReadFile(userConfigFilename)

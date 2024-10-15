@@ -43,7 +43,7 @@ func main() {
 		log.Fatalf("startup failed: userstore initialization error: %s", err)
 	}
 
-	scimInstance := scim.New(localStorage, userStore, "", wireguard.DisableAllClientConfigs, wireguard.ReactivateAllClientConfigs)
+	scimInstance := scim.New(localStorage, userStore, "")
 
 	apps := map[string]rest.AppClient{
 		"vpn": vpn.New(localStorage, userStore),
