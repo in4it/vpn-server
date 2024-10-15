@@ -10,7 +10,7 @@ type Props = {
 export function Download({id, name}:Props) {
     const {authInfo} = useAuthContext();
     const handleDownload = () => {
-        fetch(AppSettings.url + '/connection/'+id, {
+        fetch(AppSettings.url + '/vpn/connection/'+id, {
             headers: {
               "Authorization": "Bearer " + authInfo.token
             },

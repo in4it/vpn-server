@@ -3,8 +3,8 @@ package commands
 import (
 	"testing"
 
-	memorystorage "github.com/in4it/wireguard-server/pkg/storage/memory"
-	"github.com/in4it/wireguard-server/pkg/users"
+	memorystorage "github.com/in4it/go-devops-platform/storage/memory"
+	"github.com/in4it/go-devops-platform/users"
 )
 
 func TestResetPassword(t *testing.T) {

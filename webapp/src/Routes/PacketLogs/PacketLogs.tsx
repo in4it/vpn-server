@@ -51,7 +51,7 @@ export function PacketLogs() {
     const { isPending, fetchNextPage, hasNextPage, error, data } = useInfiniteQuery<LogsDataResponse>({
       queryKey: ['packetlogs', user, logsDate, logType, searchParam],
       queryFn: async ({ pageParam }) =>
-        fetch(AppSettings.url + '/stats/packetlogs/'+(user === undefined || user === "" ? "all" : user)+'/'+(logsDate == undefined ? getDate(new Date()) : getDate(logsDate)) + "?pos="+pageParam+"&offset="+timezoneOffset+"&logtype="+encodeURIComponent(logType.join(","))+"&search="+encodeURIComponent(searchParam), {
+        fetch(AppSettings.url + '/vpn/stats/packetlogs/'+(user === undefined || user === "" ? "all" : user)+'/'+(logsDate == undefined ? getDate(new Date()) : getDate(logsDate)) + "?pos="+pageParam+"&offset="+timezoneOffset+"&logtype="+encodeURIComponent(logType.join(","))+"&search="+encodeURIComponent(searchParam), {
           headers: {
             "Content-Type": "application/json",
             "Authorization": "Bearer " + authInfo.token

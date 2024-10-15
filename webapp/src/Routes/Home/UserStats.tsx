@@ -18,7 +18,7 @@ export function UserStats() {
     const { isPending, error, data } = useQuery({
         queryKey: ['userstats', statsDate, unit],
         queryFn: () =>
-            fetch(AppSettings.url + '/stats/user/' + format(statsDate === null ? new Date() : statsDate, "yyyy-MM-dd") + "?offset="+timezoneOffset+"&unit=" +unit, {
+            fetch(AppSettings.url + '/vpn/stats/user/' + format(statsDate === null ? new Date() : statsDate, "yyyy-MM-dd") + "?offset="+timezoneOffset+"&unit=" +unit, {
             headers: {
                 "Content-Type": "application/json",
                 "Authorization": "Bearer " + authInfo.token

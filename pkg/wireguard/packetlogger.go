@@ -19,9 +19,9 @@ import (
 
 	"github.com/gopacket/gopacket"
 	"github.com/gopacket/gopacket/layers"
-	"github.com/in4it/wireguard-server/pkg/logging"
-	"github.com/in4it/wireguard-server/pkg/storage"
-	dateutils "github.com/in4it/wireguard-server/pkg/utils/date"
+	"github.com/in4it/go-devops-platform/logging"
+	"github.com/in4it/go-devops-platform/storage"
+	dateutils "github.com/in4it/go-devops-platform/utils/date"
 	"github.com/packetcap/go-pcap"
 	"golang.org/x/sys/unix"
 )

@@ -15,7 +15,8 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/in4it/wireguard-server/pkg/storage"
+	"github.com/in4it/go-devops-platform/storage"
+	"github.com/in4it/go-devops-platform/users"
 )
 
 var clientConfigMutex sync.Mutex
@@ -313,14 +314,14 @@ func GenerateNewClientConfig(storage storage.Iface, connectionID, userID string)
 
 	return out.Bytes(), nil
 }
-func DeleteAllClientConfigs(storage storage.Iface, userID string) error {
+func DeleteAllClientConfigs(storage storage.Iface, user users.User) error {
 	clients, err := storage.ReadDir(storage.ConfigPath(VPN_CLIENTS_DIR))
 	if err != nil {
 		return fmt.Errorf("cannot list files in users clients directory: %s", err)
 	}
 
 	for _, clientFilename := range clients {
-		if HasClientUserID(clientFilename, userID) {
+		if HasClientUserID(clientFilename, user.ID) {
 			filename := storage.ConfigPath(path.Join(VPN_CLIENTS_DIR, clientFilename))
 			err = storage.Remove(filename)
 			if err != nil {
@@ -377,7 +378,7 @@ func DeleteClientConfig(storage storage.Iface, connectionID, userID string) erro
 	}
 	return nil
 }
-func DisableAllClientConfigs(storage storage.Iface, userID string) error {
+func DisableAllClientConfigs(storage storage.Iface, user users.User) error {
 	clientConfigMutex.Lock()
 	defer clientConfigMutex.Unlock()
 	clients, err := storage.ReadDir(storage.ConfigPath(VPN_CLIENTS_DIR))
@@ -387,7 +388,7 @@ func DisableAllClientConfigs(storage storage.Iface, userID string) error {
 
 	toDelete := []string{}
 	for _, clientFilename := range clients {
-		if HasClientUserID(clientFilename, userID) {
+		if HasClientUserID(clientFilename, user.ID) {
 			toDelete = append(toDelete, clientFilename)
 		}
 	}
@@ -438,7 +439,7 @@ func DisableAllClientConfigs(storage storage.Iface, userID string) error {
 	}
 	return nil
 }
-func ReactivateAllClientConfigs(storage storage.Iface, userID string) error {
+func ReactivateAllClientConfigs(storage storage.Iface, user users.User) error {
 	clientConfigMutex.Lock()
 	defer clientConfigMutex.Unlock()
 	clients, err := storage.ReadDir(storage.ConfigPath(VPN_CLIENTS_DIR))
@@ -448,7 +449,7 @@ func ReactivateAllClientConfigs(storage storage.Iface, userID string) error {
 
 	toAdd := []string{}
 	for _, clientFilename := range clients {
-		if HasClientUserID(clientFilename, userID) {
+		if HasClientUserID(clientFilename, user.ID) {
 			toAdd = append(toAdd, clientFilename)
 		}
 	}

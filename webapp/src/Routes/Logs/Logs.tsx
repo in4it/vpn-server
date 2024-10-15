@@ -1,9 +1,9 @@
-import { Card, Container, Text, Table, Title, Button, Grid, Popover, Group, TextInput, rem, ActionIcon, Checkbox, Highlight, MultiSelect} from "@mantine/core";
+import {  Container, Table, Title, Button, Grid, Popover, Group, TextInput, rem, ActionIcon, Checkbox, Highlight} from "@mantine/core";
 import { AppSettings } from "../../Constants/Constants";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useAuthContext } from "../../Auth/Auth";
-import { Link, useSearchParams } from "react-router-dom";
-import { TbArrowRight, TbSearch, TbSettings } from "react-icons/tb";
+import {  useSearchParams } from "react-router-dom";
+import { TbArrowRight, TbSearch } from "react-icons/tb";
 import { DatePickerInput } from "@mantine/dates";
 import { useEffect, useState } from "react";
 import React from "react";

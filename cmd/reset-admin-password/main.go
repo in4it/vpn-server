@@ -10,8 +10,8 @@ import (
 	"strings"
 	"syscall"
 
+	localstorage "github.com/in4it/go-devops-platform/storage/local"
 	"github.com/in4it/wireguard-server/pkg/commands"
-	localstorage "github.com/in4it/wireguard-server/pkg/storage/local"
 
 	"golang.org/x/term"
 )

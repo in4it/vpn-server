@@ -13,7 +13,7 @@ export function NewConnection() {
     const alertIcon = <TbInfoCircle />
     const newConnection = useMutation({
         mutationFn: () => {
-          return axios.post(AppSettings.url + '/connections', {}, {
+          return axios.post(AppSettings.url + '/vpn/connections', {}, {
             headers: {
                 "Authorization": "Bearer " + authInfo.token
             },
@@ -34,7 +34,7 @@ export function NewConnection() {
     const { isPending, error, data } = useQuery({
         queryKey: ['connectionlicense'],
         queryFn: () =>
-          fetch(AppSettings.url + '/connectionlicense', {
+          fetch(AppSettings.url + '/vpn/connectionlicense', {
             headers: {
               "Content-Type": "application/json",
               "Authorization": "Bearer " + authInfo.token

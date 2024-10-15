@@ -3,9 +3,9 @@ package commands
 import (
 	"fmt"
 
-	"github.com/in4it/wireguard-server/pkg/rest"
-	"github.com/in4it/wireguard-server/pkg/storage"
-	"github.com/in4it/wireguard-server/pkg/users"
+	"github.com/in4it/go-devops-platform/rest"
+	"github.com/in4it/go-devops-platform/storage"
+	"github.com/in4it/go-devops-platform/users"
 )
 
 func ResetAdminMFA(storage storage.Iface) error {

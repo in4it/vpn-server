@@ -35,7 +35,7 @@ export function VPNSetup() {
     const { isPending, error, data, isSuccess } = useQuery({
       queryKey: ['vpn-setup'],
       queryFn: () =>
-        fetch(AppSettings.url + '/setup/vpn', {
+        fetch(AppSettings.url + '/vpn/setup/vpn', {
           headers: {
             "Content-Type": "application/json",
             "Authorization": "Bearer " + authInfo.token
@@ -64,7 +64,7 @@ export function VPNSetup() {
     });
     const setupMutation = useMutation({
       mutationFn: (setupRequest: VPNSetupRequest) => {
-        return axios.post(AppSettings.url + '/setup/vpn', setupRequest, {
+        return axios.post(AppSettings.url + '/vpn/setup/vpn', setupRequest, {
           headers: {
               "Authorization": "Bearer " + authInfo.token
           },
