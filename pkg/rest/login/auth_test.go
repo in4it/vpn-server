@@ -118,6 +118,6 @@ func TestAuthenticateMFAWithToken(t *testing.T) {
 		t.Fatalf("authentication error: %s", err)
 	}
 	if !loginResp.Authenticated {
-		t.Fatalf("expected not to be authenticated")
+		t.Fatalf("expected to be authenticated")
 	}
 }

@@ -70,6 +70,7 @@ type ContextRequest struct {
 type ContextSetupResponse struct {
 	SetupCompleted bool   `json:"setupCompleted"`
 	CloudType      string `json:"cloudType"`
+	ServerType     string `json:"serverType"`
 }
 
 type AuthMethodsResponse struct {

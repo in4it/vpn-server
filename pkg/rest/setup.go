@@ -134,7 +134,7 @@ func (c *Context) contextHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	out, err := json.Marshal(ContextSetupResponse{SetupCompleted: c.SetupCompleted, CloudType: c.CloudType})
+	out, err := json.Marshal(ContextSetupResponse{SetupCompleted: c.SetupCompleted, CloudType: c.CloudType, ServerType: c.ServerType})
 	if err != nil {
 		c.returnError(w, err, http.StatusBadRequest)
 		return
