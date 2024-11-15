@@ -82,6 +82,11 @@ func getMaxUsers(storage storage.ReadWriter, cloudType, instanceType string) int
 			Timeout: 5 * time.Second,
 		}
 		return GetMaxUsersDigitalOceanBYOL(client, storage)
+	case "gcp":
+		client := http.Client{
+			Timeout: 5 * time.Second,
+		}
+		return GetMaxUsersGCPBYOL(client, storage)
 	case "":
 		client := http.Client{
 			Timeout: 5 * time.Second,
