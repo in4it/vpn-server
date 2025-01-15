@@ -7,7 +7,7 @@ export function Version() {
     const { isPending, error, data } = useQuery({
       queryKey: ['version'],
       queryFn: () =>
-        fetch(AppSettings.url + '/version', {
+        fetch(AppSettings.url + '/vpn/version', {
           headers: {
             "Content-Type": "application/json",
             "Authorization": "Bearer " + authInfo.token
