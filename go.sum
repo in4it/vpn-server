@@ -17,6 +17,10 @@ github.com/gopacket/gopacket v1.3.0 h1:MouZCc+ej0vnqzB0WeiaO/6+tGvb+KU7UczxoQ+X0
 github.com/gopacket/gopacket v1.3.0/go.mod h1:WnFrU1Xkf5lWKV38uKNR9+yYtppn+ZYzOyNqMeH4oNE=
 github.com/in4it/go-devops-platform v0.0.0-20241015191315-e2f711a32e69 h1:/1BTKr5cqiQKAf8KMhR8z6Pup7eqzDbh32qQb+xh4Tw=
 github.com/in4it/go-devops-platform v0.0.0-20241015191315-e2f711a32e69/go.mod h1:xugWZer+8U7DcIWlE95SiPvtVPmJzhB9YCYiIScLK5Q=
+github.com/in4it/go-devops-platform v0.1.1-0.20250115193241-b564ec1b674a h1:h1raMrREYdoMHN9916Wen2IA86406phKDrgNAPePmm4=
+github.com/in4it/go-devops-platform v0.1.1-0.20250115193241-b564ec1b674a/go.mod h1:uSlFttQ27jkCi49e+yQGyAHTKzNE/S0/Y2odk20xax0=
+github.com/in4it/go-devops-platform v0.1.1 h1:6fAlKe5rmXPzJiEt+Qs3kbJHG8svxEA5ciOaZkrkl/I=
+github.com/in4it/go-devops-platform v0.1.1/go.mod h1:oORoWkGLwJN7ekBkOFMx0UULKLk5gRSzlg2vw0kygtI=
 github.com/jonboulle/clockwork v0.2.2/go.mod h1:Pkfl5aHPm1nk2H9h0bjmnJD/BcgbGXUBGnn1kMkgxc8=
 github.com/jonboulle/clockwork v0.3.0/go.mod h1:Pkfl5aHPm1nk2H9h0bjmnJD/BcgbGXUBGnn1kMkgxc8=
 github.com/jonboulle/clockwork v0.4.0 h1:p4Cf1aMWXnXAUh8lVfewRBx1zaTSYKrKMF2g3ST4RZ4=

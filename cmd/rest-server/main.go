@@ -54,5 +54,5 @@ func main() {
 		log.Fatalf("startup failed: %s", err)
 	}
 
-	rest.StartServer(httpPort, httpsPort, rest.SERVER_TYPE_VPN, localStorage, c, assets)
+	rest.StartServer(httpPort, httpsPort, localStorage, c, assets)
 }
