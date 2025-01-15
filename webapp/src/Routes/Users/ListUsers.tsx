@@ -132,7 +132,7 @@ export function ListUsers({localAuthDisabled}:Props) {
                defaultValue={item.role}
                variant="unstyled"
                allowDeselect={false}
-               onChange={(event) => updateUser.mutate({...item, id: item.id, password: "", role: event === null ? "" : event})}
+               onChange={(event) => updateUser.mutate({...item, id: item.id, password: "", role: event === null ? "" : event, lastLogin: "0001-01-01T00:00:00Z"})}
             />
             </Table.Td>
             <Table.Td>

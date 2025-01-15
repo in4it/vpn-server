@@ -21,6 +21,7 @@ export function NewConnection() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['connections'] })
+            queryClient.invalidateQueries({ queryKey: ['connectionlicense'] })
         },
         onError: (error:AxiosError) => {
             const errorMessage = error.response?.data as GenericErrorResponse
