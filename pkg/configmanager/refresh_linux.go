@@ -38,7 +38,12 @@ func deleteClient(storage storage.Iface, filename string, clientCache *wireguard
 	return nil
 }
 func cleanupClients(storage storage.Iface) error {
-	go syncclients.Cleanup(storage)
+	go func() {
+		err := syncclients.Cleanup(storage)
+		if err != nil {
+			fmt.Printf("cleanup error: %s", err)
+		}
+	}()
 	return nil
 }
 
