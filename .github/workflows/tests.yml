@@ -15,6 +15,10 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: stable
+      - name: Go generate
+        run: |
+          go generate ./...
+          touch cmd/rest-server/static/placeholder # we're not building frontend, so we put a placeholder
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v6
         with:
