@@ -2,9 +2,29 @@ name: Go test
 
 on: [push]
 
-jobs:
-  build:
+permissions:
+  contents: read
+  pull-requests: read
 
+jobs:
+  golangci:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+      - name: Go generate
+        run: |
+          go generate ./...
+          touch cmd/rest-server/static/placeholder # we're not building frontend, so we put a placeholder
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: v1.60
+          only-new-issues: true
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

@@ -17,7 +17,11 @@ func (c *ConfigManager) getPubKey(w http.ResponseWriter, r *http.Request) {
 		returnError(w, fmt.Errorf("pub exchange marshal error: %s", err), http.StatusBadRequest)
 		return
 	}
-	w.Write(out)
+	_, err = w.Write(out)
+	if err != nil {
+		returnError(w, fmt.Errorf("write error: %s", err), http.StatusBadRequest)
+		return
+	}
 }
 func (c *ConfigManager) refreshClients(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
@@ -113,10 +117,18 @@ func (c *ConfigManager) upgrade(w http.ResponseWriter, r *http.Request) {
 			returnError(w, fmt.Errorf("upgrade response marshal error: %s", err), http.StatusBadRequest)
 			return
 		}
-		w.Write(out)
+		_, err = w.Write(out)
+		if err != nil {
+			returnError(w, fmt.Errorf("write error: %s", err), http.StatusBadRequest)
+			return
+		}
 	case http.MethodPost:
-		w.Write([]byte(`{"upgrade": "starting"}`))
-		err := upgrade()
+		_, err := w.Write([]byte(`{"upgrade": "starting"}`))
+		if err != nil {
+			returnError(w, fmt.Errorf("write error: %s", err), http.StatusBadRequest)
+			return
+		}
+		err = upgrade()
 		if err != nil {
 			fmt.Printf("upgrade failed: %s\n", err)
 		}
@@ -133,7 +145,11 @@ func (c *ConfigManager) version(w http.ResponseWriter, r *http.Request) {
 			returnError(w, fmt.Errorf("version marshal error: %s", err), http.StatusBadRequest)
 			return
 		}
-		w.Write(out)
+		_, err = w.Write(out)
+		if err != nil {
+			returnError(w, fmt.Errorf("write error: %s", err), http.StatusBadRequest)
+			return
+		}
 	default:
 		returnError(w, fmt.Errorf("method not supported"), http.StatusBadRequest)
 	}
@@ -169,5 +185,9 @@ func returnError(w http.ResponseWriter, err error, statusCode int) {
 	fmt.Printf("Error: %s\n", err)
 	fmt.Println("=========================")
 	w.WriteHeader(statusCode)
-	w.Write([]byte(`{"error": "` + err.Error() + `"}`))
+	_, err = w.Write([]byte(`{"error": "` + err.Error() + `"}`))
+	if err != nil {
+		fmt.Printf("write error: %s", err)
+		return
+	}
 }

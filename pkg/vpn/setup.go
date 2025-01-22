@@ -60,7 +60,11 @@ func (v *VPN) vpnSetupHandler(w http.ResponseWriter, r *http.Request) {
 			setupRequest         VPNSetupRequest
 		)
 		decoder := json.NewDecoder(r.Body)
-		decoder.Decode(&setupRequest)
+		err := decoder.Decode(&setupRequest)
+		if err != nil {
+			v.returnError(w, fmt.Errorf("setup request decode error: %s", err), http.StatusBadRequest)
+			return
+		}
 		if strings.Join(vpnConfig.ClientRoutes, ", ") != setupRequest.Routes {
 			networks := strings.Split(setupRequest.Routes, ",")
 			validatedNetworks := []string{}
@@ -219,7 +223,11 @@ func (v *VPN) templateSetupHandler(w http.ResponseWriter, r *http.Request) {
 	case http.MethodPost:
 		var templateSetupRequest TemplateSetupRequest
 		decoder := json.NewDecoder(r.Body)
-		decoder.Decode(&templateSetupRequest)
+		err := decoder.Decode(&templateSetupRequest)
+		if err != nil {
+			v.returnError(w, fmt.Errorf("setup request decode error: %s", err), http.StatusBadRequest)
+			return
+		}
 		clientTemplate, err := wireguard.GetClientTemplate(v.Storage)
 		if err != nil {
 			v.returnError(w, fmt.Errorf("could not retrieve client template: %s", err), http.StatusBadRequest)

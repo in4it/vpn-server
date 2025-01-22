@@ -11,18 +11,19 @@ func (v *VPN) returnError(w http.ResponseWriter, err error, statusCode int) {
 	fmt.Printf("Error: %s\n", err)
 	fmt.Println("=========================")
 	w.WriteHeader(statusCode)
-	w.Write([]byte(`{"error": "` + strings.Replace(err.Error(), `"`, `\"`, -1) + `"}`))
+	_, writeErr := w.Write([]byte(`{"error": "` + strings.Replace(err.Error(), `"`, `\"`, -1) + `"}`))
+	if writeErr != nil {
+		fmt.Printf("could not write error to client: %s\n", writeErr)
+	}
 }
 
 func (v *VPN) write(w http.ResponseWriter, res []byte) {
 	sendCorsHeaders(w, "", v.Hostname, v.Protocol)
 	w.WriteHeader(http.StatusOK)
-	w.Write(res)
-}
-func (v *VPN) writeWithStatus(w http.ResponseWriter, res []byte, status int) {
-	sendCorsHeaders(w, "", v.Hostname, v.Protocol)
-	w.WriteHeader(status)
-	w.Write(res)
+	_, writeErr := w.Write(res)
+	if writeErr != nil {
+		fmt.Printf("could not write error to client: %s\n", writeErr)
+	}
 }
 
 func sendCorsHeaders(w http.ResponseWriter, headers string, hostname string, protocol string) {

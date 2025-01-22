@@ -30,7 +30,10 @@ func TestDownloadFilesForUpgrade(t *testing.T) {
 func TestNewVersionAvailable(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		if req.URL.RequestURI() == "/latest" {
-			w.Write([]byte("v1.0.38"))
+			_, err := w.Write([]byte("v1.0.38"))
+			if err != nil {
+				t.Fatalf("write error: %s", err)
+			}
 			return
 		}
 		w.WriteHeader(http.StatusNotFound)
@@ -52,7 +55,10 @@ func TestNewVersionAvailable(t *testing.T) {
 func TestNewVersionAvailableSameVersion(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		if req.URL.RequestURI() == "/latest" {
-			w.Write([]byte(getVersion()))
+			_, err := w.Write([]byte(getVersion()))
+			if err != nil {
+				t.Fatalf("write error: %s", err)
+			}
 			return
 		}
 		w.WriteHeader(http.StatusNotFound)
@@ -84,7 +90,10 @@ func TestNewVersionAvailableHigherVersion(t *testing.T) {
 			}
 			i++
 			newVersion := strings.Join([]string{currentVersionSplit[0], currentVersionSplit[1], strconv.Itoa(i)}, ".")
-			w.Write([]byte(newVersion))
+			_, err = w.Write([]byte(newVersion))
+			if err != nil {
+				t.Fatalf("write error: %s", err)
+			}
 			return
 		}
 		w.WriteHeader(http.StatusNotFound)
@@ -105,7 +114,10 @@ func TestNewVersionAvailableHigherVersion(t *testing.T) {
 func TestNewVersionAvailableBogus(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		if req.URL.RequestURI() == "/latest" {
-			w.Write([]byte("v1.x.38"))
+			_, err := w.Write([]byte("v1.x.38"))
+			if err != nil {
+				t.Fatalf("write error: %s", err)
+			}
 			return
 		}
 		w.WriteHeader(http.StatusNotFound)
@@ -127,7 +139,10 @@ func TestNewVersionAvailableBogus(t *testing.T) {
 func TestNewVersionAvailableBogus2(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		if req.URL.RequestURI() == "/latest" {
-			w.Write([]byte("v2"))
+			_, err := w.Write([]byte("v2"))
+			if err != nil {
+				t.Fatalf("write error: %s", err)
+			}
 			return
 		}
 		w.WriteHeader(http.StatusNotFound)
@@ -158,7 +173,11 @@ func TestNewVersionAvailableHigherVersionMajor(t *testing.T) {
 			}
 			i++
 			newVersion := strings.Join([]string{currentVersionSplit[0], strconv.Itoa(i), "0"}, ".")
-			w.Write([]byte(newVersion))
+			_, err = w.Write([]byte(newVersion))
+			if err != nil {
+				t.Fatalf("write error: %s", err)
+			}
+
 			return
 		}
 		w.WriteHeader(http.StatusNotFound)
@@ -190,7 +209,11 @@ func TestNewVersionNotAvailableHigherVersionMajor(t *testing.T) {
 			}
 			i--
 			newVersion := strings.Join([]string{currentVersionSplit[0], strconv.Itoa(i), "99"}, ".")
-			w.Write([]byte(newVersion))
+			_, err = w.Write([]byte(newVersion))
+			if err != nil {
+				t.Fatalf("write error: %s", err)
+			}
+
 			return
 		}
 		w.WriteHeader(http.StatusNotFound)

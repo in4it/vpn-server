@@ -33,12 +33,18 @@ func TestWriteWireGuardServerConfig(t *testing.T) {
 		case http.MethodPost:
 			if r.RequestURI == "/refresh-clients" {
 				w.WriteHeader(http.StatusAccepted)
-				w.Write([]byte("OK"))
+				_, err := w.Write([]byte("OK"))
+				if err != nil {
+					t.Fatalf("write error: %s", err)
+				}
 				return
 			}
 			if r.RequestURI == "/refresh-server-config" {
 				w.WriteHeader(http.StatusAccepted)
-				w.Write([]byte("OK"))
+				_, err := w.Write([]byte("OK"))
+				if err != nil {
+					t.Fatalf("write error: %s", err)
+				}
 				return
 			}
 			w.WriteHeader(http.StatusBadRequest)

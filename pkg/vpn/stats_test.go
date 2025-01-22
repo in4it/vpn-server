@@ -96,11 +96,17 @@ func TestGetCompressedFilesAndRemoveNonExistent(t *testing.T) {
 				t.Fatalf("open file for wring error: %s", err)
 			}
 			writer := gzip.NewWriter(fileWriter)
-			io.Copy(writer, bytes.NewReader([]byte(testData)))
+			_, err = io.Copy(writer, bytes.NewReader([]byte(testData)))
+			if err != nil {
+				t.Fatalf("error: %s", err)
+			}
 			writer.Close()
 			fileWriter.Close()
 		} else {
-			storage.WriteFile(file, []byte(testData))
+			err := storage.WriteFile(file, []byte(testData))
+			if err != nil {
+				t.Fatalf("write error: %s", err)
+			}
 		}
 	}
 	outFiles, err := getCompressedFilesAndRemoveNonExistent(storage, files)
