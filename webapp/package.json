@@ -42,7 +42,7 @@
     "postcss-preset-mantine": "1.15.0",
     "postcss-simple-vars": "^7.0.1",
     "typescript": "^5.4.2",
-    "vite": "^5.1.6",
+    "vite": "^5.4.12",
     "vitest": "^2.0.2"
   },
   "packageManager": "yarn@4.1.1"
