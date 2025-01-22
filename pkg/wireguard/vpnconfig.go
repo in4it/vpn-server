@@ -86,7 +86,6 @@ func CreateNewVPNConfig(storage storage.Iface) (VPNConfig, error) {
 	if err != nil {
 		return vpnConfig, fmt.Errorf("could not write private key to %s: %s", path.Join(VPN_SERVER_SECRETS_PATH, VPN_PRIVATE_KEY_FILENAME), err)
 	}
-	privateKey = ""
 
 	presharedKey, err := GeneratePresharedKey()
 	if err != nil {

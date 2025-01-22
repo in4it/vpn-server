@@ -197,7 +197,7 @@ func parsePacket(storage storage.Iface, data []byte, clientCache *ClientCache, o
 		if tcpLayer := packet.Layer(layers.LayerTypeTCP); tcpLayer != nil {
 			tcpPacket, _ := tcpLayer.(*layers.TCP)
 			if tcpPacket.SYN && logTCP {
-				logWriter.Write([]byte(strings.Join([]string{
+				_, err := logWriter.Write([]byte(strings.Join([]string{
 					now.Format(TIMESTAMP_FORMAT),
 					"tcp",
 					srcIP.String(),
@@ -206,6 +206,9 @@ func parsePacket(storage storage.Iface, data []byte, clientCache *ClientCache, o
 					strconv.FormatUint(uint64(tcpPacket.DstPort), 10)},
 					",") + "\n",
 				))
+				if err != nil {
+					return fmt.Errorf("could not write to log: %s", err)
+				}
 			}
 			if logHttp {
 				switch tcpPacket.DstPort {
@@ -217,7 +220,7 @@ func parsePacket(storage storage.Iface, data []byte, clientCache *ClientCache, o
 							if err != nil {
 								fmt.Printf("debug: can't parse http packet: %s", err)
 							} else {
-								logWriter.Write([]byte(strings.Join([]string{
+								_, err = logWriter.Write([]byte(strings.Join([]string{
 									now.Format(TIMESTAMP_FORMAT),
 									"http",
 									srcIP.String(),
@@ -227,6 +230,9 @@ func parsePacket(storage storage.Iface, data []byte, clientCache *ClientCache, o
 									"http://" + req.Host + req.URL.RequestURI()},
 									",") + "\n",
 								))
+								if err != nil {
+									return fmt.Errorf("could not write to log: %s", err)
+								}
 							}
 						}
 					}
@@ -234,7 +240,7 @@ func parsePacket(storage storage.Iface, data []byte, clientCache *ClientCache, o
 					if tls, ok := packet.Layer(layers.LayerTypeTLS).(*layers.TLS); ok {
 						for _, handshake := range tls.Handshake {
 							if sni := parseTLSExtensionSNI([]byte(handshake.ClientHello.Extensions)); sni != nil {
-								logWriter.Write([]byte(strings.Join([]string{
+								_, err := logWriter.Write([]byte(strings.Join([]string{
 									now.Format(TIMESTAMP_FORMAT),
 									"https",
 									srcIP.String(),
@@ -244,6 +250,9 @@ func parsePacket(storage storage.Iface, data []byte, clientCache *ClientCache, o
 									string(sni)},
 									",") + "\n",
 								))
+								if err != nil {
+									return fmt.Errorf("could not write to log: %s", err)
+								}
 							}
 						}
 					}
@@ -272,7 +281,7 @@ func parsePacket(storage storage.Iface, data []byte, clientCache *ClientCache, o
 						}
 
 					}
-					logWriter.Write([]byte(strings.Join([]string{
+					_, err := logWriter.Write([]byte(strings.Join([]string{
 						now.Format(TIMESTAMP_FORMAT),
 						"udp",
 						srcIP.String(),
@@ -281,6 +290,9 @@ func parsePacket(storage storage.Iface, data []byte, clientCache *ClientCache, o
 						strconv.FormatUint(uint64(udp.DstPort), 10),
 						strings.Join(questions, "#")},
 						",") + "\n"))
+					if err != nil {
+						return fmt.Errorf("could not write to log: %s", err)
+					}
 				}
 			}
 		}
@@ -355,7 +367,10 @@ func checkDiskSpace() error {
 	if err != nil {
 		fmt.Printf("cannot get cwd: %s", err)
 	}
-	unix.Statfs(wd, &stat)
+	err = unix.Statfs(wd, &stat)
+	if err != nil {
+		return fmt.Errorf("could not get stats from file: %s", err)
+	}
 	if stat.Blocks*uint64(stat.Bsize) == 0 {
 		return fmt.Errorf("no blocks available")
 	}

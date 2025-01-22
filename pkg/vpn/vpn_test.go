@@ -32,7 +32,7 @@ func TestSCIMCreateUserConnectionDeleteUserFlow(t *testing.T) {
 	if err != nil {
 		t.Fatalf("cannot create new user store: %s", err)
 	}
-	userStore.Empty()
+	err = userStore.Empty()
 	if err != nil {
 		t.Fatalf("cannot empty user store")
 	}
@@ -48,12 +48,18 @@ func TestSCIMCreateUserConnectionDeleteUserFlow(t *testing.T) {
 		case http.MethodPost:
 			if r.RequestURI == "/refresh-clients" {
 				w.WriteHeader(http.StatusAccepted)
-				w.Write([]byte("OK"))
+				_, err := w.Write([]byte("OK"))
+				if err != nil {
+					t.Fatalf("write error: %s", err)
+				}
 				return
 			}
 			if r.RequestURI == "/refresh-server-config" {
 				w.WriteHeader(http.StatusAccepted)
-				w.Write([]byte("OK"))
+				_, err := w.Write([]byte("OK"))
+				if err != nil {
+					t.Fatalf("write error: %s", err)
+				}
 				return
 			}
 			w.WriteHeader(http.StatusBadRequest)
@@ -157,7 +163,7 @@ func TestCreateUserConnectionSuspendUserFlow(t *testing.T) {
 	if err != nil {
 		t.Fatalf("cannot create new user store: %s", err)
 	}
-	userStore.Empty()
+	err = userStore.Empty()
 	if err != nil {
 		t.Fatalf("cannot empty user store")
 	}
@@ -173,12 +179,18 @@ func TestCreateUserConnectionSuspendUserFlow(t *testing.T) {
 		case http.MethodPost:
 			if r.RequestURI == "/refresh-clients" {
 				w.WriteHeader(http.StatusAccepted)
-				w.Write([]byte("OK"))
+				_, err := w.Write([]byte("OK"))
+				if err != nil {
+					t.Fatalf("write error: %s", err)
+				}
 				return
 			}
 			if r.RequestURI == "/refresh-server-config" {
 				w.WriteHeader(http.StatusAccepted)
-				w.Write([]byte("OK"))
+				_, err := w.Write([]byte("OK"))
+				if err != nil {
+					t.Fatalf("write error: %s", err)
+				}
 				return
 			}
 			w.WriteHeader(http.StatusBadRequest)
@@ -301,12 +313,18 @@ func TestCreateUserConnectionDeleteUserFlow(t *testing.T) {
 		case http.MethodPost:
 			if r.RequestURI == "/refresh-clients" {
 				w.WriteHeader(http.StatusAccepted)
-				w.Write([]byte("OK"))
+				_, err := w.Write([]byte("OK"))
+				if err != nil {
+					t.Fatalf("write error: %s", err)
+				}
 				return
 			}
 			if r.RequestURI == "/refresh-server-config" {
 				w.WriteHeader(http.StatusAccepted)
-				w.Write([]byte("OK"))
+				_, err := w.Write([]byte("OK"))
+				if err != nil {
+					t.Fatalf("write error: %s", err)
+				}
 				return
 			}
 			w.WriteHeader(http.StatusBadRequest)

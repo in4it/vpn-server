@@ -343,7 +343,7 @@ func TestPacketLoggerLogRotationLocalStorage(t *testing.T) {
 	if err != nil {
 		t.Fatalf("could not ensure path: %s", err)
 	}
-	storage.EnsurePath(path.Join(VPN_STATS_DIR, VPN_PACKETLOGGER_DIR))
+	err = storage.EnsurePath(path.Join(VPN_STATS_DIR, VPN_PACKETLOGGER_DIR))
 	if err != nil {
 		t.Fatalf("could not ensure path: %s", err)
 	}

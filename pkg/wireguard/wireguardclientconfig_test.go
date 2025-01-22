@@ -78,12 +78,18 @@ func TestWriteConfig(t *testing.T) {
 		case http.MethodPost:
 			if r.RequestURI == "/refresh-clients" {
 				w.WriteHeader(http.StatusAccepted)
-				w.Write([]byte("OK"))
+				_, err := w.Write([]byte("OK"))
+				if err != nil {
+					t.Fatalf("write error: %s", err)
+				}
 				return
 			}
 			if r.RequestURI == "/refresh-server-config" {
 				w.WriteHeader(http.StatusAccepted)
-				w.Write([]byte("OK"))
+				_, err := w.Write([]byte("OK"))
+				if err != nil {
+					t.Fatalf("write error: %s", err)
+				}
 				return
 			}
 			w.WriteHeader(http.StatusBadRequest)
@@ -155,12 +161,18 @@ func TestWriteConfigMultipleClients(t *testing.T) {
 		case http.MethodPost:
 			if r.RequestURI == "/refresh-clients" {
 				w.WriteHeader(http.StatusAccepted)
-				w.Write([]byte("OK"))
+				_, err = w.Write([]byte("OK"))
+				if err != nil {
+					t.Fatalf("error: %s", err)
+				}
 				return
 			}
 			if r.RequestURI == "/refresh-server-config" {
 				w.WriteHeader(http.StatusAccepted)
-				w.Write([]byte("OK"))
+				_, err = w.Write([]byte("OK"))
+				if err != nil {
+					t.Fatalf("error: %s", err)
+				}
 				return
 			}
 			w.WriteHeader(http.StatusBadRequest)
@@ -234,12 +246,18 @@ func TestCreateAndDeleteAllClientConfig(t *testing.T) {
 		case http.MethodPost:
 			if r.RequestURI == "/refresh-clients" {
 				w.WriteHeader(http.StatusAccepted)
-				w.Write([]byte("OK"))
+				_, err = w.Write([]byte("OK"))
+				if err != nil {
+					t.Fatalf("error: %s", err)
+				}
 				return
 			}
 			if r.RequestURI == "/refresh-server-config" {
 				w.WriteHeader(http.StatusAccepted)
-				w.Write([]byte("OK"))
+				_, err = w.Write([]byte("OK"))
+				if err != nil {
+					t.Fatalf("error: %s", err)
+				}
 				return
 			}
 			w.WriteHeader(http.StatusBadRequest)
@@ -327,12 +345,18 @@ func TestCreateAndDeleteClientConfig(t *testing.T) {
 		case http.MethodPost:
 			if r.RequestURI == "/refresh-clients" {
 				w.WriteHeader(http.StatusAccepted)
-				w.Write([]byte("OK"))
+				_, err := w.Write([]byte("OK"))
+				if err != nil {
+					t.Fatalf("write error: %s", err)
+				}
 				return
 			}
 			if r.RequestURI == "/refresh-server-config" {
 				w.WriteHeader(http.StatusAccepted)
-				w.Write([]byte("OK"))
+				_, err := w.Write([]byte("OK"))
+				if err != nil {
+					t.Fatalf("write error: %s", err)
+				}
 				return
 			}
 			w.WriteHeader(http.StatusBadRequest)
@@ -421,12 +445,18 @@ func TestCreateAndDisableAllClientConfig(t *testing.T) {
 		case http.MethodPost:
 			if r.RequestURI == "/refresh-clients" {
 				w.WriteHeader(http.StatusAccepted)
-				w.Write([]byte("OK"))
+				_, err := w.Write([]byte("OK"))
+				if err != nil {
+					t.Fatalf("write error: %s", err)
+				}
 				return
 			}
 			if r.RequestURI == "/refresh-server-config" {
 				w.WriteHeader(http.StatusAccepted)
-				w.Write([]byte("OK"))
+				_, err := w.Write([]byte("OK"))
+				if err != nil {
+					t.Fatalf("write error: %s", err)
+				}
 				return
 			}
 			w.WriteHeader(http.StatusBadRequest)
@@ -550,12 +580,18 @@ func TestUpdateClientConfig(t *testing.T) {
 		case http.MethodPost:
 			if r.RequestURI == "/refresh-clients" {
 				w.WriteHeader(http.StatusAccepted)
-				w.Write([]byte("OK"))
+				_, err := w.Write([]byte("OK"))
+				if err != nil {
+					t.Fatalf("write error: %s", err)
+				}
 				return
 			}
 			if r.RequestURI == "/refresh-server-config" {
 				w.WriteHeader(http.StatusAccepted)
-				w.Write([]byte("OK"))
+				_, err := w.Write([]byte("OK"))
+				if err != nil {
+					t.Fatalf("write error: %s", err)
+				}
 				return
 			}
 			w.WriteHeader(http.StatusBadRequest)
@@ -638,12 +674,18 @@ func TestUpdateClientConfigNewAddressRange(t *testing.T) {
 		case http.MethodPost:
 			if r.RequestURI == "/refresh-clients" {
 				w.WriteHeader(http.StatusAccepted)
-				w.Write([]byte("OK"))
+				_, err := w.Write([]byte("OK"))
+				if err != nil {
+					t.Fatalf("write error: %s", err)
+				}
 				return
 			}
 			if r.RequestURI == "/refresh-server-config" {
 				w.WriteHeader(http.StatusAccepted)
-				w.Write([]byte("OK"))
+				_, err := w.Write([]byte("OK"))
+				if err != nil {
+					t.Fatalf("write error: %s", err)
+				}
 				return
 			}
 			w.WriteHeader(http.StatusBadRequest)
@@ -755,12 +797,18 @@ func TestUpdateClientConfigNewClientAddressPrefix(t *testing.T) {
 		case http.MethodPost:
 			if r.RequestURI == "/refresh-clients" {
 				w.WriteHeader(http.StatusAccepted)
-				w.Write([]byte("OK"))
+				_, err := w.Write([]byte("OK"))
+				if err != nil {
+					t.Fatalf("write error: %s", err)
+				}
 				return
 			}
 			if r.RequestURI == "/refresh-server-config" {
 				w.WriteHeader(http.StatusAccepted)
-				w.Write([]byte("OK"))
+				_, err := w.Write([]byte("OK"))
+				if err != nil {
+					t.Fatalf("write error: %s", err)
+				}
 				return
 			}
 			w.WriteHeader(http.StatusBadRequest)
