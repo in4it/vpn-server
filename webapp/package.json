@@ -44,7 +44,7 @@
     "postcss-simple-vars": "^7.0.1",
     "typescript": "^5.4.2",
     "vite": "^6.1.1",
-    "vitest": "^2.0.2"
+    "vitest": "^3.0.7"
   },
   "packageManager": "yarn@4.1.1"
 }
