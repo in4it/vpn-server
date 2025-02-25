@@ -22,7 +22,7 @@ import (
 	"github.com/in4it/go-devops-platform/logging"
 	"github.com/in4it/go-devops-platform/storage"
 	dateutils "github.com/in4it/go-devops-platform/utils/date"
-	"github.com/packetcap/go-pcap"
+	pcap "github.com/packetcap/go-pcap"
 	"golang.org/x/sys/unix"
 )
 
