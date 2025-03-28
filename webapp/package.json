@@ -42,7 +42,7 @@
     "postcss": "^8.4.35",
     "postcss-preset-mantine": "1.15.0",
     "postcss-simple-vars": "^7.0.1",
-    "typescript": "^5.4.2",
+    "typescript": "^5.8.2",
     "vite": "^6.1.2",
     "vitest": "^3.0.7"
   },
