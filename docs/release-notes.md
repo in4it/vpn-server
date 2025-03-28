@@ -1,7 +1,7 @@
 # Release Notes
 
-## Version v1.1.5
-* Maintenance release
+## Version v1.1.5 - v1.1.10
+* Maintenance release (dependency updates)
 
 ## Version v1.1.4
 * Improved setup flow for AWS & DigitalOcean
