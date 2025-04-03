@@ -1,0 +1,16 @@
+version: 0.2         
+phases:
+  install:
+    commands:
+      - sudo yum install -y yum-utils shadow-utils
+      - sudo yum-config-manager --add-repo https://rpm.releases.hashicorp.com/AmazonLinux/hashicorp.repo
+      - sudo yum -y install packer
+  pre_build:
+    commands:
+      - echo "Creating whitelist file"
+      - echo $WHITELIST > provisioning/whitelist.pkr.hcl
+  build:
+    commands:
+      - echo "building for branch/tag $CODEBUILD_WEBHOOK_HEAD_REF"
+      - make install-aws
+
