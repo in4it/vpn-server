@@ -2,6 +2,8 @@ module github.com/in4it/wireguard-server
 
 go 1.24.1
 
+toolchain go1.24.2
+
 require (
 	github.com/gopacket/gopacket v1.3.1
 	github.com/mdlayher/genetlink v1.3.2
