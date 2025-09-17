@@ -1,15 +1,15 @@
 module github.com/in4it/wireguard-server
 
-go 1.24.4
+go 1.24.7
 
 require (
 	github.com/gopacket/gopacket v1.4.0
 	github.com/mdlayher/genetlink v1.3.2
-	github.com/mdlayher/netlink v1.7.2
+	github.com/mdlayher/netlink v1.8.0
 	github.com/packetcap/go-pcap v0.0.0-20250723190045-d00b185f30b7
-	golang.org/x/crypto v0.41.0
-	golang.org/x/sys v0.35.0
-	golang.org/x/term v0.34.0
+	golang.org/x/crypto v0.42.0
+	golang.org/x/sys v0.36.0
+	golang.org/x/term v0.35.0
 )
 
 require (
@@ -22,14 +22,13 @@ require (
 )
 
 require (
-	github.com/beevik/etree v1.5.1 // indirect
+	github.com/beevik/etree v1.6.0 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/jonboulle/clockwork v0.5.0 // indirect
-	github.com/josharian/native v1.1.0 // indirect
 	github.com/mattermost/xml-roundtrip-validator v0.1.0 // indirect
 	github.com/mdlayher/socket v0.5.1 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
-	golang.org/x/net v0.43.0 // indirect
-	golang.org/x/sync v0.16.0 // indirect
-	golang.org/x/text v0.28.0 // indirect
+	golang.org/x/net v0.44.0 // indirect
+	golang.org/x/sync v0.17.0 // indirect
+	golang.org/x/text v0.29.0 // indirect
 )
