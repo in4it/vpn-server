@@ -41,12 +41,12 @@ func RunStats(storage storage.Iface) {
 func runStats(storage storage.Iface) error {
 	peerStats, err := stats.GetStats()
 	if err != nil {
-		return fmt.Errorf("Could not get WireGuard stats: %s", err)
+		return fmt.Errorf("could not get WireGuard stats: %s", err)
 	}
 
 	peerConfigs, err := GetAllPeerConfigs(storage)
 	if err != nil {
-		return fmt.Errorf("Could not get WireGuard peer configs: %s", err)
+		return fmt.Errorf("could not get WireGuard peer configs: %s", err)
 	}
 
 	statsEntries := []StatsEntry{}

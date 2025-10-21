@@ -15,7 +15,7 @@ func GetInterfaceDefaultGw() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("could not open /proc/net/route: %s", err)
 	}
-	defer file.Close()
+	defer file.Close() //nolint:errcheck
 
 	scanner := bufio.NewScanner(file)
 	for i := 0; scanner.Scan(); i++ {
