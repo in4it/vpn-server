@@ -65,10 +65,7 @@ func RunPacketLogger(storage storage.Iface, clientCache *ClientCache, vpnConfig 
 		return
 	}
 
-	useSyscalls := false
-	if runtime.GOOS == "darwin" {
-		useSyscalls = true
-	}
+	useSyscalls := runtime.GOOS == "darwin"
 	handle, err := pcap.OpenLive(VPN_INTERFACE_NAME, 1600, false, 0, useSyscalls)
 	if err != nil {
 		logging.ErrorLog(fmt.Errorf("can't start packet inspector: %s", err))
@@ -85,7 +82,7 @@ func RunPacketLogger(storage storage.Iface, clientCache *ClientCache, vpnConfig 
 		if !vpnConfig.EnablePacketLogs {
 			logging.InfoLog("disabling packetlogs")
 			for _, openFile := range openFiles {
-				openFile.Close()
+				openFile.Close() //nolint:errcheck
 			}
 			return
 		}
@@ -93,7 +90,7 @@ func RunPacketLogger(storage storage.Iface, clientCache *ClientCache, vpnConfig 
 			if err := checkDiskSpace(); err != nil {
 				logging.ErrorLog(fmt.Errorf("disk space error: %s", err))
 				for _, openFile := range openFiles {
-					openFile.Close()
+					openFile.Close() //nolint:errcheck
 				}
 				return
 			}
@@ -154,17 +151,17 @@ func parsePacket(storage storage.Iface, data []byte, clientCache *ClientCache, o
 				dateParsed, err := time.Parse("2006-01-02", strings.Join(filenameSplit[len(filenameSplit)-3:], "-"))
 				if err != nil {
 					logging.ErrorLog(fmt.Errorf("packetlogger: closing unknown open file %s (cannot parse date)", filename))
-					logWriterToClose.Close()
+					logWriterToClose.Close() //nolint:errcheck
 					delete(openFiles, openFileKey)
 				} else {
 					if !dateutils.DateEqual(dateParsed, now) {
-						logWriterToClose.Close()
+						logWriterToClose.Close() //nolint:errcheck
 						delete(openFiles, openFileKey)
 					}
 				}
 			} else {
 				logging.ErrorLog(fmt.Errorf("packetlogger: closing file without a date %s", filename))
-				logWriterToClose.Close()
+				logWriterToClose.Close() //nolint:errcheck
 				delete(openFiles, openFileKey)
 			}
 		}
@@ -481,8 +478,8 @@ func packetLoggerCompressLog(storage storage.Iface, filename string) error {
 	if err != nil {
 		return fmt.Errorf("write file error (%s): %s", filename+".gz.tmp", err)
 	}
-	defer reader.Close()
-	defer writer.Close()
+	defer reader.Close() //nolint:errcheck
+	defer writer.Close() //nolint:errcheck
 
 	gzipWriter, err := gzip.NewWriterLevel(writer, gzip.DefaultCompression)
 	if err != nil {

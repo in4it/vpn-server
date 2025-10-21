@@ -303,7 +303,7 @@ func (v *VPN) packetLogsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	for _, fileReader := range fileReaders {
-		defer fileReader.Close()
+		defer fileReader.Close() //nolint:errcheck
 	}
 
 	for _, logInputData := range fileReaders { // read multiple files
@@ -390,9 +390,9 @@ func getCompressedFilesAndRemoveNonExistent(storage storage.Iface, files []strin
 			if err != nil {
 				return res, fmt.Errorf("unable to uncompress to file (%s): %s", tmpFile, err)
 			}
-			fileWriter.Close()
-			gzipReader.Close()
-			compressedFile.Close()
+			fileWriter.Close()     //nolint:errcheck
+			gzipReader.Close()     //nolint:errcheck
+			compressedFile.Close() //nolint:errcheck
 			res = append(res, tmpFile)
 		}
 	}
