@@ -98,11 +98,11 @@ func TestWriteConfig(t *testing.T) {
 		}
 	}))
 
-	ts.Listener.Close()
+	ts.Listener.Close() //nolint:errcheck
 	ts.Listener = l
 	ts.Start()
-	defer ts.Close()
-	defer l.Close()
+	defer ts.Close() //nolint:errcheck
+	defer l.Close()  //nolint:errcheck
 
 	storage := &memorystorage.MockMemoryStorage{}
 
@@ -181,11 +181,11 @@ func TestWriteConfigMultipleClients(t *testing.T) {
 		}
 	}))
 
-	ts.Listener.Close()
+	ts.Listener.Close() //nolint:errcheck
 	ts.Listener = l
 	ts.Start()
-	defer ts.Close()
-	defer l.Close()
+	defer ts.Close() //nolint:errcheck
+	defer l.Close()  //nolint:errcheck
 
 	storage := &memorystorage.MockMemoryStorage{}
 
@@ -266,11 +266,11 @@ func TestCreateAndDeleteAllClientConfig(t *testing.T) {
 		}
 	}))
 
-	ts.Listener.Close()
+	ts.Listener.Close() //nolint:errcheck
 	ts.Listener = l
 	ts.Start()
-	defer ts.Close()
-	defer l.Close()
+	defer ts.Close() //nolint:errcheck
+	defer l.Close()  //nolint:errcheck
 
 	storage := &memorystorage.MockMemoryStorage{}
 
@@ -365,11 +365,11 @@ func TestCreateAndDeleteClientConfig(t *testing.T) {
 		}
 	}))
 
-	ts.Listener.Close()
+	ts.Listener.Close() //nolint:errcheck
 	ts.Listener = l
 	ts.Start()
-	defer ts.Close()
-	defer l.Close()
+	defer ts.Close() //nolint:errcheck
+	defer l.Close()  //nolint:errcheck
 
 	storage := &memorystorage.MockMemoryStorage{}
 
@@ -465,11 +465,11 @@ func TestCreateAndDisableAllClientConfig(t *testing.T) {
 		}
 	}))
 
-	ts.Listener.Close()
+	ts.Listener.Close() //nolint:errcheck
 	ts.Listener = l
 	ts.Start()
-	defer ts.Close()
-	defer l.Close()
+	defer ts.Close() //nolint:errcheck
+	defer l.Close()  //nolint:errcheck
 
 	storage := &memorystorage.MockMemoryStorage{}
 
@@ -600,11 +600,11 @@ func TestUpdateClientConfig(t *testing.T) {
 		}
 	}))
 
-	ts.Listener.Close()
+	ts.Listener.Close() //nolint:errcheck
 	ts.Listener = l
 	ts.Start()
-	defer ts.Close()
-	defer l.Close()
+	defer ts.Close() //nolint:errcheck
+	defer l.Close()  //nolint:errcheck
 
 	storage := &memorystorage.MockMemoryStorage{}
 
@@ -694,11 +694,11 @@ func TestUpdateClientConfigNewAddressRange(t *testing.T) {
 		}
 	}))
 
-	ts.Listener.Close()
+	ts.Listener.Close() //nolint:errcheck
 	ts.Listener = l
 	ts.Start()
-	defer ts.Close()
-	defer l.Close()
+	defer ts.Close() //nolint:errcheck
+	defer l.Close()  //nolint:errcheck
 
 	storage := &memorystorage.MockMemoryStorage{}
 
@@ -817,11 +817,11 @@ func TestUpdateClientConfigNewClientAddressPrefix(t *testing.T) {
 		}
 	}))
 
-	ts.Listener.Close()
+	ts.Listener.Close() //nolint:errcheck
 	ts.Listener = l
 	ts.Start()
-	defer ts.Close()
-	defer l.Close()
+	defer ts.Close() //nolint:errcheck
+	defer l.Close()  //nolint:errcheck
 
 	storage := &memorystorage.MockMemoryStorage{}
 

@@ -297,7 +297,7 @@ func (v *VPN) restartVPNHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		v.returnError(w, fmt.Errorf("body read error: %s", err), http.StatusBadRequest)

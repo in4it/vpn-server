@@ -49,7 +49,7 @@ func TestUserStatsHandler(t *testing.T) {
 		t.Fatalf("status code is not 200: %d", resp.StatusCode)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	var userStatsResponse UserStatsResponse
 
@@ -100,8 +100,8 @@ func TestGetCompressedFilesAndRemoveNonExistent(t *testing.T) {
 			if err != nil {
 				t.Fatalf("error: %s", err)
 			}
-			writer.Close()
-			fileWriter.Close()
+			writer.Close()     //nolint:errcheck
+			fileWriter.Close() //nolint:errcheck
 		} else {
 			err := storage.WriteFile(file, []byte(testData))
 			if err != nil {

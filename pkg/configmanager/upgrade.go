@@ -153,14 +153,14 @@ func downloadFile(url, dest string) error {
 	if err != nil {
 		return fmt.Errorf("http request (do) error: %s", err)
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	if resp.StatusCode == 200 {
 		file, err := os.Create(dest)
 		if err != nil {
 			return fmt.Errorf("file create error: %s", err)
 		}
-		defer file.Close()
+		defer file.Close() //nolint:errcheck
 		_, err = io.Copy(file, resp.Body)
 		if err != nil {
 			return err
@@ -184,7 +184,7 @@ func checksumFile(url, dest string) error {
 	if err != nil {
 		return fmt.Errorf("http request (do) error: %s", err)
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	if resp.StatusCode != 200 {
 		return fmt.Errorf("checksum download failed. HTTP Status code: %d", resp.StatusCode)
@@ -198,7 +198,7 @@ func checksumFile(url, dest string) error {
 	if err != nil {
 		return fmt.Errorf("open error: %s", err)
 	}
-	defer f.Close()
+	defer f.Close() //nolint:errcheck
 
 	h := sha256.New()
 	if _, err := io.Copy(h, f); err != nil {
@@ -225,7 +225,7 @@ func getLastestVersion() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("http request (do) error: %s", err)
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	if resp.StatusCode == 200 {
 		bodyBytes, _ := io.ReadAll(resp.Body)

@@ -11,7 +11,7 @@ func (v *VPN) returnError(w http.ResponseWriter, err error, statusCode int) {
 	fmt.Printf("Error: %s\n", err)
 	fmt.Println("=========================")
 	w.WriteHeader(statusCode)
-	_, writeErr := w.Write([]byte(`{"error": "` + strings.Replace(err.Error(), `"`, `\"`, -1) + `"}`))
+	_, writeErr := w.Write([]byte(`{"error": "` + strings.ReplaceAll(err.Error(), `"`, `\"`) + `"}`))
 	if writeErr != nil {
 		fmt.Printf("could not write error to client: %s\n", writeErr)
 	}

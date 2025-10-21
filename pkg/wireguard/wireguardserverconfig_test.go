@@ -53,11 +53,11 @@ func TestWriteWireGuardServerConfig(t *testing.T) {
 		}
 	}))
 
-	ts.Listener.Close()
+	ts.Listener.Close() //nolint:errcheck
 	ts.Listener = l
 	ts.Start()
-	defer ts.Close()
-	defer l.Close()
+	defer ts.Close() //nolint:errcheck
+	defer l.Close()  //nolint:errcheck
 
 	storage := &memorystorage.MockMemoryStorage{}
 

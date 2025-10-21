@@ -14,7 +14,7 @@ func parseResolve(buf []byte) ([]string, error) {
 	for scanner.Scan() {
 		line := scanner.Text()
 		if strings.HasPrefix(line, "nameserver ") {
-			nameservers = append(nameservers, strings.Replace(line, "nameserver ", "", -1))
+			nameservers = append(nameservers, strings.ReplaceAll(line, "nameserver ", ""))
 		}
 	}
 	if err := scanner.Err(); err != nil {

@@ -356,10 +356,10 @@ func TestPacketLoggerLogRotationLocalStorage(t *testing.T) {
 		t.Fatalf("write file error: %s", err)
 	}
 	t.Cleanup(func() {
-		os.Remove(path.Join(path.Dir(pwd), key1))
-		os.Remove(path.Join(path.Dir(pwd), key1+".gz.tmp"))
-		os.Remove(path.Join(path.Dir(pwd), key1+".gz"))
-		os.Remove(path.Join(path.Dir(pwd), key2))
+		os.Remove(path.Join(path.Dir(pwd), key1))           //nolint:errcheck
+		os.Remove(path.Join(path.Dir(pwd), key1+".gz.tmp")) //nolint:errcheck
+		os.Remove(path.Join(path.Dir(pwd), key1+".gz"))     //nolint:errcheck
+		os.Remove(path.Join(path.Dir(pwd), key2))           //nolint:errcheck
 	})
 
 	err = packetLoggerLogRotation(storage)

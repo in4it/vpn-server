@@ -68,11 +68,11 @@ func TestSCIMCreateUserConnectionDeleteUserFlow(t *testing.T) {
 		}
 	}))
 
-	ts.Listener.Close()
+	ts.Listener.Close() //nolint:errcheck
 	ts.Listener = l
 	ts.Start()
-	defer ts.Close()
-	defer l.Close()
+	defer ts.Close() //nolint:errcheck
+	defer l.Close()  //nolint:errcheck
 
 	// create a user
 	payload := scim.PostUserRequest{
@@ -96,7 +96,7 @@ func TestSCIMCreateUserConnectionDeleteUserFlow(t *testing.T) {
 		t.Fatalf("status code is not 200: %d", resp.StatusCode)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	var postUserRequest scim.PostUserRequest
 	err = json.NewDecoder(resp.Body).Decode(&postUserRequest)
@@ -199,11 +199,11 @@ func TestCreateUserConnectionSuspendUserFlow(t *testing.T) {
 		}
 	}))
 
-	ts.Listener.Close()
+	ts.Listener.Close() //nolint:errcheck
 	ts.Listener = l
 	ts.Start()
-	defer ts.Close()
-	defer l.Close()
+	defer ts.Close() //nolint:errcheck
+	defer l.Close()  //nolint:errcheck
 
 	// create a user
 	payload := scim.PostUserRequest{
@@ -227,7 +227,7 @@ func TestCreateUserConnectionSuspendUserFlow(t *testing.T) {
 		t.Fatalf("status code is not 200: %d", resp.StatusCode)
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	var postUserRequest scim.PostUserRequest
 	err = json.NewDecoder(resp.Body).Decode(&postUserRequest)
@@ -333,11 +333,11 @@ func TestCreateUserConnectionDeleteUserFlow(t *testing.T) {
 		}
 	}))
 
-	ts.Listener.Close()
+	ts.Listener.Close() //nolint:errcheck
 	ts.Listener = l
 	ts.Start()
-	defer ts.Close()
-	defer l.Close()
+	defer ts.Close() //nolint:errcheck
+	defer l.Close()  //nolint:errcheck
 
 	// first create a new user
 	storage := &memorystorage.MockMemoryStorage{}
@@ -408,7 +408,7 @@ func TestCreateUserConnectionDeleteUserFlow(t *testing.T) {
 	v.connectionsElementHandler(w, req.WithContext(context.WithValue(context.Background(), rest.CustomValue("user"), user)))
 
 	resp = w.Result()
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	if resp.StatusCode != 200 {
 		t.Fatalf("status code is not 200: %d", resp.StatusCode)
