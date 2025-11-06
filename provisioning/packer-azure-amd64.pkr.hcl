@@ -24,7 +24,7 @@ source "azure-arm" "vpn-server" {
     image_version  = replace(var.image_version, "v", "")
   }
   use_azure_cli_auth = true
-  vm_size            = "Standard_DC1s_v3"
+  vm_size            = "Standard_DC1s_v2"
 }
 
 build {
@@ -59,6 +59,16 @@ build {
     execute_command = "{{ .Vars }} sudo -E sh '{{ .Path }}'"
     pause_before    = "10s"
     scripts         = ["scripts/install_vpn.sh"]
+  }
+
+  provisioner "shell" {
+    inline = [
+      # Remove specific offending files flagged by Marketplace malware scanners
+      "sudo find /usr/src -type f -name 'pismo.h' -exec rm -f {} +",
+      "sudo find /usr/src -type f -path '*/drivers/mtd/maps/Kconfig' -exec rm -f {} +",
+
+      "sudo grep -R 'pismoworld' /usr/src 2>/dev/null || echo 'No remaining references to pismoworld.org'",
+    ]
   }
 
   provisioner "shell" {
