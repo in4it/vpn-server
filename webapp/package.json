@@ -16,7 +16,7 @@
     "@mantine/form": "^7.17.8",
     "@mantine/hooks": "^7.17.8",
     "@tanstack/react-query": "^5.89.0",
-    "axios": "^1.12.2",
+    "axios": "^1.13.5",
     "base32-encode": "^2.0.0",
     "chart.js": "^4.5.0",
     "chartjs-adapter-date-fns": "^3.0.0",
