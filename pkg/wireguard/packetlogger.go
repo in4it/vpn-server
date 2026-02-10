@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"compress/gzip"
+	"context"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -66,7 +67,7 @@ func RunPacketLogger(storage storage.Iface, clientCache *ClientCache, vpnConfig 
 	}
 
 	useSyscalls := runtime.GOOS == "darwin"
-	handle, err := pcap.OpenLive(VPN_INTERFACE_NAME, 1600, false, 0, useSyscalls)
+	handle, err := pcap.OpenLive(context.Background(), VPN_INTERFACE_NAME, 1600, false, 0, useSyscalls)
 	if err != nil {
 		logging.ErrorLog(fmt.Errorf("can't start packet inspector: %s", err))
 		return
