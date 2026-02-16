@@ -172,6 +172,14 @@ func downloadFile(url, dest string) error {
 }
 
 func checksumFile(url, dest string) error {
+	if !strings.HasPrefix(url, BINARIES_URL) {
+		return fmt.Errorf("invalid url for checksum: %s", url)
+	}
+
+	if err := checkLocalPath(dest); err != nil {
+		return fmt.Errorf("invalid dest for checksum: %s", dest)
+	}
+
 	client := http.Client{
 		Timeout: 5 * time.Second,
 	}
@@ -232,4 +240,27 @@ func getLastestVersion() (string, error) {
 		return strings.TrimSpace(string(bodyBytes)), nil
 	}
 	return "", fmt.Errorf("latest version not found. HTTP Status code: %d", resp.StatusCode)
+}
+
+func checkLocalPath(p string) error {
+	pwd, err := os.Executable()
+	if err != nil {
+		return fmt.Errorf("upgrade: user current dir error: %s", err)
+	}
+	pwdDir := path.Dir(pwd)
+
+	currentPwd, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("upgrade: user current dir error: %s", err)
+	}
+
+	if !strings.HasPrefix(p, pwdDir) && !strings.HasPrefix(p, currentPwd) {
+		return fmt.Errorf("invalid path (not in executable or current pwd): %s", p)
+	}
+
+	if strings.Contains(p, "..") {
+		return fmt.Errorf("invalid path: %s", p)
+	}
+
+	return nil
 }
