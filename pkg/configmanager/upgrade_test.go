@@ -1,6 +1,8 @@
 package configmanager
 
 import (
+	"crypto/sha256"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -229,5 +231,36 @@ func TestNewVersionNotAvailableHigherVersionMajor(t *testing.T) {
 	}
 	if available {
 		t.Fatalf("expected new version expected not to be available: %s (current version: %s)", version, getVersion())
+	}
+}
+
+func TestCheckSumFile(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		if req.URL.RequestURI() == "/checksum" {
+			h := sha256.New()
+			h.Write([]byte("test-checksum"))
+
+			checksum := fmt.Sprintf("%x", h.Sum(nil))
+			_, err := w.Write([]byte(checksum + "  binary"))
+			if err != nil {
+				t.Fatalf("write error: %s", err)
+			}
+			return
+		}
+		w.WriteHeader(http.StatusNotFound)
+	}))
+
+	defer server.Close()
+
+	BINARIES_URL = server.URL
+
+	pwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("upgrade: user current dir error: %s", err)
+	}
+
+	err = checksumFile(server.URL+"/checksum", pwd+"/testdata/test-checksum")
+	if err != nil {
+		t.Fatalf("checksumFile error: %s", err)
 	}
 }
