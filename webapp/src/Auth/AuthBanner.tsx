@@ -14,7 +14,7 @@ import {
 import classes from './AuthBanner.module.css';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import { AppSettings } from '../Constants/Constants';
+import { AppSettings, UUID_REGEX } from '../Constants/Constants';
 import { useAuthContext } from './Auth';
 import { AuthError } from './AuthError';
 import { MFAInput } from './MFAInput';
@@ -90,7 +90,14 @@ export function AuthBanner() {
     }
   })
   const onClickOidcRedirect = (id: string) => {
-    window.location.href = AppSettings.url + '/authmethods/oidc/' + id + "/redirect"
+    if (!UUID_REGEX.test(id)) {
+      setAuthError("Invalid OIDC method id (expected UUID)");
+      return;
+    }
+
+    const safeId = encodeURIComponent(id);
+
+    window.location.href = AppSettings.url + '/authmethods/oidc/' + safeId + "/redirect"
   }
 
   const captureEnter = (e: React.KeyboardEvent<HTMLDivElement>) => {
