@@ -14,17 +14,17 @@ variable "image_version" {
 source "azure-arm" "vpn-server" {
   image_offer     = "ubuntu-24_04-lts"
   image_publisher = "Canonical"
-  image_sku       = "server"
+  image_sku       = "server-arm64"
   location        = "East US"
   os_type         = "linux"
   shared_image_gallery_destination {
     resource_group = "vpn-server"
     gallery_name   = "vpnserver"
-    image_name     = "in4it-vpn-server"
+    image_name     = "in4it-vpn-server-arm64"
     image_version  = replace(var.image_version, "v", "")
   }
   use_azure_cli_auth = true
-  vm_size            = "Standard_DC1s_v2"
+  vm_size            = "Standard_D2ps_v6"
   public_ip_sku      = "Standard"
 }
 
@@ -32,18 +32,18 @@ build {
   sources = ["source.azure-arm.vpn-server"]
 
   provisioner "file" {
-    destination = "/tmp/configmanager-linux-amd64"
-    source      = "../configmanager-linux-amd64"
+    destination = "/tmp/configmanager-linux-aarch64"
+    source      = "../configmanager-linux-arm64"
   }
 
   provisioner "file" {
-    destination = "/tmp/reset-admin-password-linux-amd64"
-    source      = "../reset-admin-password-linux-amd64"
+    destination = "/tmp/reset-admin-password-linux-aarch64"
+    source      = "../reset-admin-password-linux-arm64"
   }
 
   provisioner "file" {
-    destination = "/tmp/restserver-linux-amd64"
-    source      = "../restserver-linux-amd64"
+    destination = "/tmp/restserver-linux-aarch64"
+    source      = "../restserver-linux-arm64"
   }
 
   provisioner "file" {

@@ -27,6 +27,16 @@ data "amazon-ami" "ubuntu" {
     owners = ["099720109477"]
     most_recent = true
 }
+data "amazon-ami" "ubuntu-arm64" {
+    filters = {
+        virtualization-type = "hvm"
+        name = "ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-arm64-server-*"
+        root-device-type = "ebs"
+    }
+    owners = ["099720109477"]
+    most_recent = true
+}
+
 // BYOL
 source "amazon-ebs" "vpn-server-byol" {
   ami_name      = "in4it-vpn-server-byol-${local.timestamp}"
@@ -63,7 +73,42 @@ source "amazon-ebs" "vpn-server-licensed" {
   ssh_username = "ubuntu"
 }
 
+// ARM64 BYOL
+source "amazon-ebs" "vpn-server-byol-arm64" {
+  ami_name      = "in4it-vpn-server-arm64-byol-${local.timestamp}"
+  ami_users     = var.ami_users
+  instance_type = "m7g.medium"
+  launch_block_device_mappings {
+    delete_on_termination = true
+    device_name           = "/dev/sda1"
+    volume_size           = 30
+    volume_type           = "gp3"
+  }
+  profile      = "${var.aws_profile}"
+  region       = "us-east-1"
+  source_ami   = data.amazon-ami.ubuntu-arm64.id
+  ssh_username = "ubuntu"
+}
+
+// ARM64 License included
+source "amazon-ebs" "vpn-server-licensed-arm64" {
+  ami_name      = "in4it-vpn-server-arm64-licensed-${local.timestamp}"
+  ami_users     = var.ami_users
+  instance_type = "m7g.medium"
+  launch_block_device_mappings {
+    delete_on_termination = true
+    device_name           = "/dev/sda1"
+    volume_size           = 30
+    volume_type           = "gp3"
+  }
+  profile      = "${var.aws_profile}"
+  region       = "us-east-1"
+  source_ami   = data.amazon-ami.ubuntu-arm64.id
+  ssh_username = "ubuntu"
+}
+
 build {
+  name    = "amd64"
   sources = [
     "source.amazon-ebs.vpn-server-byol",
     "source.amazon-ebs.vpn-server-licensed"
@@ -82,6 +127,55 @@ build {
   provisioner "file" {
     destination = "/tmp/restserver-linux-amd64"
     source      = "../restserver-linux-amd64"
+  }
+
+  provisioner "file" {
+    destination = "/tmp/vpn-configmanager.service"
+    source      = "systemd/vpn-configmanager.service"
+  }
+
+  provisioner "file" {
+    destination = "/tmp/vpn-rest-server.service"
+    source      = "systemd/vpn-rest-server.service"
+  }
+
+  provisioner "shell" {
+    execute_command = "{{ .Vars }} sudo -E sh '{{ .Path }}'"
+    pause_before    = "10s"
+    scripts         = ["scripts/install_vpn.sh"]
+  }
+
+  provisioner "shell" {
+    inline = ["rm /home/ubuntu/.ssh/authorized_keys"]
+  }
+
+  provisioner "shell" {
+    inline = ["sudo rm /root/.ssh/authorized_keys"]
+  }
+
+}
+
+// arm64 build
+build {
+  name    = "arm64"
+  sources = [
+    "source.amazon-ebs.vpn-server-byol-arm64",
+    "source.amazon-ebs.vpn-server-licensed-arm64"
+  ]
+
+  provisioner "file" {
+    destination = "/tmp/configmanager-linux-aarch64"
+    source      = "../configmanager-linux-arm64"
+  }
+
+  provisioner "file" {
+    destination = "/tmp/reset-admin-password-linux-aarch64"
+    source      = "../reset-admin-password-linux-arm64"
+  }
+
+  provisioner "file" {
+    destination = "/tmp/restserver-linux-aarch64"
+    source      = "../restserver-linux-arm64"
   }
 
   provisioner "file" {

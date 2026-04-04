@@ -35,13 +35,16 @@ test:
 	go test ./...
 
 install-aws:
-	cd provisioning && AWS_PROFILE=in4it-vpn-server AWS_REGION=us-east-1 packer build -var-file=whitelist.pkr.hcl packer-amd64.pkr.hcl
+	cd provisioning && AWS_PROFILE=in4it-vpn-server AWS_REGION=us-east-1 packer build -var-file=whitelist.pkr.hcl -only=arm64.* packer-aws.pkr.hcl
 
 install-gcp:
 	cd provisioning && packer build packer-gcp-amd64.pkr.hcl
 
 install-azure:
 	cd provisioning && packer build -var image_version=$(shell cat latest) packer-azure-amd64.pkr.hcl
+
+install-azure-arm64:
+	cd provisioning && packer build -var image_version=$(shell cat latest) packer-azure-arm64.pkr.hcl
 
 install-digitalocean:
 	cd provisioning && packer build packer-digitalocean-amd64.pkr.hcl
