@@ -77,40 +77,42 @@ func (v *VPN) userStatsHandler(w http.ResponseWriter, r *http.Request) {
 
 	scanner := bufio.NewScanner(logData)
 
-	receiveBytesLast := make(map[string]int64)
-	transmitBytesLast := make(map[string]int64)
+	receiveBytesLast := make(map[string]int64)   // key: userID|connectionID
+	transmitBytesLast := make(map[string]int64)  // key: userID|connectionID
 	receiveBytesData := make(map[string][]UserStatsDataPoint)
 	transmitBytesData := make(map[string][]UserStatsDataPoint)
-	handshakeLast := make(map[string]time.Time)
+	handshakeLast := make(map[string]time.Time) // key: userID|connectionID
 	handshakeData := make(map[string][]UserStatsDataPoint)
 	for scanner.Scan() { // all other entries
 		inputSplit := strings.Split(scanner.Text(), ",")
 		userID := inputSplit[1]
-		if _, ok := receiveBytesLast[userID]; !ok {
+		connectionID := inputSplit[2]
+		key := userID + "|" + connectionID
+		if _, ok := receiveBytesLast[key]; !ok {
 			val, err := strconv.ParseInt(inputSplit[3], 10, 64)
 			if err == nil {
-				receiveBytesLast[userID] = val
+				receiveBytesLast[key] = val
 			} else {
-				receiveBytesLast[userID] = 0
+				receiveBytesLast[key] = 0
 			}
 		}
-		if _, ok := transmitBytesLast[userID]; !ok {
+		if _, ok := transmitBytesLast[key]; !ok {
 			val, err := strconv.ParseInt(inputSplit[4], 10, 64)
 			if err == nil {
-				transmitBytesLast[userID] = val
+				transmitBytesLast[key] = val
 			} else {
-				transmitBytesLast[userID] = 0
+				transmitBytesLast[key] = 0
 			}
 		}
-		if _, ok := handshakeLast[userID]; !ok {
-			handshakeLast[userID] = time.Time{}
+		if _, ok := handshakeLast[key]; !ok {
+			handshakeLast[key] = time.Time{}
 		}
 		receiveBytes, err := strconv.ParseInt(inputSplit[3], 10, 64)
 		if err == nil {
 			if _, ok := receiveBytesData[userID]; !ok {
 				receiveBytesData[userID] = []UserStatsDataPoint{}
 			}
-			value := math.Round(float64((receiveBytes-receiveBytesLast[userID])/unitAdjustment*100)) / 100
+			value := math.Round(float64((receiveBytes-receiveBytesLast[key])/unitAdjustment*100)) / 100
 			timestamp, err := time.Parse(wireguard.TIMESTAMP_FORMAT, inputSplit[0])
 			if err == nil {
 				timestamp = timestamp.Add(time.Duration(offset) * time.Minute)
@@ -124,7 +126,7 @@ func (v *VPN) userStatsHandler(w http.ResponseWriter, r *http.Request) {
 			if _, ok := transmitBytesData[userID]; !ok {
 				transmitBytesData[userID] = []UserStatsDataPoint{}
 			}
-			value := math.Round(float64((transmitBytes-transmitBytesLast[userID])/unitAdjustment*100)) / 100
+			value := math.Round(float64((transmitBytes-transmitBytesLast[key])/unitAdjustment*100)) / 100
 			timestamp, err := time.Parse(wireguard.TIMESTAMP_FORMAT, inputSplit[0])
 			if err == nil {
 				timestamp = timestamp.Add(time.Duration(offset) * time.Minute)
@@ -136,16 +138,16 @@ func (v *VPN) userStatsHandler(w http.ResponseWriter, r *http.Request) {
 		handshake, err := time.Parse(wireguard.TIMESTAMP_FORMAT, inputSplit[5])
 		if err == nil {
 			handshake = handshake.Add(time.Duration(offset) * time.Minute)
-			if dateutils.DateEqual(handshake, date) && !handshake.Equal(handshakeLast[userID]) {
+			if dateutils.DateEqual(handshake, date) && !handshake.Equal(handshakeLast[key]) {
 				if _, ok := handshakeData[userID]; !ok {
 					handshakeData[userID] = []UserStatsDataPoint{}
 				}
 				handshakeData[userID] = append(handshakeData[userID], UserStatsDataPoint{X: handshake.Format(wireguard.TIMESTAMP_FORMAT), Y: 1})
 			}
 		}
-		receiveBytesLast[userID] = receiveBytes
-		transmitBytesLast[userID] = transmitBytes
-		handshakeLast[userID] = handshake
+		receiveBytesLast[key] = receiveBytes
+		transmitBytesLast[key] = transmitBytes
+		handshakeLast[key] = handshake
 	}
 
 	if err := scanner.Err(); err != nil {
