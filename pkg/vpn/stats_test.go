@@ -126,3 +126,56 @@ func TestGetCompressedFilesAndRemoveNonExistent(t *testing.T) {
 		}
 	}
 }
+
+// Regression: multiple connections of the same user must not be subtracted from each other.
+func TestUserStatsHandlerMultipleConnectionsNoCrossTalk(t *testing.T) {
+	storage := &memorystorage.MockMemoryStorage{}
+
+	userStore := &users.UserStore{}
+	userStore.AddUser(users.User{ID: "user-1", Login: "alice"}) //nolint:errcheck
+
+	v := New(storage, userStore)
+
+	// Two connections for the same user. Counters stay flat between runs.
+	now := time.Now().Truncate(time.Minute)
+	lines := []string{
+		now.Format(wireguard.TIMESTAMP_FORMAT) + ",user-1,connA,1000,2000," + now.Format(wireguard.TIMESTAMP_FORMAT),
+		now.Format(wireguard.TIMESTAMP_FORMAT) + ",user-1,connB,2000,4000," + now.Format(wireguard.TIMESTAMP_FORMAT),
+		now.Add(5 * time.Minute).Format(wireguard.TIMESTAMP_FORMAT) + ",user-1,connA,1000,2000," + now.Add(5*time.Minute).Format(wireguard.TIMESTAMP_FORMAT),
+		now.Add(5 * time.Minute).Format(wireguard.TIMESTAMP_FORMAT) + ",user-1,connB,2000,4000," + now.Add(5*time.Minute).Format(wireguard.TIMESTAMP_FORMAT),
+	}
+	statsFile := path.Join(wireguard.VPN_STATS_DIR, "user-"+now.Format("2006-01-02")) + ".log"
+	err := v.Storage.WriteFile(statsFile, []byte(strings.Join(lines, "\n")))
+	if err != nil {
+		t.Fatalf("Cannot write test file: %v", err)
+	}
+
+	req := httptest.NewRequest("GET", "http://example.com/stats/user", nil)
+	req.SetPathValue("date", now.Format("2006-01-02"))
+	w := httptest.NewRecorder()
+	v.userStatsHandler(w, req)
+	resp := w.Result()
+	if resp.StatusCode != 200 {
+		t.Fatalf("status code is not 200: %d", resp.StatusCode)
+	}
+	defer resp.Body.Close() //nolint:errcheck
+
+	var userStatsResponse UserStatsResponse
+	if err := json.NewDecoder(resp.Body).Decode(&userStatsResponse); err != nil {
+		t.Fatalf("Cannot decode response: %v", err)
+	}
+
+	if len(userStatsResponse.ReceiveBytes.Datasets) != 1 || len(userStatsResponse.TransmitBytes.Datasets) != 1 {
+		t.Fatalf("expected single dataset for user")
+	}
+	for _, dp := range userStatsResponse.ReceiveBytes.Datasets[0].Data {
+		if dp.Y != 0 {
+			t.Fatalf("expected 0 delta for receive, got %f", dp.Y)
+		}
+	}
+	for _, dp := range userStatsResponse.TransmitBytes.Datasets[0].Data {
+		if dp.Y != 0 {
+			t.Fatalf("expected 0 delta for transmit, got %f", dp.Y)
+		}
+	}
+}
