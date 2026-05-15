@@ -7,7 +7,7 @@
 * Improved setup flow for AWS & DigitalOcean
 
 ## Version v1.1.3
-* New Feature: Log packets traversing the VPN Server. This release supports logging TCP / DNS / HTTP / HTTPS packets and inspecting the destination of http/https packets.
+* New feature: Log packets traversing the VPN Server. This release supports logging TCP / DNS / HTTP / HTTPS packets and inspecting the destination of HTTP/HTTPS packets.
 
 ## Version v1.1.2
 * UI: fixes in user creation
@@ -17,11 +17,11 @@
 * UI: ability to reload WireGuard® configuration 
 * UI: modify client/server WireGuard® configuration files using templates
 
-Note: after upgrading, make sure to close any old browser tab to ensure the new UI version is loaded.
+Note: after upgrading, make sure to close any old browser tabs to ensure the new UI version is loaded.
 
 ## Version v1.0.41
 * UI: axios version bump
-* UI: disable https forwarding when request is served over http
+* UI: disable HTTPS forwarding when the request is served over HTTP
 * UI: general improvements
 
 ## Version v1.0.40
@@ -31,7 +31,7 @@ Note: after upgrading, make sure to close any old browser tab to ensure the new 
 * DigitalOcean marketplace release
 
 ## Version v1.0.38
-* General bugfixes
+* General bug fixes
 
 ## Version v1.0.37
 * SAML Support for authentication
@@ -39,14 +39,14 @@ Note: after upgrading, make sure to close any old browser tab to ensure the new 
 
 ## Version v1.0.36
 * An administrator will now be alerted when there is a new version of the VPN Server available. An upgrade procedure to the latest version can be started from the admin web UI. 
-* Minor bugfixes
+* Minor bug fixes
 
-Upgrade instructions can be found [here](upgrade.md)
+Upgrade instructions can be found [here](upgrade.md).
 
 Once upgraded to this release, new upgrades can be done through the UI.
 
 ## Version v1.0.35
-* Fix IP address management issue where in some cases the same IP is handed out
+* Fix an IP address management issue where the same IP address is handed out in some cases
 
 ## Version v1.0.34
 * Fix config parsing issue in client config for Windows clients

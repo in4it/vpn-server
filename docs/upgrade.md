@@ -1,11 +1,11 @@
 # Upgrade
 
-# Automated upgrade
+## Automated Upgrade
 
-An automatic upgrade procedure within the UI is available from v1.0.36 and onwards. If a new version is available, a banner will show on the status page with a link to perform the upgrade.
+An automatic upgrade procedure is available in the UI from v1.0.36 onward. If a new version is available, a banner will appear on the status page with a link to perform the upgrade.
 
-# Manual upgrade
-Execute the following commands using SSH to upgrade the VPN Server
+## Manual Upgrade
+Run the following commands over SSH to upgrade the VPN Server:
 
 ```
 VPN_SERVER_VERSION=$(curl -s https://in4it-vpn-server.s3.amazonaws.com/assets/binaries/latest)
@@ -21,7 +21,7 @@ systemctl restart vpn-configmanager
 systemctl restart vpn-rest-server
 ```
 
-# Revert to older version
+## Revert to an Older Version
 
 Run the same commands as above, but specify a version instead:
 ```
