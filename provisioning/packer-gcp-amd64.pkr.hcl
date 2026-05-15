@@ -18,8 +18,8 @@ variable "project_id" {
 source "googlecompute" "vpn-server" {
   project_id          = var.project_id
   source_image_family = "ubuntu-2404-lts-amd64"
-  zone                = "us-east4-b"
-  machine_type        = "n1-standard-1"
+  zone                = "us-east4-c"
+  machine_type        = "e2-standard-2"
   ssh_username        = "ubuntu"
   image_name          = "in4it-vpn-server-${local.timestamp}"
   image_licenses      = ["projects/in4it-public/global/licenses/cloud-marketplace-f66537e5f7276a36-df1ebeb69c0ba664"]
