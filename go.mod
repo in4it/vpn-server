@@ -8,7 +8,7 @@ require (
 	github.com/mdlayher/netlink v1.11.1
 	github.com/packetcap/go-pcap v0.0.0-20251215121130-f2cf9f991e7c
 	golang.org/x/crypto v0.51.0
-	golang.org/x/sys v0.44.0
+	golang.org/x/sys v0.45.0
 	golang.org/x/term v0.43.0
 )
 
@@ -28,7 +28,7 @@ require (
 	github.com/mattermost/xml-roundtrip-validator v0.1.0 // indirect
 	github.com/mdlayher/socket v0.6.0 // indirect
 	github.com/sirupsen/logrus v1.9.4 // indirect
-	golang.org/x/net v0.54.0 // indirect
+	golang.org/x/net v0.55.0 // indirect
 	golang.org/x/sync v0.20.0 // indirect
 	golang.org/x/text v0.37.0 // indirect
 )
