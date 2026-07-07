@@ -7,7 +7,7 @@ require (
 	github.com/mdlayher/genetlink v1.4.0
 	github.com/mdlayher/netlink v1.11.1
 	github.com/packetcap/go-pcap v0.0.0-20251215121130-f2cf9f991e7c
-	golang.org/x/crypto v0.51.0
+	golang.org/x/crypto v0.52.0
 	golang.org/x/sys v0.45.0
 	golang.org/x/term v0.43.0
 )
