@@ -31,7 +31,7 @@ interface AuthContext {
   setAuthInfo: (authInfo: AuthInfo) => void;
 }
 
-const AuthContext = createContext<AuthContext>({
+export const AuthContext = createContext<AuthContext>({
   authInfo: {login: "", role: "", token: "", userType: ""},
   setAuthInfo: () => {},
 });
