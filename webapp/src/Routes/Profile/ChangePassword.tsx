@@ -3,6 +3,7 @@ import { TbInfoCircle } from "react-icons/tb";
 import { useMutation } from "@tanstack/react-query";
 import axios from "axios";
 import { useState } from "react";
+import { useCookies } from "react-cookie";
 import { AppSettings } from "../../Constants/Constants";
 import { useAuthContext } from "../../Auth/Auth";
 
@@ -15,7 +16,18 @@ export function ChangePassword() {
     const [newPasswordRepeat, setNewPasswordRepeat] = useState<string>("");
     const [passwordError, setPasswordError] = useState<string>("");
     const [passwordUpdated, setPasswordUpdated] = useState<boolean>();
-    const {authInfo} = useAuthContext();
+    const {authInfo, setAuthInfo} = useAuthContext();
+    const [, setCookie] = useCookies(['token']);
+
+    // Changing the password expires all earlier sessions (their tokens are
+    // rejected by the server), so log out and send the user back to the login
+    // prompt after a successful change.
+    const logoutAndRedirectToLogin = () => {
+        setCookie("token", "", {path: "/"})
+        setAuthInfo({login: "", role: "", token: "", userType: ""})
+        window.history.replaceState(null, "VPN Server", "/")
+        location.reload()
+    }
 
     const changePassword = useMutation({
         mutationFn: (userIDAndPassword:UpdatePassword) => {
@@ -30,6 +42,8 @@ export function ChangePassword() {
             setNewPassword("")
             setNewPasswordRepeat("")
             setPasswordError("")
+            // give the user a moment to see the confirmation, then log out
+            setTimeout(logoutAndRedirectToLogin, 1500)
         }
       })
 
@@ -62,8 +76,9 @@ export function ChangePassword() {
     return (
         <>
         <h2>Change Password</h2>
-            {passwordUpdated ? <Alert variant="light" color="green" title="Password Updated" icon={alertIcon} style={{ marginBottom: 20 }}>Password Updated</Alert> : null}
+            {passwordUpdated ? <Alert variant="light" color="green" title="Password Updated" icon={alertIcon} style={{ marginBottom: 20 }}>Password updated. You will be logged out and redirected to the login page.</Alert> : null}
             {passwordError !== "" ? <Alert variant="light" color="red" title="Error" icon={alertIcon} style={{ marginBottom: 20 }}>{passwordError}</Alert> : null }
+            <Alert variant="light" color="blue" title="You will be logged out" icon={alertIcon} style={{ marginBottom: 20 }}>Changing your password will log you out of this and any other active sessions. You'll need to log in again with your new password.</Alert>
             <PasswordInput placeholder="New Password" id="your-password" onChange={(event) => setNewPassword(event.currentTarget.value)} value={newPassword} /><Space h="md" />
             <PasswordInput placeholder="Repeat Password" id="your-password-repeat" onChange={(event) => setNewPasswordRepeat(event.currentTarget.value)} value={newPasswordRepeat} /><Space h="md" />
             <Button onClick={() => onClickChangePassword()}>Change Password</Button>
