@@ -19,3 +19,4 @@
 /pkg/rest/resources/*
 /provisioning/whitelist.pkr.hcl
 .env
+/.vscode/
