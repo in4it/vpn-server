@@ -11,9 +11,6 @@ import { UserStats } from './UserStats';
 
 export function Home() {
   const {authInfo} = useAuthContext()
-  if(authInfo.role === "user") {
-    return <Navigate to={"/connection"} />
-  }
   const { isPending, error, data } = useQuery({
     queryKey: ['license'],
     queryFn: () =>
@@ -29,6 +26,9 @@ export function Home() {
       ),
       enabled: authInfo.role === "admin",
   })
+  if(authInfo.role === "user") {
+    return <Navigate to={"/connection"} />
+  }
   if (error) return 'cannot retrieve licensed users'
 
   return (

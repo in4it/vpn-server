@@ -9,7 +9,7 @@ import { useParams } from "react-router-dom";
 
 export function Setup() {
   const iconStyle = { width: rem(12), height: rem(12) };
-  let { page } = useParams();
+  const { page } = useParams();
   return (
       <Container my={40}>
 

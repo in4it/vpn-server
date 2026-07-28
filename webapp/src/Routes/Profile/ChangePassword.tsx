@@ -61,7 +61,7 @@ export function ChangePassword() {
             setPasswordError("password needs to have at least 6 characters (including 1 number and 1 special character)")
             return
         }
-        if(!/[ `!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~]/.test(newPassword)) {
+        if(!/[ `!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?~]/.test(newPassword)) {
             setPasswordError("password needs to have at least 1 special character (1 number and 1 special character)")
             return
         }
