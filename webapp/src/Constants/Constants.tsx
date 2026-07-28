@@ -2,7 +2,7 @@ interface Settings {
     url: string;
 }
 
-export var AppSettings: Settings = {
+export const AppSettings: Settings = {
     url: "/api",
 }
 

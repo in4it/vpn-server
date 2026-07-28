@@ -57,7 +57,7 @@ export function AuthBanner() {
   const { authInfo, setAuthInfo } = useAuthContext();
   const [showMFAFactors, setShowMFAFactors] = useState<Array<string>>([])
   const [factorResponse, setFactorResponse] = useState<FactorResponse>({ name: "", code: "" })
-  const { error, isPending, data } = useQuery<any, any, AuthMethods>({
+  const { error, isPending, data } = useQuery<AuthMethods, Error>({
     queryKey: ['authmethods'],
     queryFn: () =>
       fetch(AppSettings.url + '/authmethods')
@@ -110,8 +110,7 @@ export function AuthBanner() {
   if (error) return 'An backend error has occurred: ' + error.message
 
   const authMethodsButtons = data?.oidcProviders.map((oidcProvider: OIDCProvider) => (
-    <Container key={oidcProvider.id}><Button radius="xl" fullWidth={true} key={oidcProvider.id} onClick={() => onClickOidcRedirect
-      (oidcProvider.id)}>Login with {oidcProvider.name}</Button></Container>
+    <Container key={oidcProvider.id}><Button radius="xl" fullWidth={true} key={oidcProvider.id} onClick={() => onClickOidcRedirect(oidcProvider.id)}>Login with {oidcProvider.name}</Button></Container>
   ))
 
   return (

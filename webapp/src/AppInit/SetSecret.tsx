@@ -20,8 +20,8 @@ type SetupResponseError = {
 
 const randomHex = (length:number) => {
   const bytes = window.crypto.getRandomValues(new Uint8Array(length))
-  var hexstring='', h;
-  for(var i=0; i<bytes.length; i++) {
+  let hexstring='', h;
+  for(let i=0; i<bytes.length; i++) {
       h=bytes[i].toString(16);
       if(h.length==1) { h='0'+h; }
       hexstring+=h;
