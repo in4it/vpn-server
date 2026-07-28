@@ -3,7 +3,7 @@ module github.com/in4it/wireguard-server
 go 1.26.0
 
 require (
-	github.com/gopacket/gopacket v1.5.0
+	github.com/gopacket/gopacket v1.6.1
 	github.com/mdlayher/genetlink v1.4.0
 	github.com/mdlayher/netlink v1.11.1
 	github.com/packetcap/go-pcap v0.0.0-20251215121130-f2cf9f991e7c
