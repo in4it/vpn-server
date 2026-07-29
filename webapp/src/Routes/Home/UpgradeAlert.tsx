@@ -1,6 +1,6 @@
 import { Alert } from '@mantine/core';
 import { useAuthContext } from '../../Auth/Auth';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 
 import { AppSettings } from '../../Constants/Constants';
 import { useQuery } from '@tanstack/react-query';

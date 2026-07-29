@@ -14,7 +14,7 @@ import {
 import { FaStream } from "react-icons/fa";
 
 import classes from './Navbar.module.css';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router';
 import { useAuthContext } from '../Auth/Auth';
 import { Version } from './Version';
 
