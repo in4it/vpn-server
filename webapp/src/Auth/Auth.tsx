@@ -6,7 +6,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { AppSettings } from '../Constants/Constants';
 import { AuthBanner } from './AuthBanner';
 import { useCookies } from 'react-cookie';
-import { useMatch } from 'react-router-dom';
+import { useMatch } from 'react-router';
 import { OIDCAndSAMLAuth } from './OIDCAndSAMLAuth';
 import { OIDCAndSAMLRedirect } from './OIDCAndSAMLRedirect';
 type Props = {

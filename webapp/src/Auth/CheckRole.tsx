@@ -1,7 +1,7 @@
 import { Container, Title, Text, Group, Button } from "@mantine/core";
 import { useAuthContext } from "./Auth";
 import classes from './CheckRole.module.css';
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 
 
 type Props = {

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { AppSettings, UUID_REGEX } from "../Constants/Constants";
-import { useMatch } from "react-router-dom";
+import { useMatch } from "react-router";
 
 export function OIDCAndSAMLRedirect() {
   const [redirectError, setRedirectError] = useState<string>("")

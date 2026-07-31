@@ -2,7 +2,7 @@ import { ReactElement, ReactNode } from 'react'
 import { render } from '@testing-library/react'
 import { MantineProvider } from '@mantine/core'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter } from 'react-router'
 import { vi } from 'vitest'
 import { AuthContext } from './Auth/Auth'
 

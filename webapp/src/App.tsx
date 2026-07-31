@@ -6,7 +6,7 @@ import { NavBar } from "./NavBar/NavBar";
 import { AppInit } from "./AppInit/AppInit";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Auth } from "./Auth/Auth";
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router';
 import { Home } from "./Routes/Home/Home";
 import { AuthSetup } from "./Routes/Setup/AuthSetup/AuthSetup";
 import { Setup } from "./Routes/Setup/Setup";

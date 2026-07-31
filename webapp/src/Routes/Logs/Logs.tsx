@@ -2,7 +2,7 @@ import {  Container, Table, Title, Button, Grid, Popover, Group, TextInput, rem,
 import { AppSettings } from "../../Constants/Constants";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useAuthContext } from "../../Auth/Auth";
-import {  useSearchParams } from "react-router-dom";
+import {  useSearchParams } from "react-router";
 import { TbArrowRight, TbSearch } from "react-icons/tb";
 import { DatePickerInput } from "@mantine/dates";
 import { useEffect, useState } from "react";

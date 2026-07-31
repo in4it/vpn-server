@@ -1,6 +1,6 @@
 import { Text, Progress, Card, Container, Title, Space, Button } from '@mantine/core';
 import { useAuthContext } from '../../Auth/Auth';
-import { Link, Navigate } from 'react-router-dom';
+import { Link, Navigate } from 'react-router';
 import classes from './Home.module.css';
 
 import { AppSettings } from '../../Constants/Constants';

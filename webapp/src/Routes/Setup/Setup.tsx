@@ -5,7 +5,7 @@ import { GeneralSetup } from "./GeneralSetup";
 import { VPNSetup } from "./VPNSetup";
 import { TemplateSetup } from "./TemplateSetup";
 import { Restart } from "./Restart";
-import { useParams } from "react-router-dom";
+import { useParams } from "react-router";
 
 export function Setup() {
   const iconStyle = { width: rem(12), height: rem(12) };
