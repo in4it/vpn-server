@@ -421,7 +421,7 @@ func packetLoggerLogRotation(storage storage.Iface) error {
 		filenameWithoutSuffix = strings.TrimSuffix(filenameWithoutSuffix, ".log")
 		filenameSplit := strings.Split(filenameWithoutSuffix, "-")
 		if len(filenameSplit) > 3 {
-			dateParsed, err := time.Parse("2006-01-02", strings.Join(filenameSplit[len(filenameSplit)-3:], "-"))
+			dateParsed, err := time.ParseInLocation("2006-01-02", strings.Join(filenameSplit[len(filenameSplit)-3:], "-"), time.Local)
 			if err == nil {
 				if !dateutils.DateEqual(dateParsed, time.Now()) {
 					if strings.HasSuffix(filename, ".log") {
