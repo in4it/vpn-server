@@ -4,6 +4,7 @@ import { Table, ScrollArea, Button } from '@mantine/core';
 import classes from './ListConnections.module.css';
 import { useQueryClient, useMutation, useQuery } from '@tanstack/react-query';
 import { AppSettings } from '../../Constants/Constants';
+import { fetchJSON } from '../../Auth/fetchJSON';
 import { TbTrash } from 'react-icons/tb';
 import axios from 'axios';
 import { useAuthContext } from '../../Auth/Auth';
@@ -16,17 +17,7 @@ export function ListConnections() {
     
     const { isPending, error, data } = useQuery({
         queryKey: ['connections'],
-        queryFn: () =>
-          fetch(AppSettings.url + '/vpn/connections', {
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": "Bearer " + authInfo.token
-            },
-          }).then((res) => {
-            return res.json()
-            }
-            
-          ),
+        queryFn: () => fetchJSON(AppSettings.url + '/vpn/connections', authInfo.token),
       })
     const deleteConnection = useMutation({
         mutationFn: (id:string) => {

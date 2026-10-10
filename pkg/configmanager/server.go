@@ -29,15 +29,21 @@ func StartServer(port int) {
 		log.Printf("VPN is not running. Starting...")
 		err = startVPN(localStorage)
 		if err != nil {
-			log.Fatalf("couldn't start vpn: %s", err)
+			// keep the config manager running, so the config can be fixed in the UI
+			// and the vpn restarted. Exiting would make systemd give up restarting us.
+			log.Printf("Error: couldn't start vpn: %s", err)
+		} else {
+			log.Printf("VPN Server started\n")
+			isRunning = true
 		}
-		log.Printf("VPN Server started\n")
 	}
 
 	// refresh all clients
-	err = refreshAllClientsAndServer(localStorage, c.ClientCache)
-	if err != nil {
-		log.Fatalf("could not refresh all clients: %s", err)
+	if isRunning {
+		err = refreshAllClientsAndServer(localStorage, c.ClientCache)
+		if err != nil {
+			log.Printf("Error: could not refresh all clients: %s", err)
+		}
 	}
 
 	// start goroutines

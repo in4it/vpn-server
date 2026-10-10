@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"text/template"
 
 	"github.com/in4it/go-devops-platform/storage"
 )
@@ -63,6 +62,13 @@ func WriteServerTemplate(storage storage.Iface, body []byte) error {
 	return nil
 }
 
+// CheckWireGuardServerConfig renders the server config without writing it, to
+// find out whether the vpn can be started with the current config and template.
+func CheckWireGuardServerConfig(storage storage.Iface) error {
+	_, err := generateWireGuardServerConfig(storage)
+	return err
+}
+
 func generateWireGuardServerConfig(storage storage.Iface) ([]byte, error) {
 	vpnConfig, err := GetVPNConfig(storage)
 	if err != nil {
@@ -84,7 +90,7 @@ func generateWireGuardServerConfig(storage storage.Iface) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("cannot get template file: %s", err)
 	}
-	tmpl, err := template.New(WIREGUARD_TEMPLATE_SERVER).Parse(string(templateContents))
+	tmpl, err := parseServerTemplate(templateContents)
 	if err != nil {
 		return nil, fmt.Errorf("could not parse client template: %s", err)
 	}

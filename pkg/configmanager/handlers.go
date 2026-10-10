@@ -158,18 +158,25 @@ func (c *ConfigManager) version(w http.ResponseWriter, r *http.Request) {
 func (c *ConfigManager) restartVpn(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
-		err := stopVPN()
+		// make sure the config renders before taking the vpn down, otherwise a
+		// broken template leaves the vpn down
+		err := wireguard.CheckWireGuardServerConfig(c.Storage)
+		if err != nil {
+			returnError(w, fmt.Errorf("vpn config error, vpn not restarted: %s", err), http.StatusBadRequest)
+			return
+		}
+		err = vpnStop()
 		if err != nil { // don't exit, as the VPN might be down already.
 			fmt.Println("========= Warning =========")
 			fmt.Printf("Warning: vpn stop error: %s\n", err)
 			fmt.Println("=========================")
 		}
-		err = startVPN(c.Storage)
+		err = vpnStart(c.Storage)
 		if err != nil {
 			returnError(w, fmt.Errorf("vpn start error: %s", err), http.StatusBadRequest)
 			return
 		}
-		err = refreshAllClientsAndServer(c.Storage, c.ClientCache)
+		err = vpnRefreshClients(c.Storage, c.ClientCache)
 		if err != nil {
 			returnError(w, fmt.Errorf("could not refresh all clients: %s", err), http.StatusBadRequest)
 			return

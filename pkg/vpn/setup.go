@@ -238,6 +238,20 @@ func (v *VPN) templateSetupHandler(w http.ResponseWriter, r *http.Request) {
 			v.returnError(w, fmt.Errorf("could not retrieve server template: %s", err), http.StatusBadRequest)
 			return
 		}
+		// validate both templates before writing anything: a broken client template
+		// breaks every config download, a broken server template stops the vpn
+		if string(clientTemplate) != templateSetupRequest.ClientTemplate {
+			if err := wireguard.ValidateClientTemplate([]byte(templateSetupRequest.ClientTemplate)); err != nil {
+				v.returnError(w, fmt.Errorf("invalid client template: %s", err), http.StatusBadRequest)
+				return
+			}
+		}
+		if string(serverTemplate) != templateSetupRequest.ServerTemplate {
+			if err := wireguard.ValidateServerTemplate([]byte(templateSetupRequest.ServerTemplate)); err != nil {
+				v.returnError(w, fmt.Errorf("invalid server template: %s", err), http.StatusBadRequest)
+				return
+			}
+		}
 		if string(clientTemplate) != templateSetupRequest.ClientTemplate {
 			err = wireguard.WriteClientTemplate(v.Storage, []byte(templateSetupRequest.ClientTemplate))
 			if err != nil {

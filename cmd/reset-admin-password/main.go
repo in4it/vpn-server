@@ -31,7 +31,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	password, _ := getPassword()
+	password, err := readNewPassword(getPassword)
+	if err != nil {
+		fmt.Printf("\nFailed to change admin password: %s\n", err)
+		os.Exit(1)
+	}
 	if newAdminUserCreated, err = commands.ResetPassword(localstorage, password); err != nil {
 		fmt.Printf("Failed to changed admin password: %s", err)
 		os.Exit(1)
@@ -75,8 +79,8 @@ func reloadConfig(appDir string) error {
 	return nil
 }
 
-func getPassword() (string, error) {
-	fmt.Print("Enter new password for the admin user: ")
+func getPassword(prompt string) (string, error) {
+	fmt.Print(prompt)
 	bytePassword, err := term.ReadPassword(int(syscall.Stdin))
 	if err != nil {
 		return "", err

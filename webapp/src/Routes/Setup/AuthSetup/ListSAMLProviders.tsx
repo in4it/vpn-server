@@ -4,6 +4,7 @@ import { Table, ScrollArea, Button, Tooltip, rem, Select } from '@mantine/core';
 import classes from './ListSAMLProviders.module.css';
 import { useQueryClient, useMutation, useQuery } from '@tanstack/react-query';
 import { AppSettings } from '../../../Constants/Constants';
+import { fetchJSON } from '../../../Auth/fetchJSON';
 import { TbCheck, TbCopy, TbTrash } from 'react-icons/tb';
 import { useClipboard } from '@mantine/hooks';
 import axios from 'axios';
@@ -17,17 +18,7 @@ export function ListSAMLProviders() {
     const [activeRow, setActiveRow] = useState<string>("")
     const { isPending, error, data } = useQuery({
         queryKey: ['saml'],
-        queryFn: () =>
-          fetch(AppSettings.url + '/saml-setup', {
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": "Bearer " + authInfo.token
-            },
-          }).then((res) => {
-            return res.json()
-            }
-            
-          ),
+        queryFn: () => fetchJSON(AppSettings.url + '/saml-setup', authInfo.token),
       })
     const deleteSAML = useMutation({
         mutationFn: (id:string) => {

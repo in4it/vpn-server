@@ -18,3 +18,10 @@ type UpgradeResponse struct {
 	NewVersion          string `json:"newVersion"`
 	CurrentVersion      string `json:"currentVersion"`
 }
+
+// vpn operations used by the restart handler, variables so tests can stub them
+var (
+	vpnStop           = stopVPN
+	vpnStart          = startVPN
+	vpnRefreshClients = refreshAllClientsAndServer
+)

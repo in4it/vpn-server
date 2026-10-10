@@ -12,7 +12,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"text/template"
 	"time"
 
 	"github.com/in4it/go-devops-platform/storage"
@@ -275,7 +274,7 @@ func GenerateNewClientConfig(storage storage.Iface, connectionID, userID string)
 		return nil, fmt.Errorf("could not get client template: %s", err)
 	}
 
-	tmpl, err := template.New("client.tmpl").Funcs(template.FuncMap{"StringsJoin": strings.Join}).Parse(string(templatefileContents))
+	tmpl, err := parseClientTemplate(templatefileContents)
 	if err != nil {
 		return nil, fmt.Errorf("could not parse client template: %s", err)
 	}
