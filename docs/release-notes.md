@@ -1,5 +1,22 @@
 # Release Notes
 
+## Version v1.1.21
+* Google Cloud Marketplace support, and detection of the public IP address on GCP, Azure and DigitalOcean
+* UI: confirmation before deleting users, connections, OIDC/SAML providers and MFA factors, and before regenerating the SCIM token
+* UI: error messages for failed actions, and better handling of expired sessions
+* UI: changing your own password now requires your current password
+* VPN: a user can create up to 25 VPN connections
+* VPN: VPN settings and templates are validated before they are saved, and the VPN keeps running when a new configuration can't be applied
+* VPN: the server template no longer supports custom `PreUp`/`PostUp`/`PreDown`/`PostDown` commands. See the [FAQ](faq.md#the-server-template-contains-unsupported-settings) if your server template contains custom commands
+* Authentication: improvements to OIDC, SAML and MFA (TOTP) logins
+* SCIM: paging follows RFC 7644, renaming a user to an existing username returns an error, and the SCIM token keeps working after a restart
+* Upgrade: more reliable upgrades and service restarts
+* Packet logs: logging resumes automatically after a low disk space event
+* `reset-admin-password`: the new password needs to be entered twice and needs to be at least 8 characters
+* Dependency updates (Go 1.26.9 and npm packages)
+
+Note: after upgrading, make sure to close any old browser tabs to ensure the new UI version is loaded.
+
 ## Version v1.1.5 - v1.1.10
 * Maintenance release (dependency updates)
 
