@@ -148,6 +148,9 @@ func splitConfigLines(config string) []string {
 	return strings.FieldsFunc(config, func(r rune) bool { return r == '\n' || r == '\r' })
 }
 
+// SERVER_TEMPLATE_DOCS_URL explains which settings the server template supports
+const SERVER_TEMPLATE_DOCS_URL = "https://vpn-documentation.in4it.com/faq/#the-server-template-contains-unsupported-settings"
+
 // ErrServerConfigNotAllowed is returned when the rendered server config contains
 // settings that aren't supported in the server template
 var ErrServerConfigNotAllowed = errors.New("server config not allowed")
@@ -173,9 +176,9 @@ func checkServerConfig(config []byte, externalInterface string) error {
 				continue
 			}
 			if isHookKey(key) {
-				return fmt.Errorf("%w: custom PreUp/PostUp/PreDown/PostDown commands are not supported in the server template (line %d: %s)", ErrServerConfigNotAllowed, i+1, name)
+				return fmt.Errorf("%w: custom PreUp/PostUp/PreDown/PostDown commands are not supported in the server template (line %d: %s). See %s", ErrServerConfigNotAllowed, i+1, name, SERVER_TEMPLATE_DOCS_URL)
 			}
-			return fmt.Errorf("%w: %s is not supported in the server template (line %d)", ErrServerConfigNotAllowed, name, i+1)
+			return fmt.Errorf("%w: %s is not supported in the server template (line %d). See %s", ErrServerConfigNotAllowed, name, i+1, SERVER_TEMPLATE_DOCS_URL)
 		}
 	}
 	return nil
