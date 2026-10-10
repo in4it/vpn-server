@@ -32,7 +32,7 @@ install-qa-azure:
 	cd provisioning && packer build -var image_version=$(shell cat latest) packer-azure-amd64.pkr.hcl
 
 test:
-	go test ./...
+	go test -p 1 ./... # packages share the configmanager test port (127.0.0.1:8081)
 
 install-aws:
 	cd provisioning && AWS_PROFILE=in4it-vpn-server AWS_REGION=us-east-1 packer build -var-file=whitelist.pkr.hcl packer-aws.pkr.hcl
