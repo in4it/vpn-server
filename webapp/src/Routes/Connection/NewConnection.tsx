@@ -1,16 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { AppSettings } from "../../Constants/Constants"
-import axios, { AxiosError } from "axios"
+import axios from "axios"
 import { useAuthContext } from "../../Auth/Auth";
-import { useState } from "react";
-import { Alert, Button } from "@mantine/core";
-import { TbInfoCircle } from "react-icons/tb";
+import { Button } from "@mantine/core";
+import { fetchJSON } from "../../Auth/fetchJSON";
+import { getErrorMessage } from "../../Auth/errorMessage";
+import { ErrorAlert } from "../../ErrorAlert";
 
 export function NewConnection() {
     const queryClient = useQueryClient()
     const {authInfo} = useAuthContext();
-    const [newConnectionError, setError] = useState<string>("")
-    const alertIcon = <TbInfoCircle />
     const newConnection = useMutation({
         mutationFn: () => {
           return axios.post(AppSettings.url + '/vpn/connections', {}, {
@@ -23,43 +22,25 @@ export function NewConnection() {
             queryClient.invalidateQueries({ queryKey: ['connections'] })
             queryClient.invalidateQueries({ queryKey: ['connectionlicense'] })
         },
-        onError: (error:AxiosError) => {
-            const errorMessage = error.response?.data as GenericErrorResponse
-            if(errorMessage?.error === undefined) {
-                setError("Error: "+ error.message)
-            } else {
-                setError("Error: "+ errorMessage.error)
-            }
-        }
     })
     const { isPending, error, data } = useQuery({
         queryKey: ['connectionlicense'],
-        queryFn: () =>
-          fetch(AppSettings.url + '/vpn/connectionlicense', {
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": "Bearer " + authInfo.token
-            },
-          }).then((res) => {
-            return res.json()
-            }
-            
-          ),
+        queryFn: () => fetchJSON(AppSettings.url + '/vpn/connectionlicense', authInfo.token),
       })
     if (isPending) return <Button disabled>Loading...</Button>
-    if (newConnectionError != "") {
-       return <Alert variant="light" color="red" title="Error" icon={alertIcon}>{newConnectionError}</Alert>
-    }
     if (error) {
-        return <Alert variant="light" color="red" title="Error" icon={alertIcon}>{error.message}</Alert>
+        return <ErrorAlert message={error.message} />
     }
-    if (isPending) {
-        return <Button disabled>Loading...</Button>
-    }
+    // the mutation error is reset on the next attempt (mutate clears it), and
+    // shown above the button so the user can retry
+    const newConnectionError = newConnection.isError ? "Error: " + getErrorMessage(newConnection.error) : ""
     if(data.licenseUserCount <= 3 && data.connectionCount >= 1) {
         return <Button disabled>Only 1 connection is allowed in the free plan</Button>
     }
     return (
-        <Button onClick={() => newConnection.mutate()}>New VPN Connection</Button>
+        <>
+        <ErrorAlert message={newConnectionError} />
+        <Button onClick={() => newConnection.mutate()} loading={newConnection.isPending}>New VPN Connection</Button>
+        </>
     )
 }

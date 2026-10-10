@@ -1,5 +1,6 @@
 import { Card, Container, Text, Table, Title, Button, Grid, Select, MultiSelect, Popover, Group, TextInput, rem, ActionIcon, Highlight} from "@mantine/core";
 import { AppSettings } from "../../Constants/Constants";
+import { fetchJSON } from "../../Auth/fetchJSON";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useAuthContext } from "../../Auth/Auth";
 import { Link, useSearchParams } from "react-router";
@@ -7,6 +8,8 @@ import { TbArrowRight, TbSearch, TbSettings } from "react-icons/tb";
 import { DatePickerInput } from "@mantine/dates";
 import { useEffect, useState } from "react";
 import React from "react";
+import { parseDateParam } from "../../dateParam";
+import { ErrorAlert } from "../../ErrorAlert";
 
 type LogsDataResponse = {
     enabled: boolean;
@@ -30,6 +33,10 @@ type UserMap = {
   [key: string]: string;
 }
 
+// user ids (uuids, or "all") only contain these characters; anything else
+// (e.g. "../../setup/vpn") is rejected before it ends up in the request path
+const USER_ID_REGEX = /^[A-Za-z0-9_-]+$/
+
 function getDate(date:Date) {
   const dd = String(date.getDate()).padStart(2, '0');
   const mm = String(date.getMonth() + 1).padStart(2, '0'); //January is 0!
@@ -46,20 +53,12 @@ export function PacketLogs() {
     const [logType, setLogType] = useState<string[]>([])
     const [search, setSearch] = useState<string>("")
     const [searchParam, setSearchParam] = useState<string>("")
-    const [logsDate, setLogsDate] = useState<Date | null>(dateParam === null ? new Date() : new Date(dateParam));
-    const [user, setUser] = useState<string>(userParam === null ? "all" : userParam)
+    const [logsDate, setLogsDate] = useState<Date | null>(parseDateParam(dateParam) ?? new Date());
+    const [user, setUser] = useState<string>(userParam !== null && USER_ID_REGEX.test(userParam) ? userParam : "all")
     const { isPending, fetchNextPage, hasNextPage, error, data } = useInfiniteQuery<LogsDataResponse>({
       queryKey: ['packetlogs', user, logsDate, logType, searchParam],
       queryFn: async ({ pageParam }) =>
-        fetch(AppSettings.url + '/vpn/stats/packetlogs/'+(user === undefined || user === "" ? "all" : user)+'/'+(logsDate == undefined ? getDate(new Date()) : getDate(logsDate)) + "?pos="+pageParam+"&offset="+timezoneOffset+"&logtype="+encodeURIComponent(logType.join(","))+"&search="+encodeURIComponent(searchParam), {
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": "Bearer " + authInfo.token
-          },
-        }).then((res) => {
-          return res.json()
-          }
-        ),
+        fetchJSON(AppSettings.url + '/vpn/stats/packetlogs/'+encodeURIComponent(user === undefined || user === "" ? "all" : user)+'/'+(logsDate == undefined ? getDate(new Date()) : getDate(logsDate)) + "?pos="+pageParam+"&offset="+timezoneOffset+"&logtype="+encodeURIComponent(logType.join(","))+"&search="+encodeURIComponent(searchParam), authInfo.token),
         initialPageParam: 0,
         getNextPageParam: (lastRequest) => lastRequest.logData.nextPos === -1 ? null : lastRequest.logData.nextPos,
     })
@@ -114,6 +113,12 @@ export function PacketLogs() {
       )
     }
 
+    // only show data for a user from the users list returned by the API
+    const users = data.pages[0].users ?? {}
+    const userIsKnown = user === undefined || user === "" || user === "all" || Object.prototype.hasOwnProperty.call(users, user)
+    const unknownUserError = userIsKnown ? "" : "Unknown user in the URL. Select a user from the list."
+    const userSelected = userIsKnown && user !== undefined && user !== "" && user !== "all"
+
     const rows = data.pages.map((group, groupIndex) => (
       <React.Fragment key={groupIndex}>
         {group.logData.rows.map((row, i) => (
@@ -133,6 +138,7 @@ export function PacketLogs() {
           <Title ta="center" style={{marginBottom: 20}}>
           Packet Logs
           </Title>
+          <ErrorAlert message={unknownUserError} />
           <Grid>
             <Grid.Col span={4}>
             <TextInput
@@ -159,15 +165,15 @@ export function PacketLogs() {
                 </Grid.Col>
             <Grid.Col span={2}>
             <Select
-                data={Object.keys(data.pages[0].users).map((key) => {
+                data={Object.keys(users).map((key) => {
                   return {
-                    label:  data.pages[0].users[key],
+                    label:  users[key],
                     value: key,
                   }
                 })}
                 size="xs"
                 withCheckIcon={false}
-                value={user}
+                value={userIsKnown ? user : null}
                 onChange={(_value) => setUser(_value === null ? "" : _value)}
                 placeholder="User"
                 />
@@ -206,7 +212,7 @@ export function PacketLogs() {
                   </Table.Tr>
               </Table.Thead>
               <Table.Tbody>
-                {user === undefined || user === "" || user === "all" ? 
+                {!userSelected ?
                   <Table.Tr key="nouser"><Table.Td colSpan={7}>Select a user to see log data.</Table.Td></Table.Tr>
                 :
                   rows

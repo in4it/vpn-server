@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import classes from './Setup.module.css';
 import { TbInfoCircle } from "react-icons/tb";
 import { AppSettings } from "../../Constants/Constants";
+import { fetchJSON } from "../../Auth/fetchJSON";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuthContext } from "../../Auth/Auth";
 import { useForm } from '@mantine/form';
@@ -32,19 +33,10 @@ export function VPNSetup() {
     const [saveError, setSaveError] = useState("")
     const {authInfo} = useAuthContext();
     const queryClient = useQueryClient()
-    const { isPending, error, data, isSuccess } = useQuery({
+    const { isPending, error, data, dataUpdatedAt } = useQuery({
       queryKey: ['vpn-setup'],
       queryFn: () =>
-        fetch(AppSettings.url + '/vpn/setup/vpn', {
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": "Bearer " + authInfo.token
-          },
-        }).then((res) => {
-          return res.json()
-          }
-          
-        ),
+        fetchJSON(AppSettings.url + '/vpn/setup/vpn', authInfo.token),
     })
     const form = useForm({
       mode: 'uncontrolled',
@@ -71,6 +63,8 @@ export function VPNSetup() {
         })
       },
       onSuccess: () => {
+          // the saved values are the new baseline: let the refetch update the form
+          form.resetDirty()
           setSaved(true)
           setSaveError("")
           queryClient.invalidateQueries({ queryKey: ['vpn-setup'] })
@@ -88,11 +82,15 @@ export function VPNSetup() {
 
     const alertIcon = <TbInfoCircle />;
 
+    // load the server values into the form, and again whenever they change
+    // (refetch after saving, another admin changed them), unless the user has
+    // unsaved edits in the form
     useEffect(() => {
-      if (isSuccess) {
+      if (data !== undefined && !form.isDirty()) {
+        form.setInitialValues({ ...data });
         form.setValues({ ...data });
       }
-    }, [isSuccess]); 
+    }, [data, dataUpdatedAt]);
   
 
     if(isPending) return "Loading..."

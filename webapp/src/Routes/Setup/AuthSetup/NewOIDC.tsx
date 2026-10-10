@@ -1,4 +1,4 @@
-import { Button, Container, Paper, TextInput, Title, Text, Center, Box, InputWrapper, Group } from "@mantine/core";
+import { Button, Container, Paper, TextInput, PasswordInput, Title, Text, Center, Box, InputWrapper, Group } from "@mantine/core";
 import { useState } from "react";
 import classes from './NewOIDC.module.css';
 import { useMutation } from "@tanstack/react-query";
@@ -68,7 +68,7 @@ export function NewOIDC({setShowNewOIDCProvider} :Props) {
             : <></>}
             <TextInput style={{marginTop: 10}} classNames={classes} label="Name" placeholder="Name" required onChange={(event) => setOIDCProvider({...oidcProvider, name: event.currentTarget.value})} value={oidcProvider.name} />
             <TextInput style={{marginTop: 10}} classNames={classes} label="Client ID" placeholder="Client ID" required onChange={(event) => setOIDCProvider({...oidcProvider, clientId: event.currentTarget.value})} value={oidcProvider.clientId} />
-            <TextInput style={{marginTop: 10}} classNames={classes} label="Client Secret" placeholder="Client Secret" required onChange={(event) => setOIDCProvider({...oidcProvider, clientSecret: event.currentTarget.value})} value={oidcProvider.clientSecret} />
+            <PasswordInput style={{marginTop: 10}} classNames={classes} label="Client Secret" placeholder="Client Secret" autoComplete="off" required onChange={(event) => setOIDCProvider({...oidcProvider, clientSecret: event.currentTarget.value})} value={oidcProvider.clientSecret} />
             <InputWrapper
                 style={{marginTop: 10}} 
                 id="scope"

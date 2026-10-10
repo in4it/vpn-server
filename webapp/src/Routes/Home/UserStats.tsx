@@ -3,6 +3,7 @@ import { DatePickerInput } from '@mantine/dates';
 import { useQuery } from "@tanstack/react-query";
 import { useAuthContext } from "../../Auth/Auth";
 import { AppSettings } from '../../Constants/Constants';
+import { fetchJSON } from '../../Auth/fetchJSON';
 import { format } from "date-fns";
 import { Chart } from 'react-chartjs-2';
 import 'chartjs-adapter-date-fns';
@@ -18,16 +19,7 @@ export function UserStats() {
     const { isPending, error, data } = useQuery({
         queryKey: ['userstats', statsDate, unit],
         queryFn: () =>
-            fetch(AppSettings.url + '/vpn/stats/user/' + format(statsDate === null ? new Date() : statsDate, "yyyy-MM-dd") + "?offset="+timezoneOffset+"&unit=" +unit, {
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": "Bearer " + authInfo.token
-            },
-            }).then((res) => {
-            return res.json()
-            }
-            
-            ),
+            fetchJSON(AppSettings.url + '/vpn/stats/user/' + format(statsDate === null ? new Date() : statsDate, "yyyy-MM-dd") + "?offset="+timezoneOffset+"&unit=" +unit, authInfo.token),
             enabled: authInfo.role === "admin",
     })
     
@@ -61,7 +53,7 @@ export function UserStats() {
     }
 
     if (isPending) return ''
-    if (error) return 'cannot retrieve licensed users'
+    if (error) return 'cannot retrieve user stats: ' + error.message
 
     if(data.receivedBytes.datasets === null) {
         data.receivedBytes.datasets = [{ data: [0], label: "no data"}]

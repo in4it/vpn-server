@@ -37,4 +37,9 @@ describe('NewOIDC', () => {
     })
     await waitFor(() => expect(setShowNewOIDCProvider).toHaveBeenCalledWith(false))
   })
+
+  it('masks the client secret', () => {
+    renderWithProviders(<NewOIDC setShowNewOIDCProvider={vi.fn()} />)
+    expect(screen.getByPlaceholderText('Client Secret')).toHaveAttribute('type', 'password')
+  })
 })

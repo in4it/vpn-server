@@ -7,6 +7,13 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import axios, { AxiosError } from 'axios';
 import { TbInfoCircle } from "react-icons/tb";
 import { useEffect, useState } from 'react';
+import { fetchJSON } from '../../Auth/fetchJSON';
+
+type UpgradeResponse = {
+  currentVersion: string;
+  newVersionAvailable: boolean;
+  newVersion: string;
+}
 
 export function Upgrade() {
   const {authInfo} = useAuthContext()
@@ -15,24 +22,32 @@ export function Upgrade() {
   const [upgradeError, setUpgradeError] = useState("")
   const [upgradeStatus, setUpgradeStatus] = useState("")
   const [upgradeCheckCounter, setUpgradeCheckCounter] = useState(1)
-  const { isPending, error, data } = useQuery({
+  // the version that was running when the upgrade was started
+  const [versionBeforeUpgrade, setVersionBeforeUpgrade] = useState("")
+  const { isPending, error, data } = useQuery<UpgradeResponse>({
     queryKey: ['upgrade'],
-    queryFn: () =>
-      fetch(AppSettings.url + '/upgrade', {
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer " + authInfo.token
-        },
-      }).then((res) => {
-        if(upgradeStatus === "upgrading") {
-          setUpgradeStatus("completed")
-          setMessage("")
-          queryClient.invalidateQueries({ queryKey: ['version'] })
-        }
-        return res.json()
-        }
-        
-      ),
+    queryFn: async () => {
+      if(upgradeStatus !== "upgrading") {
+        return fetchJSON<UpgradeResponse>(AppSettings.url + '/upgrade', authInfo.token)
+      }
+      // While upgrading, the server restarts: errors (502, connection refused)
+      // and answers from the old server are expected. Keep the last known data
+      // and only mark the upgrade completed once the new version answers.
+      const previous = queryClient.getQueryData<UpgradeResponse>(['upgrade']) as UpgradeResponse
+      let current: UpgradeResponse
+      try {
+        current = await fetchJSON<UpgradeResponse>(AppSettings.url + '/upgrade', authInfo.token)
+      } catch {
+        return previous
+      }
+      if(current.currentVersion === undefined || current.currentVersion === versionBeforeUpgrade) {
+        return previous
+      }
+      setUpgradeStatus("completed")
+      setMessage("")
+      queryClient.invalidateQueries({ queryKey: ['version'] })
+      return current
+    },
   })
   const upgradeMutation = useMutation({
     mutationFn: () => {
@@ -43,6 +58,7 @@ export function Upgrade() {
       })
     },
     onSuccess: () => {
+        setVersionBeforeUpgrade(data?.currentVersion ?? "")
         setUpgradeStatus("upgrading")
     },
     onError: (error:AxiosError) => {
@@ -71,7 +87,7 @@ export function Upgrade() {
       }
   }, [upgradeStatus,upgradeCheckCounter]);
 
-  if (error) return 'cannot retrieve licensed users'
+  if (error) return 'cannot retrieve upgrade information: ' + error.message
   if (isPending) return 'Loading...'
 
   const alertIcon = <TbInfoCircle />;

@@ -3,6 +3,7 @@ import { useAuthContext } from '../../Auth/Auth';
 import { Link } from 'react-router';
 
 import { AppSettings } from '../../Constants/Constants';
+import { fetchJSON } from '../../Auth/fetchJSON';
 import { useQuery } from '@tanstack/react-query';
 import { TbInfoCircle } from "react-icons/tb";
 
@@ -11,16 +12,7 @@ export function UpgradeAlert() {
   const { isPending, error, data } = useQuery({
     queryKey: ['upgrade'],
     queryFn: () =>
-      fetch(AppSettings.url + '/upgrade', {
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer " + authInfo.token
-        },
-      }).then((res) => {
-        return res.json()
-        }
-        
-      ),
+      fetchJSON(AppSettings.url + '/upgrade', authInfo.token),
       enabled: authInfo.role === "admin",
   })
   if (error) return ''

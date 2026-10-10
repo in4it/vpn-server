@@ -1,5 +1,6 @@
 import {  Container, Table, Title, Button, Grid, Popover, Group, TextInput, rem, ActionIcon, Checkbox, Highlight} from "@mantine/core";
 import { AppSettings } from "../../Constants/Constants";
+import { fetchJSON } from "../../Auth/fetchJSON";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useAuthContext } from "../../Auth/Auth";
 import {  useSearchParams } from "react-router";
@@ -7,6 +8,7 @@ import { TbArrowRight, TbSearch } from "react-icons/tb";
 import { DatePickerInput } from "@mantine/dates";
 import { useEffect, useState } from "react";
 import React from "react";
+import { parseDateParam } from "../../dateParam";
 
 type LogsDataResponse = {
     enabled: boolean;
@@ -46,19 +48,11 @@ export function Logs() {
     const [search, setSearch] = useState<string>("")
     const [searchParam, setSearchParam] = useState<string>("")
     const [columns, setColumns] = useState<string[]>([])
-    const [logsDate, setLogsDate] = useState<Date | null>(dateParam === null ? new Date() : new Date(dateParam));
+    const [logsDate, setLogsDate] = useState<Date | null>(parseDateParam(dateParam) ?? new Date());
     const { isPending, fetchNextPage, hasNextPage, error, data } = useInfiniteQuery<LogsDataResponse>({
       queryKey: ['logs', logsDate, tags, columns, searchParam],
       queryFn: async ({ pageParam }) =>
-        fetch(AppSettings.url + '/observability/logs?display-tags='+encodeURIComponent(columns.join(","))+'&fromDate='+(logsDate == undefined ? getDate(new Date()) : getDate(logsDate)) + '&endDate='+(logsDate == undefined ? getDate(new Date()) : getDate(logsDate)) + "&pos="+pageParam+"&offset="+timezoneOffset+"&filter-tags="+encodeURIComponent(tags.map(t => t.key + "=" + t.value).join(","))+"&search="+encodeURIComponent(searchParam), {
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": "Bearer " + authInfo.token
-          },
-        }).then((res) => {
-          return res.json()
-          }
-        ),
+        fetchJSON(AppSettings.url + '/observability/logs?display-tags='+encodeURIComponent(columns.join(","))+'&fromDate='+(logsDate == undefined ? getDate(new Date()) : getDate(logsDate)) + '&endDate='+(logsDate == undefined ? getDate(new Date()) : getDate(logsDate)) + "&pos="+pageParam+"&offset="+timezoneOffset+"&filter-tags="+encodeURIComponent(tags.map(t => t.key + "=" + t.value).join(","))+"&search="+encodeURIComponent(searchParam), authInfo.token),
         initialPageParam: 0,
         getNextPageParam: (lastRequest) => lastRequest.nextPos === -1 ? null : lastRequest.nextPos,
     })

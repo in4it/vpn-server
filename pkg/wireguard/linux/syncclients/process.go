@@ -46,27 +46,30 @@ func processPeerConfig(storage storage.Iface, peerConfig wireguard.PeerConfig) e
 	if !available {
 		return fmt.Errorf("wireguard linux client not available")
 	}
+	defer c.Close() //nolint:errcheck
 	device, err := c.Device(wireguard.VPN_INTERFACE_NAME)
 	if err != nil {
 		return fmt.Errorf("wireguard linux device 'vpn' not found: %s", err)
 	}
 
-	found := false
-	for _, peer := range device.Peers {
-		if !peerConfig.Disabled && peer.PublicKey.String() == peerConfig.PublicKey {
-			found = true
-		}
+	peerPublicKeys := make([]string, len(device.Peers))
+	for k, peer := range device.Peers {
+		peerPublicKeys[k] = peer.PublicKey.String()
 	}
 
-	if !found { // add peer
-		if peerConfig.PublicKey == "" {
-			log.Printf("Warning: corrupt peer config. Skipping peer (id: %s)", peerConfig.ID)
-		} else {
-			err = wgAddPeer(storage, peerConfig)
-			if err != nil {
-				return fmt.Errorf("wgAddPeer error: %s", err)
-			}
+	switch peerAction(peerPublicKeys, peerConfig) {
+	case PEER_ACTION_ADD:
+		err = wgAddPeer(storage, peerConfig)
+		if err != nil {
+			return fmt.Errorf("wgAddPeer error: %s", err)
 		}
+	case PEER_ACTION_REMOVE: // disabled peer that is still active
+		err = wgDeletePeer(peerConfig)
+		if err != nil {
+			return fmt.Errorf("wgDeletePeer error: %s", err)
+		}
+	case PEER_ACTION_SKIP_CORRUPT:
+		log.Printf("Warning: corrupt peer config. Skipping peer (id: %s)", peerConfig.ID)
 	}
 
 	return nil
@@ -80,6 +83,7 @@ func processDeleteOfPeerConfig(peerConfig wireguard.PeerConfig) error {
 	if !available {
 		return fmt.Errorf("wireguard linux client not available")
 	}
+	defer c.Close() //nolint:errcheck
 	device, err := c.Device(wireguard.VPN_INTERFACE_NAME)
 	if err != nil {
 		return fmt.Errorf("wireguard linux device 'vpn' not found: %s", err)

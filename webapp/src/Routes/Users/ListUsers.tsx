@@ -3,10 +3,14 @@ import { Table, Button, rem, Group, Text, Badge, Select, PasswordInput, Menu, Ac
 //import classes from './ListUsers.module.css';
 import { useQueryClient, useMutation, useQuery } from '@tanstack/react-query';
 import { AppSettings } from '../../Constants/Constants';
+import { fetchJSON } from '../../Auth/fetchJSON';
+import { getErrorMessage } from '../../Auth/errorMessage';
 import { TbDots, TbInfoCircle, TbPassword, TbTrash, TbUserPause } from 'react-icons/tb';
 import { useDisclosure } from '@mantine/hooks';
 import axios from 'axios';
 import { useAuthContext } from '../../Auth/Auth';
+import { ConfirmModal } from '../../ConfirmModal';
+import { ErrorAlert } from '../../ErrorAlert';
 
 type Props = {
     localAuthDisabled: boolean;
@@ -24,24 +28,16 @@ type Status = {
 
 export function ListUsers({localAuthDisabled}:Props) {
     const [opened, { open, close }] = useDisclosure(false);
-    const [newPassword, setNewPassword] = useState<string>();
+    const [newPassword, setNewPassword] = useState<string>("");
+    const [passwordError, setPasswordError] = useState<string>("");
     const [userSelected, setUserSelected] = useState("")
+    const [userToDelete, setUserToDelete] = useState<User | null>(null)
     const queryClient = useQueryClient()
     const {authInfo} = useAuthContext();
     const [passwordUpdated, setPasswordUpdated] = useState(false);
     const { isPending, error, data } = useQuery({
         queryKey: ['users'],
-        queryFn: () =>
-          fetch(AppSettings.url + '/users', {
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": "Bearer " + authInfo.token
-            },
-          }).then((res) => {
-            return res.json()
-            }
-            
-          ),
+        queryFn: () => fetchJSON(AppSettings.url + '/users', authInfo.token),
       })
 
     const updateUser = useMutation({
@@ -52,7 +48,22 @@ export function ListUsers({localAuthDisabled}:Props) {
             },
           })
         },
-        onSuccess: () => {
+        // show the new role/suspended state right away, and roll back if the
+        // backend rejects the change
+        onMutate: async (user:User) => {
+            await queryClient.cancelQueries({ queryKey: ['users'] })
+            const previousUsers = queryClient.getQueryData<User[]>(['users'])
+            queryClient.setQueryData<User[]>(['users'], (users) =>
+              users?.map((u) => u.id === user.id ? {...u, role: user.role, suspended: user.suspended} : u)
+            )
+            return { previousUsers }
+        },
+        onError: (_error, _user, context) => {
+            if (context?.previousUsers !== undefined) {
+              queryClient.setQueryData(['users'], context.previousUsers)
+            }
+        },
+        onSettled: () => {
             queryClient.invalidateQueries({ queryKey: ['users'] })
         }
       })
@@ -80,7 +91,10 @@ export function ListUsers({localAuthDisabled}:Props) {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['users'] })
             queryClient.invalidateQueries({ queryKey: ['license'] })
-        }
+        },
+        onSettled: () => {
+            setUserToDelete(null)
+        },
       })
       const alertIcon = <TbInfoCircle />;
       
@@ -97,10 +111,28 @@ export function ListUsers({localAuthDisabled}:Props) {
 
     const rolesData = ["user", "admin"];
 
+    // every time the modal opens it starts empty, so a password typed for
+    // one user can never be submitted for another
     const openPasswordModal = (id:string) => {
         setPasswordUpdated(false)
+        setNewPassword("")
+        setPasswordError("")
+        changePassword.reset()
         setUserSelected(id)
         open()
+    }
+    const closePasswordModal = () => {
+        setNewPassword("")
+        setPasswordError("")
+        close()
+    }
+    const submitPassword = () => {
+        if (newPassword === "") {
+            setPasswordError("Password cannot be empty")
+            return
+        }
+        setPasswordError("")
+        changePassword.mutate({id: userSelected, password: newPassword})
     }
     const formatDate = (dateInput:string) => {
       const date = new Date(dateInput)
@@ -129,7 +161,8 @@ export function ListUsers({localAuthDisabled}:Props) {
             <Table.Td>
             <Select
                data={rolesData}
-               defaultValue={item.role}
+               value={item.role}
+               aria-label={"Role of " + item.login}
                variant="unstyled"
                allowDeselect={false}
                onChange={(event) => updateUser.mutate({...item, id: item.id, password: "", role: event === null ? "" : event, lastLogin: "0001-01-01T00:00:00Z"})}
@@ -203,7 +236,7 @@ export function ListUsers({localAuthDisabled}:Props) {
                 <Menu.Item
                     leftSection={<TbTrash style={{ width: rem(16), height: rem(16) }} />}
                     color="red"
-                    onClick={() => deleteUser.mutate(item.id)}
+                    onClick={() => setUserToDelete(item)}
                 >
                     Delete User
                 </Menu.Item>
@@ -215,18 +248,31 @@ export function ListUsers({localAuthDisabled}:Props) {
       
         return (
           <>
-            <Modal opened={opened} onClose={close} title="Change Password">
+            <ConfirmModal
+                opened={userToDelete !== null}
+                title="Delete user"
+                confirmLabel="Delete"
+                loading={deleteUser.isPending}
+                onClose={() => setUserToDelete(null)}
+                onConfirm={() => userToDelete && deleteUser.mutate(userToDelete.id)}
+            >
+                Are you sure you want to delete the user "{userToDelete?.login}"? Their VPN connections will be removed.
+            </ConfirmModal>
+            {updateUser.isError ? <ErrorAlert message={"Could not update user: " + getErrorMessage(updateUser.error)} /> : null}
+            {deleteUser.isError ? <ErrorAlert message={"Could not delete user: " + getErrorMessage(deleteUser.error)} /> : null}
+            <Modal opened={opened} onClose={closePasswordModal} title="Change Password">
                 
                 {passwordUpdated ?
                     <Container my={40}>
                         <Alert variant="light" color="green" title="Update!" icon={alertIcon}>Password Updated!</Alert>
                         <Space h="md" />
-                        <Button onClick={close}>Close</Button>
+                        <Button onClick={closePasswordModal}>Close</Button>
                     </Container>
                 :
                     <Container my={40}>
-                        <PasswordInput placeholder="New Password" id="your-password" onChange={(event) => setNewPassword(event.currentTarget.value)} /><Space h="md" />
-                        <Button onClick={() => changePassword.mutate({id: userSelected, password: newPassword === undefined ? "" : newPassword})}>Change Password</Button>
+                        <ErrorAlert message={passwordError !== "" ? passwordError : changePassword.isError ? getErrorMessage(changePassword.error) : ""} />
+                        <PasswordInput placeholder="New Password" id="your-password" value={newPassword} onChange={(event) => setNewPassword(event.currentTarget.value)} /><Space h="md" />
+                        <Button onClick={submitPassword} loading={changePassword.isPending}>Change Password</Button>
                     </Container>
                 }
                 

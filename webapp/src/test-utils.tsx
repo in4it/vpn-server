@@ -51,7 +51,7 @@ export function renderWithProviders(ui: ReactElement, options: RenderOptions = {
     </MemoryRouter>
   )
 
-  return render(ui, { wrapper })
+  return { ...render(ui, { wrapper }), queryClient }
 }
 
 type FetchRoute = {

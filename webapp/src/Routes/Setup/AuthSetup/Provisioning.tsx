@@ -5,6 +5,11 @@ import { useAuthContext } from "../../../Auth/Auth";
 import classes from './Provisioning.module.css';
 import axios from "axios";
 import { useClipboard } from "@mantine/hooks";
+import { useState } from "react";
+import { fetchJSON } from "../../../Auth/fetchJSON";
+import { getErrorMessage } from "../../../Auth/errorMessage";
+import { ConfirmModal } from "../../../ConfirmModal";
+import { ErrorAlert } from "../../../ErrorAlert";
 
 type SCIMSetup = {
     enabled: boolean;
@@ -15,20 +20,11 @@ export function Provisioning() {
     const queryClient = useQueryClient()
     const {authInfo} = useAuthContext();
     const clipboard = useClipboard({ timeout: 500 });
+    const [confirmRegenerate, setConfirmRegenerate] = useState(false)
 
     const { isPending, error, data } = useQuery({
         queryKey: ['scim-setup'],
-        queryFn: () =>
-          fetch(AppSettings.url + '/scim-setup', {
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": "Bearer " + authInfo.token
-            },
-          }).then((res) => {
-            return res.json()
-            }
-            
-          ),
+        queryFn: () => fetchJSON(AppSettings.url + '/scim-setup', authInfo.token),
     })
 
     const scimSetup = useMutation({
@@ -41,7 +37,10 @@ export function Provisioning() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['scim-setup'] })
-        }
+        },
+        onSettled: () => {
+            setConfirmRegenerate(false)
+        },
       })
 
     if(isPending) return "Loading..."
@@ -49,6 +48,18 @@ export function Provisioning() {
 
     
     return (
+        <>
+        <ConfirmModal
+            opened={confirmRegenerate}
+            title="Regenerate SCIM token"
+            confirmLabel="Regenerate"
+            loading={scimSetup.isPending}
+            onClose={() => setConfirmRegenerate(false)}
+            onConfirm={() => scimSetup.mutate({enabled: true, regenerateToken: true})}
+        >
+            Are you sure you want to regenerate the SCIM token? The current token stops working immediately, and your Identity Management System needs to be updated with the new token.
+        </ConfirmModal>
+        <ErrorAlert message={scimSetup.isError ? "Could not update SCIM settings: " + getErrorMessage(scimSetup.error) : ""} />
         <Grid>
             <Grid.Col span={6}>
             <UnstyledButton onClick={() => scimSetup.mutate({enabled:!data.enabled, regenerateToken: false})} className={classes.button}>
@@ -82,7 +93,7 @@ export function Provisioning() {
                         <Anchor href="#" onClick={() => clipboard.copy(data.token)} pt={2} fw={500} fz="xs" style={{marginLeft: 10}}>
                             Copy Token
                         </Anchor> - 
-                        <Anchor href="#" onClick={() => scimSetup.mutate({enabled: true, regenerateToken: true})} pt={2} fw={500} fz="xs" style={{marginLeft: 10}}>
+                        <Anchor href="#" onClick={(event) => { event.preventDefault(); setConfirmRegenerate(true) }} pt={2} fw={500} fz="xs" style={{marginLeft: 10}}>
                             Regenerate Token
                         </Anchor>
                         <PasswordInput id="token" value={data.token} variant="filled" readOnly={true} />
@@ -100,5 +111,6 @@ export function Provisioning() {
                     : null }
         </Grid.Col>
         </Grid>
+        </>
     )
 }

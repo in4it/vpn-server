@@ -4,10 +4,14 @@ import { Table, ScrollArea, Button, Tooltip, rem, Select } from '@mantine/core';
 import classes from './ListSAMLProviders.module.css';
 import { useQueryClient, useMutation, useQuery } from '@tanstack/react-query';
 import { AppSettings } from '../../../Constants/Constants';
+import { fetchJSON } from '../../../Auth/fetchJSON';
 import { TbCheck, TbCopy, TbTrash } from 'react-icons/tb';
 import { useClipboard } from '@mantine/hooks';
 import axios from 'axios';
 import { useAuthContext } from '../../../Auth/Auth';
+import { getErrorMessage } from '../../../Auth/errorMessage';
+import { ConfirmModal } from '../../../ConfirmModal';
+import { ErrorAlert } from '../../../ErrorAlert';
 
 export function ListSAMLProviders() {
     const queryClient = useQueryClient()
@@ -15,19 +19,10 @@ export function ListSAMLProviders() {
     const clipboard = useClipboard();
     const [scrolled, setScrolled] = useState(false);
     const [activeRow, setActiveRow] = useState<string>("")
+    const [providerToDelete, setProviderToDelete] = useState<SAMLProvider | null>(null)
     const { isPending, error, data } = useQuery({
         queryKey: ['saml'],
-        queryFn: () =>
-          fetch(AppSettings.url + '/saml-setup', {
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": "Bearer " + authInfo.token
-            },
-          }).then((res) => {
-            return res.json()
-            }
-            
-          ),
+        queryFn: () => fetchJSON(AppSettings.url + '/saml-setup', authInfo.token),
       })
     const deleteSAML = useMutation({
         mutationFn: (id:string) => {
@@ -39,7 +34,10 @@ export function ListSAMLProviders() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['saml'] })
-        }
+        },
+        onSettled: () => {
+            setProviderToDelete(null)
+        },
     })
     const mutation = useMutation({
       mutationFn: (payload:SAMLProvider) => {
@@ -73,6 +71,7 @@ export function ListSAMLProviders() {
                data={["False","True"]}
                value={row.allowMissingAttributes ? "True" : "False"}
                allowDeselect={false}
+               aria-label={"Allow missing attributes for " + row.name}
                onChange={(_value, option) => mutation.mutate({...row, allowMissingAttributes: option.value === "True" ? true : false})}
                comboboxProps={{ width: 100, position: 'bottom-start' }}
                styles={{ wrapper: { width: 100 } }}
@@ -166,16 +165,25 @@ export function ListSAMLProviders() {
               </Button>
               </Tooltip>
             </Table.Td>
-            <Table.Td><Button onClick={() => deleteSAML.mutate(row.id)}><TbTrash size={15} /></Button></Table.Td>
+            <Table.Td><Button aria-label={"Delete SAML provider " + row.name} onClick={() => setProviderToDelete(row)}><TbTrash size={15} /></Button></Table.Td>
         </Table.Tr>
     ));
 
   
     return (
         <>
-        {deleteSAML.isError ? (
-            <div>An error occurred while deleting: {deleteSAML.error.message}</div>
-          ) : null}
+        <ConfirmModal
+            opened={providerToDelete !== null}
+            title="Delete SAML connection"
+            confirmLabel="Delete"
+            loading={deleteSAML.isPending}
+            onClose={() => setProviderToDelete(null)}
+            onConfirm={() => providerToDelete && deleteSAML.mutate(providerToDelete.id)}
+        >
+            Are you sure you want to delete the SAML connection "{providerToDelete?.name}"? Users will no longer be able to log in with this provider.
+        </ConfirmModal>
+        {deleteSAML.isError ? <ErrorAlert message={"An error occurred while deleting: " + getErrorMessage(deleteSAML.error)} /> : null}
+        {mutation.isError ? <ErrorAlert message={"Could not update SAML connection: " + getErrorMessage(mutation.error)} /> : null}
         <ScrollArea h={300} onScrollPositionChange={({ y }) => setScrolled(y !== 0)}>
             <Table miw={700}>
             <Table.Thead className={cx(classes.header, { [classes.scrolled]: scrolled })}>

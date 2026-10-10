@@ -15,6 +15,7 @@ import classes from './AuthBanner.module.css';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { AppSettings, UUID_REGEX } from '../Constants/Constants';
+import { fetchJSON } from './fetchJSON';
 import { useAuthContext } from './Auth';
 import { AuthError } from './AuthError';
 import { MFAInput } from './MFAInput';
@@ -59,11 +60,7 @@ export function AuthBanner() {
   const [factorResponse, setFactorResponse] = useState<FactorResponse>({ name: "", code: "" })
   const { error, isPending, data } = useQuery<AuthMethods, Error>({
     queryKey: ['authmethods'],
-    queryFn: () =>
-      fetch(AppSettings.url + '/authmethods')
-        .then((res) =>
-          res.json(),
-        )
+    queryFn: () => fetchJSON<AuthMethods>(AppSettings.url + '/authmethods'),
   })
 
   const authenticate = useMutation({

@@ -43,7 +43,7 @@ func runStats(storage storage.Iface) error {
 		return fmt.Errorf("could not get WireGuard stats: %s", err)
 	}
 
-	peerConfigs, err := GetAllPeerConfigs(storage)
+	peerConfigs, err := GetAllValidPeerConfigs(storage) // skips (and logs) connection files that can't be parsed
 	if err != nil {
 		return fmt.Errorf("could not get WireGuard peer configs: %s", err)
 	}

@@ -4,7 +4,9 @@ import { AppShell, MantineProvider } from "@mantine/core";
 import { theme } from "./theme";
 import { NavBar } from "./NavBar/NavBar";
 import { AppInit } from "./AppInit/AppInit";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { createQueryClient } from "./queryClient";
+import { ErrorBoundary } from "./ErrorBoundary";
 import { Auth } from "./Auth/Auth";
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router';
 import { Home } from "./Routes/Home/Home";
@@ -21,7 +23,7 @@ import { GetMoreLicenses } from "./Routes/Licenses/GetMoreLicenses";
 import { PacketLogs } from "./Routes/PacketLogs/PacketLogs";
 import { Logs } from "./Routes/Logs/Logs";
 
-const queryClient = new QueryClient()
+const queryClient = createQueryClient()
 
 export default function App() {
   const [opened] = useDisclosure();
@@ -42,8 +44,9 @@ export default function App() {
                       <NavBar serverType="vpn" />
                     </AppShell.Navbar>
                     <AppShell.Main>     
+                        <ErrorBoundary>     
                         <Routes>
-                          <Route path="/" element={<Home />} />
+                          <Route path="/" element={<Home serverType="vpn" />} />
                           <Route path="/users" element={<CheckRole role="admin"><Users /></CheckRole>} />
                           <Route path="/setup" element={<CheckRole role="admin"><Setup /></CheckRole>} />
                           <Route path="/setup/:page" element={<CheckRole role="admin"><Setup /></CheckRole>} />
@@ -56,7 +59,9 @@ export default function App() {
                           <Route path="/callback/:callbacktype/:id" element={<Navigate to={"/"} />} />
                           <Route path="/connection" element={<Connections />} />
                           <Route path="/profile" element={<Profile />} />
+                          <Route path="*" element={<Navigate to={"/"} />} />
                         </Routes>
+                    </ErrorBoundary>
                     </AppShell.Main>
                   </AppShell>
                 </Auth>
@@ -75,8 +80,9 @@ export default function App() {
                       <NavBar serverType="observability" />
                     </AppShell.Navbar>
                     <AppShell.Main>     
+                        <ErrorBoundary>     
                         <Routes>
-                          <Route path="/" element={<Home />} />
+                          <Route path="/" element={<Home serverType="observability" />} />
                           <Route path="/users" element={<CheckRole role="admin"><Users /></CheckRole>} />
                           <Route path="/setup" element={<CheckRole role="admin"><Setup /></CheckRole>} />
                           <Route path="/setup/:page" element={<CheckRole role="admin"><Setup /></CheckRole>} />
@@ -88,7 +94,9 @@ export default function App() {
                           <Route path="/login/:logintype/:id" element={<Navigate to={"/"} />} />
                           <Route path="/callback/:callbacktype/:id" element={<Navigate to={"/"} />} />
                           <Route path="/profile" element={<Profile />} />
+                          <Route path="*" element={<Navigate to={"/"} />} />
                         </Routes>
+                    </ErrorBoundary>
                     </AppShell.Main>
                   </AppShell>
                 </Auth>

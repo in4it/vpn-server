@@ -34,7 +34,7 @@ func (c *ConfigManager) refreshClients(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if payload.Action == wireguard.ACTION_CLEANUP {
-			err = cleanupClients(c.Storage)
+			err = cleanupClients(c.Storage, c.ClientCache)
 			if err != nil {
 				returnError(w, fmt.Errorf("cleanup clients error: %s", err), http.StatusBadRequest)
 				return
@@ -89,14 +89,10 @@ func (c *ConfigManager) refreshServerConfig(w http.ResponseWriter, r *http.Reque
 			returnError(w, fmt.Errorf("get vpn config error: %s", err), http.StatusBadRequest)
 			return
 		}
-		startPacketLogger := false
-		if vpnConfig.EnablePacketLogs && !c.VPNConfig.EnablePacketLogs {
-			startPacketLogger = true
-		}
-		c.VPNConfig.EnablePacketLogs = vpnConfig.EnablePacketLogs
-		c.VPNConfig.PacketLogsTypes = vpnConfig.PacketLogsTypes
+		// the packet logger reads these settings concurrently, so update them under its lock
+		startPacketLogger := wireguard.SetPacketLogConfig(c.VPNConfig, vpnConfig.EnablePacketLogs, vpnConfig.PacketLogsTypes)
 		if startPacketLogger {
-			go wireguard.RunPacketLogger(c.Storage, c.ClientCache, c.VPNConfig)
+			go runPacketLogger(c.Storage, c.ClientCache, c.VPNConfig)
 		}
 		w.WriteHeader(http.StatusAccepted)
 	default:
@@ -123,15 +119,25 @@ func (c *ConfigManager) upgrade(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	case http.MethodPost:
-		_, err := w.Write([]byte(`{"upgrade": "starting"}`))
-		if err != nil {
-			returnError(w, fmt.Errorf("write error: %s", err), http.StatusBadRequest)
+		// only one upgrade at a time
+		if !upgradeMutex.TryLock() {
+			returnError(w, fmt.Errorf("upgrade already in progress"), http.StatusConflict)
 			return
 		}
-		err = upgrade()
+		_, err := w.Write([]byte(`{"upgrade": "starting"}`))
 		if err != nil {
-			fmt.Printf("upgrade failed: %s\n", err)
+			upgradeMutex.Unlock()
+			fmt.Printf("upgrade: write error: %s\n", err)
+			return
 		}
+		// the download can take longer than the rest-server's request timeout,
+		// so run the upgrade in the background (the services are restarted at the end)
+		go func() {
+			defer upgradeMutex.Unlock()
+			if err := runUpgrade(); err != nil {
+				fmt.Printf("upgrade failed: %s\n", err)
+			}
+		}()
 	default:
 		returnError(w, fmt.Errorf("method not supported"), http.StatusBadRequest)
 	}
@@ -158,18 +164,25 @@ func (c *ConfigManager) version(w http.ResponseWriter, r *http.Request) {
 func (c *ConfigManager) restartVpn(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
-		err := stopVPN()
+		// make sure the config renders before taking the vpn down, otherwise a
+		// broken template leaves the vpn down
+		err := wireguard.CheckWireGuardServerConfig(c.Storage)
+		if err != nil {
+			returnError(w, fmt.Errorf("vpn config error, vpn not restarted: %s", err), http.StatusBadRequest)
+			return
+		}
+		err = vpnStop()
 		if err != nil { // don't exit, as the VPN might be down already.
 			fmt.Println("========= Warning =========")
 			fmt.Printf("Warning: vpn stop error: %s\n", err)
 			fmt.Println("=========================")
 		}
-		err = startVPN(c.Storage)
+		err = vpnStart(c.Storage)
 		if err != nil {
 			returnError(w, fmt.Errorf("vpn start error: %s", err), http.StatusBadRequest)
 			return
 		}
-		err = refreshAllClientsAndServer(c.Storage, c.ClientCache)
+		err = vpnRefreshClients(c.Storage, c.ClientCache)
 		if err != nil {
 			returnError(w, fmt.Errorf("could not refresh all clients: %s", err), http.StatusBadRequest)
 			return

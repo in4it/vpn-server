@@ -4,15 +4,19 @@ import (
 	"bufio"
 	"bytes"
 	"compress/gzip"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
 	"math"
 	"net/http"
 	"path"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/in4it/go-devops-platform/storage"
@@ -77,14 +81,17 @@ func (v *VPN) userStatsHandler(w http.ResponseWriter, r *http.Request) {
 
 	scanner := bufio.NewScanner(logData)
 
-	receiveBytesLast := make(map[string]int64)   // key: userID|connectionID
-	transmitBytesLast := make(map[string]int64)  // key: userID|connectionID
+	receiveBytesLast := make(map[string]int64)  // key: userID|connectionID
+	transmitBytesLast := make(map[string]int64) // key: userID|connectionID
 	receiveBytesData := make(map[string][]UserStatsDataPoint)
 	transmitBytesData := make(map[string][]UserStatsDataPoint)
 	handshakeLast := make(map[string]time.Time) // key: userID|connectionID
 	handshakeData := make(map[string][]UserStatsDataPoint)
 	for scanner.Scan() { // all other entries
 		inputSplit := strings.Split(scanner.Text(), ",")
+		if len(inputSplit) < 6 { // invalid record (blank or truncated line)
+			continue
+		}
 		userID := inputSplit[1]
 		connectionID := inputSplit[2]
 		key := userID + "|" + connectionID
@@ -112,7 +119,7 @@ func (v *VPN) userStatsHandler(w http.ResponseWriter, r *http.Request) {
 			if _, ok := receiveBytesData[userID]; !ok {
 				receiveBytesData[userID] = []UserStatsDataPoint{}
 			}
-			value := math.Round(float64((receiveBytes-receiveBytesLast[key])/unitAdjustment*100)) / 100
+			value := scaleCounterDelta(receiveBytes, receiveBytesLast[key], unitAdjustment)
 			timestamp, err := time.Parse(wireguard.TIMESTAMP_FORMAT, inputSplit[0])
 			if err == nil {
 				timestamp = timestamp.Add(time.Duration(offset) * time.Minute)
@@ -126,7 +133,7 @@ func (v *VPN) userStatsHandler(w http.ResponseWriter, r *http.Request) {
 			if _, ok := transmitBytesData[userID]; !ok {
 				transmitBytesData[userID] = []UserStatsDataPoint{}
 			}
-			value := math.Round(float64((transmitBytes-transmitBytesLast[key])/unitAdjustment*100)) / 100
+			value := scaleCounterDelta(transmitBytes, transmitBytesLast[key], unitAdjustment)
 			timestamp, err := time.Parse(wireguard.TIMESTAMP_FORMAT, inputSplit[0])
 			if err == nil {
 				timestamp = timestamp.Add(time.Duration(offset) * time.Minute)
@@ -238,8 +245,16 @@ func (v *VPN) packetLogsHandler(w http.ResponseWriter, r *http.Request) {
 		v.returnError(w, fmt.Errorf("no user supplied"), http.StatusBadRequest)
 		return
 	}
+	if !v.isValidPacketLogUserID(userID) {
+		v.returnError(w, fmt.Errorf("invalid user supplied"), http.StatusBadRequest)
+		return
+	}
 	if r.PathValue("date") == "" {
 		v.returnError(w, fmt.Errorf("no date supplied"), http.StatusBadRequest)
+		return
+	}
+	if !dateRegex.MatchString(r.PathValue("date")) {
+		v.returnError(w, fmt.Errorf("invalid date: expected format YYYY-MM-DD"), http.StatusBadRequest)
 		return
 	}
 	date, err := time.Parse("2006-01-02", r.PathValue("date"))
@@ -320,6 +335,9 @@ func (v *VPN) packetLogsHandler(w http.ResponseWriter, r *http.Request) {
 		})
 		for scanner.Scan() && len(logData.Data) < MAX_LOG_OUTPUT_LINES { // read multiple lines
 			inputSplit := strings.Split(scanner.Text(), ",")
+			if len(inputSplit) < 2 { // invalid record (blank or truncated line)
+				continue
+			}
 			timestamp, err := time.Parse(wireguard.TIMESTAMP_FORMAT, inputSplit[0])
 			if err != nil {
 				continue // invalid record
@@ -363,42 +381,119 @@ func (v *VPN) packetLogsHandler(w http.ResponseWriter, r *http.Request) {
 	v.write(w, out)
 }
 
+var muDecompress sync.Mutex
+
 func getCompressedFilesAndRemoveNonExistent(storage storage.Iface, files []string) ([]string, error) {
 	res := []string{}
 	for _, file := range files {
 		tmpFile := path.Join(wireguard.VPN_PACKETLOGGER_TMP_DIR, path.Base(file))
 		if storage.FileExists(file) {
 			res = append(res, file)
-		} else if storage.FileExists(tmpFile) { // temporary file exists
+		} else if storage.FileExists(tmpFile) { // temporary file exists (only created after successful decompression)
 			res = append(res, tmpFile)
 		} else if storage.FileExists(file + ".gz") { // uncompress log file for random access
-			err := storage.EnsurePath(wireguard.VPN_PACKETLOGGER_TMP_DIR)
+			err := decompressToTmpFile(storage, file+".gz", tmpFile)
 			if err != nil {
-				return res, fmt.Errorf("ensure path error: %s", err)
+				return res, err
 			}
-			compressedFile, err := storage.OpenFile(file + ".gz")
-			if err != nil {
-				return res, fmt.Errorf("unable to open compress filed (%s): %s", file+".gz", err)
-			}
-			gzipReader, err := gzip.NewReader(compressedFile)
-			if err != nil {
-				return res, fmt.Errorf("unable to open gzip reader (%s): %s", file+".gz", err)
-			}
-			fileWriter, err := storage.OpenFileForWriting(tmpFile)
-			if err != nil {
-				return res, fmt.Errorf("unable to open tmp file writer (%s): %s", tmpFile, err)
-			}
-			_, err = io.Copy(fileWriter, gzipReader)
-			if err != nil {
-				return res, fmt.Errorf("unable to uncompress to file (%s): %s", tmpFile, err)
-			}
-			fileWriter.Close()     //nolint:errcheck
-			gzipReader.Close()     //nolint:errcheck
-			compressedFile.Close() //nolint:errcheck
 			res = append(res, tmpFile)
 		}
 	}
 	return res, nil
+}
+
+// decompressToTmpFile decompresses to a unique temporary file first, and renames it once complete, so that
+// concurrent requests never read a partially written file and failed decompressions are never reused
+func decompressToTmpFile(storage storage.Iface, compressedFilename, tmpFile string) error {
+	muDecompress.Lock()
+	defer muDecompress.Unlock()
+	if storage.FileExists(tmpFile) { // another request decompressed the file while we were waiting
+		return nil
+	}
+	err := storage.EnsurePath(wireguard.VPN_PACKETLOGGER_TMP_DIR)
+	if err != nil {
+		return fmt.Errorf("ensure path error: %s", err)
+	}
+	randomSuffix := make([]byte, 8)
+	if _, err := rand.Read(randomSuffix); err != nil {
+		return fmt.Errorf("unable to generate tmp file name: %s", err)
+	}
+	partialFile := tmpFile + ".partial-" + hex.EncodeToString(randomSuffix)
+	err = decompressFile(storage, compressedFilename, partialFile)
+	if err != nil {
+		storage.Remove(partialFile) //nolint:errcheck
+		return err
+	}
+	err = storage.Rename(partialFile, tmpFile)
+	if err != nil {
+		storage.Remove(partialFile) //nolint:errcheck
+		return fmt.Errorf("unable to rename tmp file (%s): %s", tmpFile, err)
+	}
+	return nil
+}
+
+func decompressFile(storage storage.Iface, compressedFilename, outFilename string) error {
+	compressedFile, err := storage.OpenFile(compressedFilename)
+	if err != nil {
+		return fmt.Errorf("unable to open compress filed (%s): %s", compressedFilename, err)
+	}
+	defer compressedFile.Close() //nolint:errcheck
+	gzipReader, err := gzip.NewReader(compressedFile)
+	if err != nil {
+		return fmt.Errorf("unable to open gzip reader (%s): %s", compressedFilename, err)
+	}
+	defer gzipReader.Close() //nolint:errcheck
+	fileWriter, err := storage.OpenFileForWriting(outFilename)
+	if err != nil {
+		return fmt.Errorf("unable to open tmp file writer (%s): %s", outFilename, err)
+	}
+	_, err = io.Copy(fileWriter, gzipReader)
+	if err != nil {
+		fileWriter.Close() //nolint:errcheck
+		return fmt.Errorf("unable to uncompress to file (%s): %s", outFilename, err)
+	}
+	err = fileWriter.Close()
+	if err != nil {
+		return fmt.Errorf("unable to close tmp file (%s): %s", outFilename, err)
+	}
+	return nil
+}
+
+// scaleCounterDelta returns the difference between 2 counter values in the requested unit, rounded to 2 decimals.
+// When the counter is lower than the previous value, the counter has been reset (e.g. wireguard restart), and the
+// current value is the amount since the reset.
+func scaleCounterDelta(current, last, unitAdjustment int64) float64 {
+	delta := current - last
+	if delta < 0 {
+		delta = current
+	}
+	if delta < 0 {
+		delta = 0
+	}
+	return math.Round(float64(delta)/float64(unitAdjustment)*100) / 100
+}
+
+var dateRegex = regexp.MustCompile(`^[0-9]{4}-[0-9]{2}-[0-9]{2}$`)
+var uuidRegex = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
+
+// isValidPacketLogUserID: the user id is used in a file path, so it must be a uuid or an existing user id.
+// "all" is what the webapp requests when no user is selected yet.
+func (v *VPN) isValidPacketLogUserID(userID string) bool {
+	if userID == "all" {
+		return true
+	}
+	if userID == "" || strings.ContainsAny(userID, `./\`) {
+		return false
+	}
+	if uuidRegex.MatchString(userID) {
+		return true
+	}
+	if v.UserStore != nil {
+		if _, err := v.UserStore.GetUserByID(userID); err == nil {
+			return true
+		}
+	}
+	return false
 }
 
 func getColor(i int) string {

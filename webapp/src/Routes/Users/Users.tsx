@@ -6,6 +6,7 @@ import { NewUser } from "./NewUser";
 import { NewUserButton } from "./NewUserButton";
 import { useAuthContext } from "../../Auth/Auth";
 import { AppSettings } from "../../Constants/Constants";
+import { fetchJSON } from "../../Auth/fetchJSON";
 import { useQuery } from "@tanstack/react-query";
 
 export function Users() {
@@ -14,16 +15,7 @@ export function Users() {
     const { isPending, error, data } = useQuery({
         queryKey: ['setup'],
         queryFn: () =>
-          fetch(AppSettings.url + '/setup/general', {
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": "Bearer " + authInfo.token
-            },
-          }).then((res) => {
-            return res.json()
-            }
-            
-          ),
+          fetchJSON(AppSettings.url + '/setup/general', authInfo.token),
       })
     if(isPending) return "Loading..."
     if(error) { return "can't load page, error: " + error.message}

@@ -3,10 +3,8 @@
 package network
 
 import (
-	"bufio"
 	"fmt"
 	"os"
-	"strings"
 )
 
 func GetInterfaceDefaultGw() (string, error) {
@@ -16,12 +14,5 @@ func GetInterfaceDefaultGw() (string, error) {
 	}
 	defer file.Close() //nolint:errcheck
 
-	scanner := bufio.NewScanner(file)
-	for i := 0; scanner.Scan(); i++ {
-		for i >= 1 { // 1 is first line, which contains the default gateway
-			elements := strings.Split(scanner.Text(), "\t")
-			return elements[0], nil
-		}
-	}
-	return "", fmt.Errorf("could not determine default gw")
+	return parseDefaultGwInterface(file)
 }

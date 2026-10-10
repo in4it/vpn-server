@@ -4,16 +4,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net"
-	"net/http"
 	"net/netip"
 	"path"
 	"slices"
 	"strconv"
 	"strings"
 	"sync"
-	"text/template"
-	"time"
 
 	"github.com/in4it/go-devops-platform/storage"
 	"github.com/in4it/go-devops-platform/users"
@@ -204,6 +202,30 @@ func GetAllPeerConfigs(storage storage.Iface) ([]PeerConfig, error) {
 	return peerConfigs, nil
 }
 
+// GetAllValidPeerConfigs returns the peer configs of all connection files that
+// can be read and parsed. Connection files that can't be read or parsed are
+// skipped (and logged), so one corrupt file doesn't stop the processing of the
+// other connections. Only an error listing the directory is returned.
+// Callers removing peers must treat a peer without a valid config as removed.
+func GetAllValidPeerConfigs(storage storage.Iface) ([]PeerConfig, error) {
+	peerConfigPath := storage.ConfigPath(VPN_CLIENTS_DIR)
+
+	entries, err := storage.ReadDir(peerConfigPath)
+	if err != nil {
+		return []PeerConfig{}, fmt.Errorf("can not list clients from dir %s: %w", peerConfigPath, err)
+	}
+	peerConfigs := make([]PeerConfig, 0, len(entries))
+	for _, entry := range entries {
+		peerConfig, err := GetPeerConfigByFilename(storage, entry)
+		if err != nil {
+			log.Printf("Warning: skipping connection file %s: %s", entry, err)
+			continue
+		}
+		peerConfigs = append(peerConfigs, peerConfig)
+	}
+	return peerConfigs, nil
+}
+
 func GetClientTemplate(storage storage.Iface) ([]byte, error) {
 	filename := storage.ConfigPath("templates/client.tmpl")
 	err := storage.EnsurePath(storage.ConfigPath("templates"))
@@ -275,7 +297,7 @@ func GenerateNewClientConfig(storage storage.Iface, connectionID, userID string)
 		return nil, fmt.Errorf("could not get client template: %s", err)
 	}
 
-	tmpl, err := template.New("client.tmpl").Funcs(template.FuncMap{"StringsJoin": strings.Join}).Parse(string(templatefileContents))
+	tmpl, err := parseClientTemplate(templatefileContents)
 	if err != nil {
 		return nil, fmt.Errorf("could not parse client template: %s", err)
 	}
@@ -293,28 +315,16 @@ func GenerateNewClientConfig(storage storage.Iface, connectionID, userID string)
 	}
 
 	// notify configmanager
-	client := http.Client{
-		Timeout: 10 * time.Second,
-	}
-	refreshClientRequest := RefreshClientRequest{
-		Action:    ACTION_ADD,
-		Filenames: []string{path.Base(userConfigFilename)},
-	}
-	payload, err := json.Marshal(refreshClientRequest)
+	err = notifyConfigManagerRefreshClients(ACTION_ADD, []string{path.Base(userConfigFilename)})
 	if err != nil {
-		return nil, fmt.Errorf("could not marshal refresh client request: %s", err)
-	}
-	resp, err := client.Post("http://"+CONFIGMANAGER_URI+"/refresh-clients", "application/json", bytes.NewReader(payload))
-	if err != nil {
-		return nil, fmt.Errorf("configmanager post error: %s", err)
-	}
-	if resp.StatusCode != http.StatusAccepted {
-		return nil, fmt.Errorf("configmanager post error: received status code %d", resp.StatusCode)
+		return nil, err
 	}
 
 	return out.Bytes(), nil
 }
 func DeleteAllClientConfigs(storage storage.Iface, user users.User) error {
+	clientConfigMutex.Lock()
+	defer clientConfigMutex.Unlock()
 	clients, err := storage.ReadDir(storage.ConfigPath(VPN_CLIENTS_DIR))
 	if err != nil {
 		return fmt.Errorf("cannot list files in users clients directory: %s", err)
@@ -330,27 +340,15 @@ func DeleteAllClientConfigs(storage storage.Iface, user users.User) error {
 		}
 	}
 	// notify configmanager
-	client := http.Client{
-		Timeout: 10 * time.Second,
-	}
-	refreshClientRequest := RefreshClientRequest{
-		Action:    ACTION_CLEANUP,
-		Filenames: []string{},
-	}
-	payload, err := json.Marshal(refreshClientRequest)
-	if err != nil {
-		return fmt.Errorf("could not marshal refresh client request: %s", err)
-	}
-	resp, err := client.Post("http://"+CONFIGMANAGER_URI+"/refresh-clients", "application/json", bytes.NewReader(payload))
-	if err != nil {
-		return fmt.Errorf("configmanager post error: %s", err)
-	}
-	if resp.StatusCode != http.StatusAccepted {
-		return fmt.Errorf("configmanager post error: received status code %d", resp.StatusCode)
-	}
-	return nil
+	return notifyConfigManagerRefreshClients(ACTION_CLEANUP, []string{})
 }
+
+// DeleteClientConfig removes the connection. It takes the clientConfigMutex, so
+// it can't interleave with GenerateNewClientConfig (which would otherwise
+// write the connection file again after it has been deleted).
 func DeleteClientConfig(storage storage.Iface, connectionID, userID string) error {
+	clientConfigMutex.Lock()
+	defer clientConfigMutex.Unlock()
 	toDeleteFilename := fmt.Sprintf("%s.json", connectionID)
 	filename := storage.ConfigPath(path.Join(VPN_CLIENTS_DIR, toDeleteFilename))
 	err := storage.Remove(filename)
@@ -358,25 +356,7 @@ func DeleteClientConfig(storage storage.Iface, connectionID, userID string) erro
 		return fmt.Errorf("removal of file %s failed: %s", filename, err)
 	}
 	// notify configmanager
-	client := http.Client{
-		Timeout: 10 * time.Second,
-	}
-	refreshClientRequest := RefreshClientRequest{
-		Action:    ACTION_CLEANUP,
-		Filenames: []string{},
-	}
-	payload, err := json.Marshal(refreshClientRequest)
-	if err != nil {
-		return fmt.Errorf("could not marshal refresh client request: %s", err)
-	}
-	resp, err := client.Post("http://"+CONFIGMANAGER_URI+"/refresh-clients", "application/json", bytes.NewReader(payload))
-	if err != nil {
-		return fmt.Errorf("configmanager post error: %s", err)
-	}
-	if resp.StatusCode != http.StatusAccepted {
-		return fmt.Errorf("configmanager post error: received status code %d", resp.StatusCode)
-	}
-	return nil
+	return notifyConfigManagerRefreshClients(ACTION_CLEANUP, []string{})
 }
 func DisableAllClientConfigs(storage storage.Iface, user users.User) error {
 	clientConfigMutex.Lock()
@@ -418,24 +398,7 @@ func DisableAllClientConfigs(storage storage.Iface, user users.User) error {
 
 	// notify configmanager
 	if len(toDelete) > 0 {
-		client := http.Client{
-			Timeout: 10 * time.Second,
-		}
-		refreshClientRequest := RefreshClientRequest{
-			Action:    ACTION_DELETE,
-			Filenames: toDelete,
-		}
-		payload, err := json.Marshal(refreshClientRequest)
-		if err != nil {
-			return fmt.Errorf("could not marshal refresh client request: %s", err)
-		}
-		resp, err := client.Post("http://"+CONFIGMANAGER_URI+"/refresh-clients", "application/json", bytes.NewReader(payload))
-		if err != nil {
-			return fmt.Errorf("configmanager post error: %s", err)
-		}
-		if resp.StatusCode != http.StatusAccepted {
-			return fmt.Errorf("configmanager post error: received status code %d", resp.StatusCode)
-		}
+		return notifyConfigManagerRefreshClients(ACTION_DELETE, toDelete)
 	}
 	return nil
 }
@@ -479,24 +442,7 @@ func ReactivateAllClientConfigs(storage storage.Iface, user users.User) error {
 
 	// notify configmanager
 	if len(toAdd) > 0 {
-		client := http.Client{
-			Timeout: 10 * time.Second,
-		}
-		refreshClientRequest := RefreshClientRequest{
-			Action:    ACTION_ADD,
-			Filenames: toAdd,
-		}
-		payload, err := json.Marshal(refreshClientRequest)
-		if err != nil {
-			return fmt.Errorf("could not marshal refresh client request: %s", err)
-		}
-		resp, err := client.Post("http://"+CONFIGMANAGER_URI+"/refresh-clients", "application/json", bytes.NewReader(payload))
-		if err != nil {
-			return fmt.Errorf("configmanager post error: %s", err)
-		}
-		if resp.StatusCode != http.StatusAccepted {
-			return fmt.Errorf("configmanager post error: received status code %d", resp.StatusCode)
-		}
+		return notifyConfigManagerRefreshClients(ACTION_ADD, toAdd)
 	}
 	return nil
 }

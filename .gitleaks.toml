@@ -1,0 +1,22 @@
+# gitleaks configuration, used by .github/workflows/secret-scan.yml
+# Run locally with: gitleaks git --redact .
+title = "in4it gitleaks config"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "gcp-marketplace-license"
+description = "Google Cloud Marketplace license path (contains the GCP project id)"
+regex = '''projects/[a-z][a-z0-9-]{4,28}[a-z0-9]/global/licenses/[a-z0-9-]+'''
+keywords = ["licenses"]
+
+[[rules]]
+id = "gcp-project-id-assignment"
+description = "Hardcoded GCP project id"
+regex = '''GCP_PROJECT_ID\s*[:=]\s*["']?[a-z][a-z0-9-]{4,28}[a-z0-9]'''
+keywords = ["gcp_project_id"]
+
+[[allowlists]]
+description = "RFC 6238 TOTP test secret (base32 of 12345678901234567890) used in unit tests"
+regexes = ['''GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ''']
