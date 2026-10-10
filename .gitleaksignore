@@ -1,0 +1,2 @@
+# Known findings in history, already public (Marketplace listing). Do not add new entries for real secrets: rotate them instead.
+dfd206d2cf201850d0e54ab07c69235b829aa29d:provisioning/packer-gcp-amd64.pkr.hcl:gcp-marketplace-license:25
