@@ -67,3 +67,33 @@ func TestRestartVPN(t *testing.T) {
 		t.Fatalf("expected stop, start and refresh once: %+v", calls)
 	}
 }
+
+func TestRefreshServerConfigStartsPacketLoggerOnce(t *testing.T) {
+	c := newTestConfigManager(t)
+	c.VPNConfig = &wireguard.VPNConfig{PacketLogsTypes: map[string]bool{}}
+	started := make(chan struct{}, 10)
+	origRun := runPacketLogger
+	t.Cleanup(func() { runPacketLogger = origRun })
+	runPacketLogger = func(storage.Iface, *wireguard.ClientCache, *wireguard.VPNConfig) { started <- struct{}{} }
+
+	vpnConfig, err := wireguard.GetVPNConfig(c.Storage)
+	if err != nil {
+		t.Fatalf("GetVPNConfig error: %s", err)
+	}
+	vpnConfig.EnablePacketLogs = true
+	vpnConfig.PacketLogsTypes = map[string]bool{"dns": true}
+	if err := wireguard.WriteVPNConfig(c.Storage, vpnConfig); err != nil {
+		t.Fatalf("WriteVPNConfig error: %s", err)
+	}
+	for i := 0; i < 2; i++ {
+		w := httptest.NewRecorder()
+		c.refreshServerConfig(w, httptest.NewRequest(http.MethodPost, "http://127.0.0.1/refresh-server-config", nil))
+		if w.Result().StatusCode != http.StatusAccepted {
+			t.Fatalf("expected 202, got %d", w.Result().StatusCode)
+		}
+	}
+	<-started
+	if len(started) != 0 {
+		t.Fatalf("packet logger started more than once")
+	}
+}

@@ -4,16 +4,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"net"
-	"net/http"
 	"net/netip"
 	"os/user"
 	"path"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/in4it/go-devops-platform/storage"
 	"github.com/in4it/wireguard-server/pkg/wireguard/network"
@@ -149,73 +146,21 @@ func WriteVPNConfig(storage storage.Iface, vpnConfig VPNConfig) error {
 
 func ReloadVPNServerConfig() error {
 	// notify configmanager
-	client := http.Client{
-		Timeout: 10 * time.Second,
-	}
-
-	resp, err := client.Post("http://"+CONFIGMANAGER_URI+"/refresh-server-config", "application/json", nil)
-	if err != nil {
-		return fmt.Errorf("configmanager post error: %s", err)
-	}
-	if resp.StatusCode != http.StatusAccepted {
-		return fmt.Errorf("configmanager post error: received status code %d", resp.StatusCode)
-	}
-	return nil
+	return notifyConfigManager("/refresh-server-config", nil)
 }
 
 func guessHostname() string {
-	// try to get hostname from local loopback
+	// try to get the public ip from the cloud provider's metadata service
+	if publicIP := getPublicIPFromMetadata(); publicIP != "" {
+		return publicIP
+	}
+	// fall back to the ip address of the interface with the default route
 	hostname := ""
 	conn, err := net.Dial("udp", "8.8.8.8:80")
-
 	if err == nil {
 		defer conn.Close() //nolint:errcheck
 		hostname = conn.LocalAddr().(*net.UDPAddr).String()
 	}
-
 	hostnameSplit := strings.Split(hostname, ":")
-	hostname = hostnameSplit[0]
-
-	// try to get assigned external IP on EC2
-	tokenEndpoint := "http://169.254.169.254/latest/api/token"
-	client := http.Client{
-		Timeout: 5 * time.Second,
-	}
-	req, err := http.NewRequest("PUT", tokenEndpoint, nil)
-	if err != nil {
-		return hostname
-	}
-
-	req.Header.Add("X-aws-ec2-metadata-token-ttl-seconds", "21600")
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return hostname
-	}
-
-	token := ""
-
-	if resp.StatusCode == 200 {
-		bodyBytes, _ := io.ReadAll(resp.Body)
-		token = string(bodyBytes)
-	}
-
-	endpoint := "http://169.254.169.254/latest/meta-data/public-ipv4"
-	req, err = http.NewRequest("GET", endpoint, nil)
-	if err != nil {
-		return hostname
-	}
-	if token != "" {
-		req.Header.Add("X-aws-ec2-metadata-token", token)
-	}
-
-	resp, err = client.Do(req)
-	if err != nil {
-		return hostname
-	}
-	if resp.StatusCode == 200 {
-		bodyBytes, _ := io.ReadAll(resp.Body)
-		return string(bodyBytes)
-	}
-	return hostname
+	return hostnameSplit[0]
 }

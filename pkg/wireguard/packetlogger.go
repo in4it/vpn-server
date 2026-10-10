@@ -13,6 +13,7 @@ import (
 	"os"
 	"path"
 	"runtime"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -29,10 +30,47 @@ import (
 
 var (
 	PacketLoggerIsRunning sync.Mutex
+	// packetLogConfigMu protects EnablePacketLogs and PacketLogsTypes of the
+	// VPNConfig that is shared between the configmanager handlers and the
+	// packet logger
+	packetLogConfigMu sync.RWMutex
 )
 
+// how often to check whether there is enough disk space again, after the
+// packet logger paused because of low disk space
+var diskSpaceRetryInterval = 1 * time.Minute
+
+// SetPacketLogConfig updates the packet log settings of a VPNConfig that is
+// shared with a running packet logger. Returns true when packet logging went
+// from disabled to enabled (the packet logger needs to be started).
+func SetPacketLogConfig(vpnConfig *VPNConfig, enablePacketLogs bool, packetLogsTypes map[string]bool) bool {
+	typesCopy := make(map[string]bool, len(packetLogsTypes))
+	for k, v := range packetLogsTypes {
+		typesCopy[k] = v
+	}
+	packetLogConfigMu.Lock()
+	defer packetLogConfigMu.Unlock()
+	wasEnabled := vpnConfig.EnablePacketLogs
+	vpnConfig.EnablePacketLogs = enablePacketLogs
+	vpnConfig.PacketLogsTypes = typesCopy
+	return enablePacketLogs && !wasEnabled
+}
+
+// getPacketLogConfig returns the packet log settings. The returned map must
+// not be modified (SetPacketLogConfig replaces the map, it never mutates it).
+func getPacketLogConfig(vpnConfig *VPNConfig) (bool, map[string]bool) {
+	packetLogConfigMu.RLock()
+	defer packetLogConfigMu.RUnlock()
+	return vpnConfig.EnablePacketLogs, vpnConfig.PacketLogsTypes
+}
+
+func isPacketLogEnabled(vpnConfig *VPNConfig) bool {
+	enabled, _ := getPacketLogConfig(vpnConfig)
+	return enabled
+}
+
 func RunPacketLogger(storage storage.Iface, clientCache *ClientCache, vpnConfig *VPNConfig) {
-	if !vpnConfig.EnablePacketLogs {
+	if !isPacketLogEnabled(vpnConfig) {
 		return
 	}
 	fmt.Printf("starting packetlogger")
@@ -76,30 +114,56 @@ func RunPacketLogger(storage storage.Iface, clientCache *ClientCache, vpnConfig 
 	i := 0
 	openFiles := make(PacketLoggerOpenFiles)
 	for {
-		err := readPacket(storage, handle, clientCache, openFiles, vpnConfig.PacketLogsTypes)
+		_, packetLogsTypes := getPacketLogConfig(vpnConfig)
+		err := readPacket(storage, handle, clientCache, openFiles, packetLogsTypes)
 		if err != nil {
 			logging.DebugLog(fmt.Errorf("readPacket error: %s", err))
 		}
-		if !vpnConfig.EnablePacketLogs {
+		if !isPacketLogEnabled(vpnConfig) {
 			logging.InfoLog("disabling packetlogs")
-			for _, openFile := range openFiles {
-				openFile.Close() //nolint:errcheck
-			}
+			closeOpenFiles(openFiles)
 			return
 		}
 		if i%1000 == 0 {
 			if err := checkDiskSpace(); err != nil {
-				logging.ErrorLog(fmt.Errorf("disk space error: %s", err))
-				for _, openFile := range openFiles {
-					openFile.Close() //nolint:errcheck
+				logging.ErrorLog(fmt.Errorf("disk space error: %s. Pausing packet logs until enough disk space is available", err))
+				closeOpenFiles(openFiles)
+				if !waitForDiskSpace(checkDiskSpace, func() bool { return isPacketLogEnabled(vpnConfig) }, time.Sleep, diskSpaceRetryInterval) {
+					logging.InfoLog("disabling packetlogs")
+					return
 				}
-				return
+				logging.InfoLog("enough disk space available. Resuming packet logs")
 			}
 			i = 0
 		}
 		i++
 	}
 }
+
+// closeOpenFiles closes all open log files and removes them from the map, so
+// they are reopened when needed
+func closeOpenFiles(openFiles PacketLoggerOpenFiles) {
+	for key, openFile := range openFiles {
+		openFile.Close() //nolint:errcheck
+		delete(openFiles, key)
+	}
+}
+
+// waitForDiskSpace blocks until checkDiskSpace succeeds (returns true) or until
+// packet logging is disabled (returns false). The disk space is checked every
+// interval.
+func waitForDiskSpace(checkDiskSpace func() error, enabled func() bool, sleep func(time.Duration), interval time.Duration) bool {
+	for {
+		sleep(interval)
+		if !enabled() {
+			return false
+		}
+		if err := checkDiskSpace(); err == nil {
+			return true
+		}
+	}
+}
+
 func readPacket(storage storage.Iface, handle *pcap.Handle, clientCache *ClientCache, openFiles PacketLoggerOpenFiles, packetLogsTypes map[string]bool) error {
 	data, _, err := handle.ReadPacketData()
 	if err != nil {
@@ -130,12 +194,7 @@ func parsePacket(storage storage.Iface, data []byte, clientCache *ClientCache, o
 		return fmt.Errorf("got packet which is not ipv4/ipv6")
 	}
 
-	clientID := ""
-	for _, address := range clientCache.Addresses {
-		if address.Address.Contains(srcIP) {
-			clientID = address.ClientID
-		}
-	}
+	clientID := clientCache.getClientIDByIP(srcIP)
 	if clientID == "" { // doesn't match a client ID
 		return nil
 	}
@@ -225,7 +284,7 @@ func parsePacket(storage storage.Iface, data []byte, clientCache *ClientCache, o
 									dstIP.String(),
 									strconv.FormatUint(uint64(tcpPacket.SrcPort), 10),
 									strconv.FormatUint(uint64(tcpPacket.DstPort), 10),
-									"http://" + req.Host + req.URL.RequestURI()},
+									sanitizeLogField("http://" + req.Host + req.URL.RequestURI())},
 									",") + "\n",
 								))
 								if err != nil {
@@ -245,7 +304,7 @@ func parsePacket(storage storage.Iface, data []byte, clientCache *ClientCache, o
 									dstIP.String(),
 									strconv.FormatUint(uint64(tcpPacket.SrcPort), 10),
 									strconv.FormatUint(uint64(tcpPacket.DstPort), 10),
-									string(sni)},
+									sanitizeLogField(string(sni))},
 									",") + "\n",
 								))
 								if err != nil {
@@ -268,16 +327,10 @@ func parsePacket(storage storage.Iface, data []byte, clientCache *ClientCache, o
 					udpDNS := dnsPacket.(*layers.DNS)
 					questions := []string{}
 					for k := range udpDNS.Questions {
-						found := false
-						for _, question := range questions {
-							if question == string(udpDNS.Questions[k].Name) {
-								found = true
-							}
+						name := sanitizeLogField(string(udpDNS.Questions[k].Name))
+						if !slices.Contains(questions, name) {
+							questions = append(questions, name)
 						}
-						if !found {
-							questions = append(questions, string(udpDNS.Questions[k].Name))
-						}
-
 					}
 					_, err := logWriter.Write([]byte(strings.Join([]string{
 						now.Format(TIMESTAMP_FORMAT),
@@ -297,6 +350,42 @@ func parsePacket(storage storage.Iface, data []byte, clientCache *ClientCache, o
 	}
 
 	return nil
+}
+
+// sanitizeLogField escapes data that comes from client traffic (dns names,
+// tls sni, http host/uri) before it's written to the comma and newline
+// delimited packet logs. Commas, the dns question separator (#), control
+// characters and non-ascii bytes are percent-encoded, so a client can't inject
+// extra fields or log lines.
+func sanitizeLogField(field string) string {
+	needsEscaping := false
+	for i := 0; i < len(field); i++ {
+		if logFieldByteNeedsEscaping(field[i]) {
+			needsEscaping = true
+			break
+		}
+	}
+	if !needsEscaping {
+		return field
+	}
+	const hexChars = "0123456789ABCDEF"
+	var b strings.Builder
+	b.Grow(len(field) + 8)
+	for i := 0; i < len(field); i++ {
+		c := field[i]
+		if logFieldByteNeedsEscaping(c) {
+			b.WriteByte('%')
+			b.WriteByte(hexChars[c>>4])
+			b.WriteByte(hexChars[c&0x0F])
+		} else {
+			b.WriteByte(c)
+		}
+	}
+	return b.String()
+}
+
+func logFieldByteNeedsEscaping(c byte) bool {
+	return c < 0x20 || c >= 0x7f || c == ',' || c == '#'
 }
 
 // TLS Extensions http://www.iana.org/assignments/tls-extensiontype-values/tls-extensiontype-values.xhtml

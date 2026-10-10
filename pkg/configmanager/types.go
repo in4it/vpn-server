@@ -24,4 +24,5 @@ var (
 	vpnStop           = stopVPN
 	vpnStart          = startVPN
 	vpnRefreshClients = refreshAllClientsAndServer
+	runPacketLogger   = wireguard.RunPacketLogger
 )

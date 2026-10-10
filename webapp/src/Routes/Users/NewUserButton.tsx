@@ -2,6 +2,7 @@
 import { Button } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
 import { AppSettings } from "../../Constants/Constants";
+import { fetchJSON } from "../../Auth/fetchJSON";
 import { useAuthContext } from "../../Auth/Auth";
 
 type Props = {
@@ -14,16 +15,7 @@ export function NewUserButton({setShowNewUser, localAuthDisabled}:Props) {
     const { isPending, error, data } = useQuery({
         queryKey: ['license'],
         queryFn: () =>
-          fetch(AppSettings.url + '/license', {
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": "Bearer " + authInfo.token
-            },
-          }).then((res) => {
-            return res.json()
-            }
-            
-          ),
+          fetchJSON(AppSettings.url + '/license', authInfo.token),
       })
     if (error) return 'cannot retrieve licensed users'
     if (isPending) return <Button disabled>Loading...</Button>

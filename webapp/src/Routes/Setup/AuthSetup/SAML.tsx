@@ -5,6 +5,9 @@ import { useAuthContext } from "../../../Auth/Auth";
 import classes from './Provisioning.module.css';
 import axios from "axios";
 import { useState } from "react";
+import { fetchJSON } from "../../../Auth/fetchJSON";
+import { getErrorMessage } from "../../../Auth/errorMessage";
+import { ErrorAlert } from "../../../ErrorAlert";
 
 type SAMLSetup = {
     enabled: boolean;
@@ -20,17 +23,7 @@ export function SAML() {
 
     const { isPending, error, data } = useQuery({
         queryKey: ['saml-setup'],
-        queryFn: () =>
-          fetch(AppSettings.url + '/saml-setup', {
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": "Bearer " + authInfo.token
-            },
-          }).then((res) => {
-            return res.json()
-            }
-            
-          ),
+        queryFn: () => fetchJSON(AppSettings.url + '/saml-setup', authInfo.token),
     })
 
     const samlSetup = useMutation({
@@ -51,6 +44,8 @@ export function SAML() {
 
     
     return (
+        <>
+        <ErrorAlert message={samlSetup.isError ? "Could not update SAML settings: " + getErrorMessage(samlSetup.error) : ""} />
         <Grid>
             <Grid.Col span={6}>
             <UnstyledButton onClick={() => samlSetup.mutate({enabled:!data.enabled, metadataURL: "", regenerateCert: false})} className={classes.button}>
@@ -91,5 +86,6 @@ export function SAML() {
                     : null }
         </Grid.Col>
         </Grid>
+        </>
     )
 }

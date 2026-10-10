@@ -31,3 +31,29 @@ func TestPeerAction(t *testing.T) {
 		t.Fatalf("disabled peer on empty interface: got %d, want none", got)
 	}
 }
+
+func TestPeersToRemove(t *testing.T) {
+	// the peer config of key-corrupt couldn't be parsed, so it's not in the valid set
+	peerConfigs := []wireguard.PeerConfig{
+		{ID: "1", PublicKey: "key-valid"},
+		{ID: "2", PublicKey: "key-disabled", Disabled: true},
+		{ID: "3"}, // no key yet
+	}
+	active := []string{"key-valid", "key-disabled", "key-deleted", "key-corrupt"}
+	got := peersToRemove(active, peerConfigs)
+	want := []string{"key-disabled", "key-deleted", "key-corrupt"}
+	if len(got) != len(want) {
+		t.Fatalf("peersToRemove() = %v, want %v", got, want)
+	}
+	for k := range want {
+		if got[k] != want[k] {
+			t.Fatalf("peersToRemove() = %v, want %v", got, want)
+		}
+	}
+	if got := peersToRemove(active, nil); len(got) != len(active) {
+		t.Fatalf("without valid peer configs all peers must be removed, got %v", got)
+	}
+	if got := peersToRemove(nil, peerConfigs); len(got) != 0 {
+		t.Fatalf("expected nothing to remove on an empty interface, got %v", got)
+	}
+}

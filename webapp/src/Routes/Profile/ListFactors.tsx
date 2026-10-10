@@ -5,6 +5,10 @@ import { useAuthContext } from "../../Auth/Auth";
 import { ActionIcon, Group, Menu, Table, Text, rem } from "@mantine/core";
 import { TbDots, TbTrash } from "react-icons/tb";
 import axios from "axios";
+import { useState } from "react";
+import { getErrorMessage } from "../../Auth/errorMessage";
+import { ConfirmModal } from "../../ConfirmModal";
+import { ErrorAlert } from "../../ErrorAlert";
 
 type Factor = {
     name: string;
@@ -14,6 +18,7 @@ type Factor = {
 export function ListFactors() {
     const {authInfo} = useAuthContext();
     const queryClient = useQueryClient()
+    const [factorToDelete, setFactorToDelete] = useState<string | null>(null)
     const { isPending, error, data } = useQuery({
         queryKey: ['factors'],
         queryFn: () => fetchJSON(AppSettings.url + '/profile/factors', authInfo.token),
@@ -28,7 +33,10 @@ export function ListFactors() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['factors'] })
-        }
+        },
+        onSettled: () => {
+            setFactorToDelete(null)
+        },
       })
 
 
@@ -67,7 +75,7 @@ export function ListFactors() {
                 <Menu.Item
                     leftSection={<TbTrash style={{ width: rem(16), height: rem(16) }} />}
                     color="red"
-                    onClick={() => deleteFactor.mutate(item.name)}
+                    onClick={() => setFactorToDelete(item.name)}
                 >
                     Delete Factor
                 </Menu.Item>
@@ -80,6 +88,17 @@ export function ListFactors() {
     return (
         <>
         <h2>Multifactor authentication</h2>
+        <ConfirmModal
+            opened={factorToDelete !== null}
+            title="Delete MFA factor"
+            confirmLabel="Delete"
+            loading={deleteFactor.isPending}
+            onClose={() => setFactorToDelete(null)}
+            onConfirm={() => factorToDelete !== null && deleteFactor.mutate(factorToDelete)}
+        >
+            Are you sure you want to delete the factor "{factorToDelete}"? You will no longer be able to use it to log in.
+        </ConfirmModal>
+        {deleteFactor.isError ? <ErrorAlert message={"Could not delete factor: " + getErrorMessage(deleteFactor.error)} /> : null}
         <Table.ScrollContainer minWidth={300}>
                 <Table verticalSpacing="sm">
                 <Table.Thead>

@@ -17,6 +17,7 @@ func GetStats() ([]PeerStat, error) {
 	if !available {
 		return []PeerStat{}, fmt.Errorf("wireguard linux client not available")
 	}
+	defer c.Close() //nolint:errcheck
 	device, err := c.Device(wireguardlinux.VPN_INTERFACE_NAME)
 	if err != nil {
 		return []PeerStat{}, fmt.Errorf("wireguard linux device 'vpn' not found: %s", err)

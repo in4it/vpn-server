@@ -15,6 +15,14 @@ describe('fetchJSON', () => {
     })
   })
 
+  it('does not send an Authorization header without a token', async () => {
+    const fetchMock = installFetchMock([{ match: '/api/authmethods', response: { localAuthDisabled: false } }])
+    await fetchJSON('/api/authmethods')
+    expect(fetchMock).toHaveBeenCalledWith('/api/authmethods', {
+      headers: { "Content-Type": "application/json" },
+    })
+  })
+
   it('throws an HttpError with the backend error message', async () => {
     installFetchMock([{ match: '/api/users', response: { error: 'token expired' }, status: 401 }])
     const err = await fetchJSON('/api/users', 'abc').catch((e) => e)

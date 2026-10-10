@@ -13,6 +13,10 @@ import (
 	"github.com/in4it/wireguard-server/pkg/wireguard"
 )
 
+// MAX_CONNECTIONS_PER_USER limits the amount of connections a single user can create, so a user
+// can't exhaust the address pool. Applies to every user, including admins.
+const MAX_CONNECTIONS_PER_USER = 25
+
 var muClientDownload sync.Mutex
 
 func (v *VPN) connectionsHandler(w http.ResponseWriter, r *http.Request) {
@@ -65,6 +69,15 @@ func (v *VPN) connectionsHandler(w http.ResponseWriter, r *http.Request) {
 		muClientDownload.Lock()
 		defer muClientDownload.Unlock()
 		user := r.Context().Value(rest.CustomValue("user")).(users.User)
+		existingConnections, err := wireguard.GetConfigNumbers(v.Storage, user.ID)
+		if err != nil {
+			v.returnError(w, fmt.Errorf("can't determine existing connections: %s", err), http.StatusBadRequest)
+			return
+		}
+		if len(existingConnections) >= MAX_CONNECTIONS_PER_USER {
+			v.returnError(w, fmt.Errorf("maximum number of connections reached (%d). Delete a connection before creating a new one", MAX_CONNECTIONS_PER_USER), http.StatusForbidden)
+			return
+		}
 		peerConfig, err := wireguard.NewEmptyClientConfig(v.Storage, user.ID)
 		if err != nil {
 			v.returnError(w, fmt.Errorf("could not generate client vpn config: %s", err), http.StatusBadRequest)
@@ -85,12 +98,8 @@ func (v *VPN) connectionsElementHandler(w http.ResponseWriter, r *http.Request) 
 	switch r.Method {
 	case http.MethodGet:
 		user := r.Context().Value(rest.CustomValue("user")).(users.User)
-		if !strings.HasPrefix(r.PathValue("id"), user.ID) {
-			v.returnError(w, fmt.Errorf("connection id is in invalid format (needs to contain user id)"), http.StatusBadRequest)
-			return
-		}
-		if strings.Contains(r.PathValue("id"), ".") || strings.Contains(r.PathValue("id"), "/") {
-			v.returnError(w, fmt.Errorf("connection id contains invalid characters"), http.StatusBadRequest)
+		if err := validateConnectionID(r.PathValue("id"), user.ID); err != nil {
+			v.returnError(w, err, http.StatusBadRequest)
 			return
 		}
 		out, err := wireguard.GenerateNewClientConfig(v.Storage, r.PathValue("id"), user.ID)
@@ -101,12 +110,8 @@ func (v *VPN) connectionsElementHandler(w http.ResponseWriter, r *http.Request) 
 		v.write(w, out)
 	case http.MethodDelete:
 		user := r.Context().Value(rest.CustomValue("user")).(users.User)
-		if !strings.HasPrefix(r.PathValue("id"), user.ID) {
-			v.returnError(w, fmt.Errorf("connection id is in invalid format (needs to contain user id)"), http.StatusBadRequest)
-			return
-		}
-		if strings.Contains(r.PathValue("id"), ".") || strings.Contains(r.PathValue("id"), "/") {
-			v.returnError(w, fmt.Errorf("connection id contains invalid characters"), http.StatusBadRequest)
+		if err := validateConnectionID(r.PathValue("id"), user.ID); err != nil {
+			v.returnError(w, err, http.StatusBadRequest)
 			return
 		}
 		err := wireguard.DeleteClientConfig(v.Storage, r.PathValue("id"), user.ID)
@@ -119,6 +124,21 @@ func (v *VPN) connectionsElementHandler(w http.ResponseWriter, r *http.Request) 
 	default:
 		v.returnError(w, fmt.Errorf("method not supported"), http.StatusBadRequest)
 	}
+}
+
+// validateConnectionID checks that the connection id has the format <userID>-<number>
+func validateConnectionID(id, userID string) error {
+	if strings.ContainsAny(id, `./\`) {
+		return fmt.Errorf("connection id contains invalid characters")
+	}
+	if userID == "" || !strings.HasPrefix(id, userID+"-") {
+		return fmt.Errorf("connection id is in invalid format (needs to contain user id)")
+	}
+	connectionNumber := strings.TrimPrefix(id, userID+"-")
+	if connectionNumber == "" || strings.Trim(connectionNumber, "0123456789") != "" {
+		return fmt.Errorf("connection id is in invalid format (needs to be user id followed by connection number)")
+	}
+	return nil
 }
 
 func (v *VPN) connectionLicenseHandler(w http.ResponseWriter, r *http.Request) {

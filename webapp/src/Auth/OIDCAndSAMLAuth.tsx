@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import axios from "axios";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AppSettings } from "../Constants/Constants";
 import { useLocation, useSearchParams } from "react-router";
 import { useAuthContext } from "./Auth";
@@ -23,7 +23,9 @@ export function OIDCAndSAMLAuth() {
     const [searchParams] = useSearchParams();
     const {authInfo, setAuthInfo} = useAuthContext();
     const location = useLocation();
-    const [isPending, setIsPending] = useState<boolean>(false)
+    // the code/state can only be exchanged once: make sure the request is sent
+    // once, also when effects run twice (React StrictMode)
+    const requestSent = useRef<boolean>(false)
 
     const providerID = location.pathname.split("/").pop()
     const authType = location.pathname.split("/").length >= 2 ? location.pathname.split("/").slice(-2, -1)[0] : ""
@@ -54,11 +56,11 @@ export function OIDCAndSAMLAuth() {
       })
 
       useEffect(() => {
-        if(!isPending) {
-            setIsPending(true)
+        if(!requestSent.current) {
+            requestSent.current = true
             getToken.mutate(payload)
         }
-      }, []);
+      }, []); // eslint-disable-line react-hooks/exhaustive-deps
       
       
       if (authError !== "") return 'Could not obtain token: ' + authError

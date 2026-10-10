@@ -94,6 +94,24 @@ func (v *VPN) vpnSetupHandler(w http.ResponseWriter, r *http.Request) {
 			v.returnError(w, fmt.Errorf("AddressRange in wrong format: %s", err), http.StatusBadRequest)
 			return
 		}
+		// validate all remaining input before anything is changed or written
+		if err := validateAddressRange(addressRangeParsed); err != nil {
+			v.returnError(w, err, http.StatusBadRequest)
+			return
+		}
+		if err := validateClientAddressPrefix(addressRangeParsed, setupRequest.ClientAddressPrefix); err != nil {
+			v.returnError(w, err, http.StatusBadRequest)
+			return
+		}
+		port, err := validatePort(setupRequest.Port)
+		if err != nil {
+			v.returnError(w, err, http.StatusBadRequest)
+			return
+		}
+		if err := validateExternalInterface(setupRequest.ExternalInterface); err != nil {
+			v.returnError(w, err, http.StatusBadRequest)
+			return
+		}
 		if addressRangeParsed.String() != vpnConfig.AddressRange.String() {
 			vpnConfig.AddressRange = addressRangeParsed
 			writeVPNConfig = true
@@ -103,11 +121,6 @@ func (v *VPN) vpnSetupHandler(w http.ResponseWriter, r *http.Request) {
 			vpnConfig.ClientAddressPrefix = setupRequest.ClientAddressPrefix
 			writeVPNConfig = true
 			rewriteClientConfigs = true
-		}
-		port, err := strconv.Atoi(setupRequest.Port)
-		if err != nil {
-			v.returnError(w, fmt.Errorf("port in wrong format: %s", err), http.StatusBadRequest)
-			return
 		}
 		if port != vpnConfig.Port {
 			vpnConfig.Port = port
@@ -298,23 +311,21 @@ func (v *VPN) restartVPNHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		v.returnError(w, fmt.Errorf("restart error: %s", err), http.StatusBadRequest)
+		v.returnError(w, fmt.Errorf("restart error: %s", err), http.StatusBadGateway)
 		return
 	}
-	if resp.StatusCode != http.StatusAccepted {
-		bodyBytes, err := io.ReadAll(resp.Body)
-		if err != nil {
-			v.returnError(w, fmt.Errorf("restart error: got status code: %d. Response: %s", resp.StatusCode, bodyBytes), http.StatusBadRequest)
-			return
-		}
-		v.returnError(w, fmt.Errorf("restart error: got status code: %d. Couldn't get response", resp.StatusCode), http.StatusBadRequest)
-		return
-	}
-
 	defer resp.Body.Close() //nolint:errcheck
 	bodyBytes, err := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusAccepted {
+		if err != nil {
+			v.returnError(w, fmt.Errorf("restart error: got status code: %d. Couldn't get response", resp.StatusCode), http.StatusBadGateway)
+			return
+		}
+		v.returnError(w, fmt.Errorf("restart error: got status code: %d. Response: %s", resp.StatusCode, bodyBytes), http.StatusBadGateway)
+		return
+	}
 	if err != nil {
-		v.returnError(w, fmt.Errorf("body read error: %s", err), http.StatusBadRequest)
+		v.returnError(w, fmt.Errorf("body read error: %s", err), http.StatusBadGateway)
 		return
 	}
 

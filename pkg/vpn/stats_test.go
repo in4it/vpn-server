@@ -141,8 +141,8 @@ func TestUserStatsHandlerMultipleConnectionsNoCrossTalk(t *testing.T) {
 	lines := []string{
 		now.Format(wireguard.TIMESTAMP_FORMAT) + ",user-1,connA,1000,2000," + now.Format(wireguard.TIMESTAMP_FORMAT),
 		now.Format(wireguard.TIMESTAMP_FORMAT) + ",user-1,connB,2000,4000," + now.Format(wireguard.TIMESTAMP_FORMAT),
-		now.Add(5 * time.Minute).Format(wireguard.TIMESTAMP_FORMAT) + ",user-1,connA,1000,2000," + now.Add(5*time.Minute).Format(wireguard.TIMESTAMP_FORMAT),
-		now.Add(5 * time.Minute).Format(wireguard.TIMESTAMP_FORMAT) + ",user-1,connB,2000,4000," + now.Add(5*time.Minute).Format(wireguard.TIMESTAMP_FORMAT),
+		now.Add(5*time.Minute).Format(wireguard.TIMESTAMP_FORMAT) + ",user-1,connA,1000,2000," + now.Add(5*time.Minute).Format(wireguard.TIMESTAMP_FORMAT),
+		now.Add(5*time.Minute).Format(wireguard.TIMESTAMP_FORMAT) + ",user-1,connB,2000,4000," + now.Add(5*time.Minute).Format(wireguard.TIMESTAMP_FORMAT),
 	}
 	statsFile := path.Join(wireguard.VPN_STATS_DIR, "user-"+now.Format("2006-01-02")) + ".log"
 	err := v.Storage.WriteFile(statsFile, []byte(strings.Join(lines, "\n")))

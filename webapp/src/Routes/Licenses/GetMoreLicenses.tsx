@@ -3,6 +3,7 @@ import { useAuthContext } from '../../Auth/Auth';
 import classes from './GetMoreLicenses.module.css';
 
 import { AppSettings } from '../../Constants/Constants';
+import { fetchJSON } from '../../Auth/fetchJSON';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { TbInfoCircle } from "react-icons/tb";
 import { useState } from 'react';
@@ -12,28 +13,21 @@ export function GetMoreLicenses() {
   const queryClient = useQueryClient()
   const [message, setMessage] = useState("")
   const { isPending, error, data } = useQuery({
-    queryKey: ['license'],
+    // not ['license']: that key holds GET /license (Home, NewUserButton), a different response
+    queryKey: ['license', 'get-more'],
     queryFn: () =>
-      fetch(AppSettings.url + '/license/get-more', {
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer " + authInfo.token
-        },
-      }).then((res) => {
-        return res.json()
-        }
-        
-      ),
+      fetchJSON(AppSettings.url + '/license/get-more', authInfo.token),
       enabled: authInfo.role === "admin",
   })
 
   const refreshLicense = () => {
     const now = new Date()
+    // also refreshes ['license', 'get-more'] (prefix match)
     queryClient.invalidateQueries({ queryKey: ['license'] })
     setMessage("Refreshed licenses ("+ now.toLocaleString() + ")")
   }
 
-  if (error) return 'cannot retrieve licensed users'
+  if (error) return 'cannot retrieve licensed users: ' + error.message
   if (isPending) return 'Loading...'
 
   const alertIcon = <TbInfoCircle />;

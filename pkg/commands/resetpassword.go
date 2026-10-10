@@ -27,16 +27,18 @@ func ResetPassword(storage storage.Iface, password string) (bool, error) {
 		if err != nil {
 			return adminCreated, fmt.Errorf("GetUserByLogin error: %s", err)
 		}
-		err = c.UserStore.UpdatePassword(user.ID, password)
-		if err != nil {
-			return adminCreated, fmt.Errorf("UpdatePassword error: %s", err)
-		}
+		// update the role before the password: UpdateUser writes back the full (fetched) user record,
+		// which would otherwise overwrite the PasswordChangedAt set by UpdatePassword
 		if user.Role != "admin" {
 			user.Role = "admin"
 			err = c.UserStore.UpdateUser(user)
 			if err != nil {
 				return adminCreated, fmt.Errorf("UpdateUser error: %s", err)
 			}
+		}
+		err = c.UserStore.UpdatePassword(user.ID, password)
+		if err != nil {
+			return adminCreated, fmt.Errorf("UpdatePassword error: %s", err)
 		}
 	} else {
 		_, err := c.UserStore.AddUser(users.User{

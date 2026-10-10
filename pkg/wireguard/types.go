@@ -4,6 +4,7 @@ import (
 	"io"
 	"net"
 	"net/netip"
+	"sync"
 	"time"
 )
 
@@ -79,12 +80,18 @@ type StatsEntry struct {
 
 // client cache
 
+// ClientCache maps the vpn ip addresses to the client (user) ID, for the packet
+// logger. Entries are keyed by ConnectionID. The packet logger reads the cache
+// for every packet, while the configmanager handlers update it: use the
+// functions in cache.go, which take the mutex.
 type ClientCache struct {
+	mu        sync.RWMutex
 	Addresses []ClientCacheAddresses
 }
 type ClientCacheAddresses struct {
-	Address  net.IPNet
-	ClientID string
+	Address      net.IPNet
+	ClientID     string // user ID, used for the packet log filename
+	ConnectionID string // peerConfig.ID (userID-N)
 }
 
 // packetlogger open files

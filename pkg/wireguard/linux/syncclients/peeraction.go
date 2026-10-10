@@ -37,3 +37,23 @@ func peerAction(activePublicKeys []string, peerConfig wireguard.PeerConfig) Peer
 	}
 	return PEER_ACTION_ADD
 }
+
+// peersToRemove returns the public keys of the peers on the interface that
+// don't belong to a valid, enabled peer config. peerConfigs must only contain
+// the configs that could be read and parsed: a peer whose config file is
+// unreadable or corrupt is not in the valid set, and is removed.
+func peersToRemove(activePublicKeys []string, peerConfigs []wireguard.PeerConfig) []string {
+	validPublicKeys := make(map[string]struct{}, len(peerConfigs))
+	for _, peerConfig := range peerConfigs {
+		if !peerConfig.Disabled && peerConfig.PublicKey != "" {
+			validPublicKeys[peerConfig.PublicKey] = struct{}{}
+		}
+	}
+	toRemove := []string{}
+	for _, publicKey := range activePublicKeys {
+		if _, ok := validPublicKeys[publicKey]; !ok {
+			toRemove = append(toRemove, publicKey)
+		}
+	}
+	return toRemove
+}
