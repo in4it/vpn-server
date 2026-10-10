@@ -20,3 +20,5 @@
 /provisioning/whitelist.pkr.hcl
 .env
 /.vscode/
+/provisioning/gcp.env
+/provisioning/packer-gcp-manifest.json

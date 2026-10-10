@@ -38,7 +38,10 @@ install-aws:
 	cd provisioning && AWS_PROFILE=in4it-vpn-server AWS_REGION=us-east-1 packer build -var-file=whitelist.pkr.hcl packer-aws.pkr.hcl
 
 install-gcp:
-	cd provisioning && packer build packer-gcp-amd64.pkr.hcl
+	cd provisioning && packer build -var image_version=$(shell cat latest) packer-gcp-amd64.pkr.hcl
+
+release-gcp:
+	provisioning/scripts/gcp_marketplace_release.sh
 
 install-azure:
 	cd provisioning && packer build -var image_version=$(shell cat latest) packer-azure-amd64.pkr.hcl
