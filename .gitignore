@@ -22,3 +22,4 @@
 /.vscode/
 /provisioning/gcp.env
 /provisioning/packer-gcp-manifest.json
+/provisioning/azure.env
