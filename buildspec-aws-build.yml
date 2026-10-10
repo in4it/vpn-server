@@ -10,8 +10,8 @@ phases:
       - sudo yum-config-manager --add-repo https://rpm.releases.hashicorp.com/AmazonLinux/hashicorp.repo
       - sudo yum -y install packer
       # golang
-      - wget -q https://go.dev/dl/go1.24.2.linux-amd64.tar.gz
-      - rm -rf /usr/local/go && tar -C /usr/local -xzf go1.24.2.linux-amd64.tar.gz
+      - wget -q https://go.dev/dl/go1.26.9.linux-amd64.tar.gz
+      - rm -rf /usr/local/go && tar -C /usr/local -xzf go1.26.9.linux-amd64.tar.gz
 
   pre_build:
     commands:
