@@ -292,3 +292,24 @@ func TestGetCompressedFilesConcurrent(t *testing.T) {
 		t.Fatalf("error: %s", err)
 	}
 }
+
+// TestPacketLogsHandlerAllUsers: the webapp requests "all" when no user is
+// selected, which returns the user list for the user selector.
+func TestPacketLogsHandlerAllUsers(t *testing.T) {
+	storage := &memorystorage.MockMemoryStorage{}
+	enablePacketLogs(t, storage)
+	userStore := &users.UserStore{}
+	userStore.AddUser(users.User{Login: "john"}) //nolint:errcheck
+	v := New(storage, userStore)
+	w := getPacketLogs(v, "all", time.Now().Format("2006-01-02"))
+	if w.Result().StatusCode != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Result().StatusCode, w.Body.String())
+	}
+	var response LogDataResponse
+	if err := json.NewDecoder(w.Result().Body).Decode(&response); err != nil {
+		t.Fatalf("decode error: %s", err)
+	}
+	if !response.Enabled || len(response.Users) != 1 {
+		t.Fatalf("expected the user list in the response, got %+v", response)
+	}
+}
