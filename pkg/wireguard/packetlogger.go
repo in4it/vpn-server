@@ -228,11 +228,11 @@ func parsePacket(storage storage.Iface, data []byte, clientCache *ClientCache, o
 		// open new file for appending
 		logWriter, err = storage.OpenFileForAppending(filename)
 		if err != nil {
-			return fmt.Errorf("could not open file for appending (%s): %s", clientID+"-"+now.Format("2006-01-02"), err)
+			return fmt.Errorf("could not open file for appending (%s): %w", clientID+"-"+now.Format("2006-01-02"), err)
 		}
 		err = storage.EnsurePermissions(filename, 0640)
 		if err != nil {
-			return fmt.Errorf("could not set permissions (%s): %s", clientID+"-"+now.Format("2006-01-02"), err)
+			return fmt.Errorf("could not set permissions (%s): %w", clientID+"-"+now.Format("2006-01-02"), err)
 		}
 		openFiles[clientID+"-"+now.Format("2006-01-02")] = logWriter
 	}
@@ -494,7 +494,7 @@ func packetLoggerLogRotation(storage storage.Iface) error {
 	logDir := path.Join(VPN_STATS_DIR, VPN_PACKETLOGGER_DIR)
 	files, err := storage.ReadDir(logDir)
 	if err != nil {
-		return fmt.Errorf("readDir error: %s", err)
+		return fmt.Errorf("readDir error: %w", err)
 	}
 	vpnConfig, err := GetVPNConfig(storage)
 	if err != nil {
@@ -516,11 +516,11 @@ func packetLoggerLogRotation(storage storage.Iface) error {
 					if strings.HasSuffix(filename, ".log") {
 						err := packetLoggerCompressLog(storage, filename)
 						if err != nil {
-							return fmt.Errorf("rotate log error: %s", err)
+							return fmt.Errorf("rotate log error: %w", err)
 						}
 						err = packetLoggerRenameLog(storage, filename)
 						if err != nil {
-							return fmt.Errorf("rotate log error (rename): %s", err)
+							return fmt.Errorf("rotate log error (rename): %w", err)
 						}
 					}
 					if strings.HasSuffix(filename, ".log.gz") {
@@ -540,7 +540,7 @@ func packetLoggerLogRotation(storage storage.Iface) error {
 func packetLoggerRemoveTmpFiles(storage storage.Iface) error {
 	files, err := storage.ReadDir(VPN_PACKETLOGGER_TMP_DIR)
 	if err != nil {
-		return fmt.Errorf("readDir error: %s", err)
+		return fmt.Errorf("readDir error: %w", err)
 	}
 	for _, filename := range files {
 		if strings.HasSuffix(filename, ".log") {
@@ -562,11 +562,11 @@ func packetLoggerRemoveTmpFiles(storage storage.Iface) error {
 func packetLoggerCompressLog(storage storage.Iface, filename string) error {
 	reader, err := storage.OpenFile(path.Join(VPN_STATS_DIR, VPN_PACKETLOGGER_DIR, filename))
 	if err != nil {
-		return fmt.Errorf("open file error (%s): %s", filename, err)
+		return fmt.Errorf("open file error (%s): %w", filename, err)
 	}
 	writer, err := storage.OpenFileForWriting(path.Join(VPN_STATS_DIR, VPN_PACKETLOGGER_DIR, filename+".gz.tmp"))
 	if err != nil {
-		return fmt.Errorf("write file error (%s): %s", filename+".gz.tmp", err)
+		return fmt.Errorf("write file error (%s): %w", filename+".gz.tmp", err)
 	}
 	defer reader.Close() //nolint:errcheck
 	defer writer.Close() //nolint:errcheck

@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/in4it/wireguard-server/pkg/wireguard/fsutils"
@@ -104,25 +105,30 @@ func upgrade() error {
 // verified) binaries. Permissions, ownership and capabilities are set on the
 // downloaded files first, then each one is atomically renamed over the
 // current binary, so there's never a moment where a binary is missing.
+// The immutable flag is cleared on the current binary before the rename, and
+// set on the new binary after the rename. Symbolic links are refused.
 func installBinaries(dir string, binaries map[string]string) error {
 	for filename, downloadedFile := range binaries {
 		downloadedPath := path.Join(dir, downloadedFile)
-		err := os.Chmod(downloadedPath, 0700)
+		err := fsutils.ChmodNoFollow(dir, downloadedFile, 0700)
 		if err != nil {
-			return fmt.Errorf("chmod failed: %s", err)
+			return fmt.Errorf("chmod failed: %w", err)
 		}
 		vpnUserUid, vpnUserGid, err := fsutils.GetVPNUserUidandGid()
 		if err != nil {
 			log.Printf("Warning: get vpn user uid/gid failed: %s", err)
 		}
 		if err == nil {
-			err = os.Chown(downloadedPath, vpnUserUid, vpnUserGid)
+			err = fsutils.LchownNoFollow(dir, downloadedFile, vpnUserUid, vpnUserGid)
 			if err != nil {
-				return fmt.Errorf("could not set vpn ownership on %s: %s", downloadedPath, err)
+				return fmt.Errorf("could not set vpn ownership on %s: %w", downloadedPath, err)
 			}
 		}
 		// setcap (after chown, as chown clears the file capabilities)
 		if filename == "rest-server" && runtime.GOOS == "linux" {
+			if err = checkNotSymlink(downloadedPath); err != nil {
+				return err
+			}
 			err = setCapabilities(downloadedPath)
 			if err != nil {
 				return err
@@ -130,11 +136,46 @@ func installBinaries(dir string, binaries map[string]string) error {
 		}
 	}
 	for filename, downloadedFile := range binaries {
+		binaryPath := path.Join(dir, filename)
+		if err := checkNotSymlink(path.Join(dir, downloadedFile)); err != nil {
+			return err
+		}
+		exists := true
+		if _, err := os.Lstat(binaryPath); os.IsNotExist(err) {
+			exists = false
+		}
+		if exists {
+			if err := setImmutableFlag(binaryPath, false); err != nil {
+				return fmt.Errorf("could not clear immutable flag on %s: %s", binaryPath, err)
+			}
+		}
 		// rename replaces the old binary atomically (a running binary keeps its old inode)
-		err := os.Rename(path.Join(dir, downloadedFile), path.Join(dir, filename))
+		err := os.Rename(path.Join(dir, downloadedFile), binaryPath)
 		if err != nil {
+			if exists {
+				if errFlag := setImmutableFlag(binaryPath, true); errFlag != nil {
+					log.Printf("Warning: could not set immutable flag on %s: %s", binaryPath, errFlag)
+				}
+			}
 			return fmt.Errorf("rename failed: %s", err)
 		}
+		if err := setImmutableFlag(binaryPath, true); err != nil {
+			log.Printf("Warning: could not set immutable flag on %s: %s", binaryPath, err)
+		}
+	}
+	return nil
+}
+
+// checkNotSymlink returns an error when filename is a symbolic link
+func checkNotSymlink(filename string) error {
+	info, err := os.Lstat(filename)
+	if err != nil {
+		return err
+	}
+	if info.Mode()&os.ModeSymlink != 0 {
+		err = fmt.Errorf("%w: %s", fsutils.ErrSymlink, filename)
+		log.Printf("Error: %s", err)
+		return err
 	}
 	return nil
 }
@@ -216,7 +257,11 @@ func downloadFile(url, dest string) error {
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("download failed. HTTP Status code: %d. URL: %s", resp.StatusCode, url)
 	}
-	file, err := os.Create(dest)
+	// create a new file: an existing file (or symbolic link) is removed first
+	if err := os.Remove(dest); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("could not remove existing file: %s", err)
+	}
+	file, err := os.OpenFile(dest, os.O_WRONLY|os.O_CREATE|os.O_EXCL|syscall.O_NOFOLLOW, 0600)
 	if err != nil {
 		return fmt.Errorf("file create error: %s", err)
 	}

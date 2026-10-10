@@ -149,5 +149,10 @@ func generateWireGuardServerConfig(storage storage.Iface) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("could not parse client template (execute parsing): %s", err)
 	}
+	// check the rendered config, not only the template (e.g. the template can
+	// render differently depending on the data)
+	if err := checkServerConfig(out.Bytes(), externalInterface); err != nil {
+		return nil, fmt.Errorf("invalid server config: %s", err)
+	}
 	return out.Bytes(), nil
 }

@@ -27,6 +27,9 @@ chmod 700 /vpn/configmanager
 
 setcap 'cap_net_bind_service=+ep' /vpn/rest-server
 
+# set the immutable flag on the binaries (configmanager clears and sets it again during upgrades)
+chattr +i /vpn/rest-server /vpn/reset-admin-password /vpn/configmanager || echo "Warning: could not set the immutable flag on the binaries"
+
 mv /tmp/vpn-configmanager.service /etc/systemd/system/vpn-configmanager.service
 mv /tmp/vpn-rest-server.service /etc/systemd/system/vpn-rest-server.service
 

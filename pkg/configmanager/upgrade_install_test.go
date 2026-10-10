@@ -25,6 +25,7 @@ func stubSetCapabilities(t *testing.T) *[]string {
 
 func TestInstallBinariesReplacesExisting(t *testing.T) {
 	capabilities := stubSetCapabilities(t)
+	stubImmutable(t)
 	dir := t.TempDir()
 	binaries := map[string]string{"rest-server": "restserver-test", "configmanager": "configmanager-test"}
 	for name, downloaded := range binaries {
@@ -69,6 +70,7 @@ func TestInstallBinariesReplacesExisting(t *testing.T) {
 // binary didn't exist yet (e.g. a previous upgrade was interrupted).
 func TestInstallBinariesWithoutExistingBinary(t *testing.T) {
 	stubSetCapabilities(t)
+	stubImmutable(t)
 	dir := t.TempDir()
 	if err := os.WriteFile(path.Join(dir, "reset-admin-password-test"), []byte("new"), 0600); err != nil {
 		t.Fatal(err)
@@ -177,4 +179,13 @@ func TestUpgradeConcurrentPost(t *testing.T) {
 	if len(started) != 0 {
 		t.Fatalf("upgrade ran more than once")
 	}
+}
+
+func newTestFileServer(t *testing.T, body string) string {
+	t.Helper()
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(body))
+	}))
+	t.Cleanup(ts.Close)
+	return ts.URL
 }
