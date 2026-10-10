@@ -212,6 +212,9 @@ if [ "$LIVE" = "1" ]; then
 fi
 
 # --- add the new image version to the plans -----------------------------------
+AZ_ERR="$(mktemp)"
+trap 'rm -f "$AZ_ERR"' EXIT
+az account show >/dev/null 2>&1 || die "the az cli isn't logged in, run: az login"
 PAYLOADS=()     # "<offer id>\t<payload>" per offer with changes
 SUMMARY=""
 for offer in "${OFFERS[@]}"; do
@@ -235,8 +238,13 @@ for offer in "${OFFERS[@]}"; do
       continue
     fi
     while read -r resource_id; do
-      state="$(az sig image-version show --ids "$resource_id" --query provisioningState -o tsv 2>/dev/null)" \
-        || die "${offer_id} ${plan}: gallery image version ${resource_id} not found (build it with make install-azure / install-azure-arm64, and run az login)"
+      if ! state="$(az sig image-version show --ids "$resource_id" --query provisioningState -o tsv 2>"$AZ_ERR")"; then
+        if grep -qiE "az login|AADSTS|expired|authentication" "$AZ_ERR"; then
+          die "the az cli isn't logged in (or the session expired), run: az login"
+        fi
+        cat "$AZ_ERR" >&2
+        die "${offer_id} ${plan}: gallery image version ${resource_id##*/galleries/} not found, build it with make install-azure / make install-azure-arm64"
+      fi
       [ "$state" = "Succeeded" ] || die "${offer_id} ${plan}: gallery image version ${resource_id} is ${state}"
       SUMMARY+="    ${plan}: add ${VERSION_NUMBER} (${resource_id##*/galleries/})"$'\n'
     done < <(jq -r --arg v "$VERSION_NUMBER" '.vmImageVersions[] | select(.versionNumber == $v) | .vmImages[].source.sharedImage.resourceId' <<<"$updated")

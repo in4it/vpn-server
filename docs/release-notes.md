@@ -1,7 +1,6 @@
 # Release Notes
 
 ## Version v1.1.21
-* Google Cloud Marketplace support, and detection of the public IP address on GCP, Azure and DigitalOcean
 * UI: confirmation before deleting users, connections, OIDC/SAML providers and MFA factors, and before regenerating the SCIM token
 * UI: error messages for failed actions, and better handling of expired sessions
 * UI: changing your own password now requires your current password
