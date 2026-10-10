@@ -26,7 +26,7 @@ build-amd64:
 	shasum -a 256 reset-admin-password-linux-amd64 > reset-admin-password-linux-amd64.sha256
 
 install-qa-aws:
-	cd provisioning && AWS_PROFILE=in4it-compute packer build -var-file=whitelist.pkr.hcl packer-amd64.pkr.hcl
+	cd provisioning && AWS_PROFILE=in4it-compute packer build -var-file=whitelist.pkr.hcl packer-aws.pkr.hcl
 
 install-qa-azure:
 	cd provisioning && packer build -var image_version=$(shell cat latest) packer-azure-amd64.pkr.hcl
@@ -52,7 +52,7 @@ install-azure-arm64:
 install-digitalocean:
 	cd provisioning && packer build packer-digitalocean-amd64.pkr.hcl
 
-install-s3:
+install-s3: build-webapp build-arm64 build-amd64
 	cd provisioning && AWS_PROFILE=in4it-vpn-server scripts/install_s3.sh --release
 
 install-docs:
