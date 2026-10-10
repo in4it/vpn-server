@@ -15,14 +15,36 @@ variable "project_id" {
   sensitive = true
 }
 
+# Marketplace license from the Producer Portal (Deployment package section),
+# e.g. projects/<project>/global/licenses/cloud-marketplace-<id>
+variable "image_license" {
+  type      = string
+  default   = "${env("GCP_MARKETPLACE_LICENSE")}"
+  sensitive = true
+}
+
+variable "zone" {
+  type    = string
+  default = "us-east4-c"
+}
+
+# version from ./latest, e.g. v1.1.20 (dots are not allowed in image names)
+variable "image_version" {
+  type    = string
+  default = "dev"
+}
+
 source "googlecompute" "vpn-server" {
   project_id          = var.project_id
   source_image_family = "ubuntu-2404-lts-amd64"
-  zone                = "us-east4-c"
+  zone                = var.zone
   machine_type        = "e2-standard-2"
   ssh_username        = "ubuntu"
-  image_name          = "in4it-vpn-server-${local.timestamp}"
-  image_licenses      = ["projects/in4it-public/global/licenses/cloud-marketplace-f66537e5f7276a36-df1ebeb69c0ba664"]
+  image_name          = "in4it-vpn-server-ubuntu2404-x86-64-${replace(lower(var.image_version), ".", "-")}-${local.timestamp}"
+  image_family        = "in4it-vpn-server"
+  image_description   = "in4it VPN Server ${var.image_version}"
+  image_labels        = { version = replace(lower(var.image_version), ".", "-") }
+  image_licenses      = [var.image_license]
 }
 
 build {
@@ -55,10 +77,10 @@ build {
 
   provisioner "shell" {
     environment_vars = [
-        "DEBIAN_FRONTEND=noninteractive",
-        "LC_ALL=C",
-        "LANG=en_US.UTF-8",
-        "LC_CTYPE=en_US.UTF-8"
+      "DEBIAN_FRONTEND=noninteractive",
+      "LC_ALL=C",
+      "LANG=en_US.UTF-8",
+      "LC_CTYPE=en_US.UTF-8"
     ]
     execute_command = "{{ .Vars }} sudo -E sh '{{ .Path }}'"
     pause_before    = "10s"
@@ -67,5 +89,10 @@ build {
 
   provisioner "shell" {
     inline = ["rm /home/ubuntu/.ssh/authorized_keys"]
+  }
+
+  post-processor "manifest" {
+    output     = "packer-gcp-manifest.json"
+    strip_path = true
   }
 }
