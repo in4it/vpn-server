@@ -14,14 +14,25 @@
 #   4. Submits it with marketplace-catalog start-change-set.
 #
 # Usage:
-#   aws_marketplace_add_version.sh <product> <ami-id> [version-title] [release-notes]
+#   aws_marketplace_add_version.sh <product> [ami-id|latest] [version-title] [release-notes]
 #
 #   <product>        One of:
 #                      vpn-server-boyl        (prod-hfbswxenloyaa)
 #                      vpn-server             (prod-3l43xqobg7hni)
 #                      vpn-server-boyl-arm64  (prod-mk6qahxtiwblc)
+#                      all                    all of the above, with the newest
+#                                             AMI of each product. All products
+#                                             are checked first and confirmed
+#                                             once; nothing is submitted if one
+#                                             of them fails a check.
 #                    The "byol" spelling is accepted as an alias.
-#   <ami-id>         The new AMI to publish, e.g. ami-0123456789abcdef0
+#                    "make release-aws-marketplace" runs it for all products.
+#   [ami-id|latest]  Optional. The new AMI to publish, e.g. ami-0123456789abcdef0.
+#                    Defaults to "latest": the newest AMI built by
+#                    "make install-aws" for the product (in4it-vpn-server-byol-*,
+#                    in4it-vpn-server-licensed-* or in4it-vpn-server-arm64-byol-*,
+#                    owned by this account in AMI_REGION). Stops when that AMI
+#                    isn't available yet, or is already the published version.
 #   [version-title]  Optional. Defaults to the contents of ./latest. Must be
 #                    unique within the product.
 #   [release-notes]  Optional. Defaults to the release notes of the GitHub
@@ -31,7 +42,9 @@
 #
 # Environment:
 #   AWS_REGION       Defaults to us-east-1
+#   AMI_REGION       Region of the AMIs for the "latest" lookup. Defaults to us-east-1
 #   ASSUME_YES=1     Skip the confirmation prompt (for automation).
+#   DRY_RUN=1        Show the change, but don't submit it.
 #   GITHUB_TOKEN     Optional. Used for the GitHub API request (rate limits).
 #
 set -euo pipefail
@@ -80,19 +93,65 @@ usage() {
 }
 
 [ -n "$PRODUCT" ] || usage
-[ -n "$NEW_AMI" ] || usage
+[ -n "$NEW_AMI" ] || NEW_AMI="latest"
+
+# all products: check every product (dry run), confirm once, then submit
+if [ "$PRODUCT" = "all" ]; then
+  [ "$NEW_AMI" = "latest" ] || die "product 'all' always uses the newest AMI of each product, don't pass an AMI id"
+  PRODUCTS=(vpn-server-boyl vpn-server vpn-server-boyl-arm64)
+  for p in "${PRODUCTS[@]}"; do
+    echo "==================== ${p} ====================" >&2
+    DRY_RUN=1 "${BASH_SOURCE[0]}" "$p" latest "$NEW_TITLE" "$NEW_NOTES" \
+      || die "check for ${p} failed, nothing was submitted"
+  done
+  if [ "${ASSUME_YES:-}" != "1" ]; then
+    printf '\nSubmit the new version for all products (%s)? [y/N] ' "${PRODUCTS[*]}" >&2
+    read -r reply
+    case "$reply" in
+      y|Y|yes|YES) ;;
+      *) echo "Aborted." >&2; exit 1;;
+    esac
+  fi
+  for p in "${PRODUCTS[@]}"; do
+    echo "==================== submitting ${p} ====================" >&2
+    ASSUME_YES=1 "${BASH_SOURCE[0]}" "$p" latest "$NEW_TITLE" "$NEW_NOTES" \
+      || die "submitting ${p} failed; products listed before it were submitted"
+  done
+  exit 0
+fi
+: "${AMI_REGION:=us-east-1}"
+
+# Resolve product name -> entity id and the name prefix of its AMIs (see provisioning/packer-aws.pkr.hcl).
+case "$PRODUCT" in
+  vpn-server-boyl|vpn-server-byol)             PRODUCT_ID="prod-hfbswxenloyaa"; AMI_NAME_PREFIX="in4it-vpn-server-byol-";;
+  vpn-server)                                  PRODUCT_ID="prod-3l43xqobg7hni"; AMI_NAME_PREFIX="in4it-vpn-server-licensed-";;
+  vpn-server-boyl-arm64|vpn-server-byol-arm64) PRODUCT_ID="prod-mk6qahxtiwblc"; AMI_NAME_PREFIX="in4it-vpn-server-arm64-byol-";;
+  *) die "unknown product '$PRODUCT' (expected: vpn-server-boyl, vpn-server, vpn-server-boyl-arm64)";;
+esac
+
+# Find the newest AMI for the product. The newest one (by creation date) must be
+# available: if it's still being created, wait instead of picking an older AMI.
+NEW_AMI_NAME=""
+if [ "$NEW_AMI" = "latest" ]; then
+  echo "==> Looking up the newest ${AMI_NAME_PREFIX}* AMI in ${AMI_REGION} ..." >&2
+  LATEST_IMAGE="$(
+    aws ec2 describe-images \
+      --region "$AMI_REGION" \
+      --owners self \
+      --filters "Name=name,Values=${AMI_NAME_PREFIX}*" \
+      --output json \
+    | jq -c '.Images | sort_by(.CreationDate) | last // empty | {id: .ImageId, name: .Name, state: .State, created: .CreationDate}'
+  )"
+  [ -n "$LATEST_IMAGE" ] || die "no ${AMI_NAME_PREFIX}* AMI found in ${AMI_REGION}; build it with make install-aws or pass an AMI id"
+  NEW_AMI="$(jq -r '.id' <<<"$LATEST_IMAGE")"
+  NEW_AMI_NAME="$(jq -r '"\(.name), created \(.created)"' <<<"$LATEST_IMAGE")"
+  LATEST_STATE="$(jq -r '.state' <<<"$LATEST_IMAGE")"
+  [ "$LATEST_STATE" = "available" ] || die "newest AMI ${NEW_AMI} (${NEW_AMI_NAME}) is ${LATEST_STATE}; wait until it is available"
+fi
 
 case "$NEW_AMI" in
   ami-*) ;;
-  *) die "invalid AMI id '$NEW_AMI' (expected ami-...)";;
-esac
-
-# Resolve product name -> entity id.
-case "$PRODUCT" in
-  vpn-server-boyl|vpn-server-byol)             PRODUCT_ID="prod-hfbswxenloyaa";;
-  vpn-server)                                  PRODUCT_ID="prod-3l43xqobg7hni";;
-  vpn-server-boyl-arm64|vpn-server-byol-arm64) PRODUCT_ID="prod-mk6qahxtiwblc";;
-  *) die "unknown product '$PRODUCT' (expected: vpn-server-boyl, vpn-server, vpn-server-boyl-arm64)";;
+  *) die "invalid AMI id '$NEW_AMI' (expected ami-... or latest)";;
 esac
 
 # Default version title from the repo's ./latest marker.
@@ -162,6 +221,9 @@ done
 PREV_TITLE="$(jq -r '.Version.VersionTitle // "unknown"' <<<"$TEMPLATE")"
 PREV_AMI="$(jq -r '.DeliveryOptions[0].Details.AmiDeliveryOptionDetails.AmiSource.AmiId // "unknown"' <<<"$TEMPLATE")"
 
+if [ "$NEW_AMI" = "$PREV_AMI" ]; then
+  die "AMI ${NEW_AMI} is already published as version ${PREV_TITLE}; build a new AMI with make install-aws first"
+fi
 if [ "$NEW_TITLE" = "$PREV_TITLE" ]; then
   die "version title '${NEW_TITLE}' is already the latest published version for this product; pass a distinct <version-title>"
 fi
@@ -207,7 +269,7 @@ About to add a new version to AWS Marketplace:
   Catalog:           ${CATALOG}  (region=${AWS_REGION})
 
   Previous version:  ${PREV_TITLE}   (AMI ${PREV_AMI})
-  New version:       ${NEW_TITLE}   (AMI ${NEW_AMI})
+  New version:       ${NEW_TITLE}   (AMI ${NEW_AMI}${NEW_AMI_NAME:+, ${NEW_AMI_NAME}})
   Release notes:
 ${NEW_NOTES}
 
@@ -215,6 +277,11 @@ ${NEW_NOTES}
 Full start-change-set payload:
 EOF
 jq . "$CHANGE_SET_FILE" >&2
+
+if [ "${DRY_RUN:-}" = "1" ]; then
+  echo "==> Dry run: not submitted." >&2
+  exit 0
+fi
 
 if [ "${ASSUME_YES:-}" != "1" ]; then
   printf '\nProceed with start-change-set? [y/N] ' >&2
