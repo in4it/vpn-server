@@ -10,7 +10,7 @@ import (
 )
 
 func startVPN(storage storage.Iface) error {
-	err := wireguard.WriteWireGuardServerConfig(storage)
+	err := writeServerConfig(storage, wireguard.WriteWireGuardServerConfig)
 	if err != nil {
 		return fmt.Errorf("WriteWireGuardServerConfig error: %s", err)
 	}

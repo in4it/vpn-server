@@ -2,6 +2,7 @@ package wireguard
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -147,6 +148,10 @@ func splitConfigLines(config string) []string {
 	return strings.FieldsFunc(config, func(r rune) bool { return r == '\n' || r == '\r' })
 }
 
+// ErrServerConfigNotAllowed is returned when the rendered server config contains
+// settings that aren't supported in the server template
+var ErrServerConfigNotAllowed = errors.New("server config not allowed")
+
 // checkServerConfig checks the rendered server config. wg-quick runs the
 // PreUp/PostUp/PreDown/PostDown commands of the config, so only the commands
 // that the default server template generates (the NAT rules) are allowed.
@@ -161,16 +166,16 @@ func checkServerConfig(config []byte, externalInterface string) error {
 		for _, subLine := range splitConfigLines(line) {
 			key, value, ok := parseServerConfigLine(subLine)
 			if !ok {
-				return fmt.Errorf("invalid key in server template (line %d)", i+1)
+				return fmt.Errorf("%w: invalid key in server template (line %d)", ErrServerConfigNotAllowed, i+1)
 			}
 			name, restricted := restrictedServerConfigKeys[key]
 			if !restricted || allowed[serverConfigEntry{key: key, value: value}] {
 				continue
 			}
 			if isHookKey(key) {
-				return fmt.Errorf("custom PreUp/PostUp/PreDown/PostDown commands are not supported in the server template (line %d: %s)", i+1, name)
+				return fmt.Errorf("%w: custom PreUp/PostUp/PreDown/PostDown commands are not supported in the server template (line %d: %s)", ErrServerConfigNotAllowed, i+1, name)
 			}
-			return fmt.Errorf("%s is not supported in the server template (line %d)", name, i+1)
+			return fmt.Errorf("%w: %s is not supported in the server template (line %d)", ErrServerConfigNotAllowed, name, i+1)
 		}
 	}
 	return nil
