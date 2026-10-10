@@ -57,7 +57,7 @@ func getExternalInterface(vpnConfig VPNConfig) (string, error) {
 func WriteWireGuardServerConfig(storage storage.Iface) error {
 	configfileBytes, err := generateWireGuardServerConfig(storage)
 	if err != nil {
-		return fmt.Errorf("could not generate wireguard server config: %s", err)
+		return fmt.Errorf("could not generate wireguard server config: %w", err)
 	}
 	err = os.WriteFile(WIREGUARD_CONFIG, configfileBytes, 0600)
 	if err != nil {
@@ -148,6 +148,11 @@ func generateWireGuardServerConfig(storage storage.Iface) ([]byte, error) {
 	err = tmpl.Execute(out, vpnServerData)
 	if err != nil {
 		return nil, fmt.Errorf("could not parse client template (execute parsing): %s", err)
+	}
+	// check the rendered config, not only the template (e.g. the template can
+	// render differently depending on the data)
+	if err := checkServerConfig(out.Bytes(), externalInterface); err != nil {
+		return nil, fmt.Errorf("invalid server config: %w", err)
 	}
 	return out.Bytes(), nil
 }

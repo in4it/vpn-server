@@ -6,12 +6,20 @@ import (
 	"net/http"
 
 	"github.com/in4it/go-devops-platform/storage"
-	localstorage "github.com/in4it/go-devops-platform/storage/local"
 	"github.com/in4it/wireguard-server/pkg/wireguard"
+	"github.com/in4it/wireguard-server/pkg/wireguard/fsutils"
 )
 
 func StartServer(port int) {
-	localStorage, err := localstorage.New()
+	dir, err := executableDir()
+	if err != nil {
+		log.Fatalf("couldn't initialize storage: %s", err)
+	}
+	// set the immutable flag on the binaries (existing installs get it after an upgrade)
+	ensureImmutableBinaries(dir, getBinaries())
+	// the configmanager writes files in a directory owned by the vpn user:
+	// use a storage that doesn't follow symbolic links
+	localStorage, err := fsutils.NewNoFollowStorageWithConfigDirs(dir)
 	if err != nil {
 		log.Fatalf("couldn't initialize storage: %s", err)
 	}

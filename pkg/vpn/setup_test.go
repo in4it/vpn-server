@@ -47,6 +47,9 @@ func TestTemplateSetupRejectsInvalidTemplates(t *testing.T) {
 		"broken client template":                          {ClientTemplate: "{{ .Adress }}", ServerTemplate: string(serverTemplate)},
 		"broken server template":                          {ClientTemplate: string(clientTemplate), ServerTemplate: "{{ .Foo }}"},
 		"valid client change with broken server template": {ClientTemplate: string(clientTemplate) + "\n# changed", ServerTemplate: "{{ .Address"},
+		"server template with custom PostUp":              {ClientTemplate: string(clientTemplate), ServerTemplate: string(serverTemplate) + "\nPostUp = touch /tmp/test\n"},
+		"server template with custom PreDown":             {ClientTemplate: string(clientTemplate), ServerTemplate: string(serverTemplate) + "\npredown=touch /tmp/test\n"},
+		"server template with SaveConfig":                 {ClientTemplate: string(clientTemplate), ServerTemplate: string(serverTemplate) + "\nSaveConfig = true\n"},
 	}
 	for name, req := range tests {
 		t.Run(name, func(t *testing.T) {
