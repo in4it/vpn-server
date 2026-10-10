@@ -52,6 +52,9 @@ install-azure-arm64:
 install-digitalocean:
 	cd provisioning && packer build packer-digitalocean-amd64.pkr.hcl
 
+release-aws-marketplace:
+	AWS_PROFILE=in4it-vpn-server provisioning/scripts/aws_marketplace_add_version.sh all
+
 install-s3: build-webapp build-arm64 build-amd64
 	cd provisioning && AWS_PROFILE=in4it-vpn-server scripts/install_s3.sh --release
 
