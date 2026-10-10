@@ -41,3 +41,5 @@ jobs:
           touch cmd/rest-server/static/placeholder # we're not building frontend, so we put a placeholder
       - name: Test
         run: make test
+      - name: Build release binaries
+        run: make build-amd64 build-arm64
