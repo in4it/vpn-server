@@ -4,6 +4,7 @@ import { Table, ScrollArea, Button, Tooltip, rem } from '@mantine/core';
 import classes from './ListOIDCProviders.module.css';
 import { useQueryClient, useMutation, useQuery } from '@tanstack/react-query';
 import { AppSettings } from '../../../Constants/Constants';
+import { fetchJSON } from '../../../Auth/fetchJSON';
 import { TbCheck, TbCopy, TbTrash } from 'react-icons/tb';
 import { useClipboard } from '@mantine/hooks';
 import axios from 'axios';
@@ -17,17 +18,7 @@ export function ListOIDCProviders() {
     const [activeRow, setActiveRow] = useState<string>("")
     const { isPending, error, data } = useQuery({
         queryKey: ['oidc'],
-        queryFn: () =>
-          fetch(AppSettings.url + '/oidc', {
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": "Bearer " + authInfo.token
-            },
-          }).then((res) => {
-            return res.json()
-            }
-            
-          ),
+        queryFn: () => fetchJSON(AppSettings.url + '/oidc', authInfo.token),
       })
     const mutation = useMutation({
         mutationFn: (id:string) => {

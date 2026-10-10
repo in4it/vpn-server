@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { AppSettings } from "../../Constants/Constants"
+import { fetchJSON } from "../../Auth/fetchJSON"
 import { useAuthContext } from "../../Auth/Auth";
 import { ActionIcon, Group, Menu, Table, Text, rem } from "@mantine/core";
 import { TbDots, TbTrash } from "react-icons/tb";
@@ -15,17 +16,7 @@ export function ListFactors() {
     const queryClient = useQueryClient()
     const { isPending, error, data } = useQuery({
         queryKey: ['factors'],
-        queryFn: () =>
-          fetch(AppSettings.url + '/profile/factors', {
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": "Bearer " + authInfo.token
-            },
-          }).then((res) => {
-            return res.json()
-            }
-            
-          ),
+        queryFn: () => fetchJSON(AppSettings.url + '/profile/factors', authInfo.token),
     })
     const deleteFactor = useMutation({
         mutationFn: (id:string) => {

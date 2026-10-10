@@ -3,6 +3,7 @@ import { Table, Button, rem, Group, Text, Badge, Select, PasswordInput, Menu, Ac
 //import classes from './ListUsers.module.css';
 import { useQueryClient, useMutation, useQuery } from '@tanstack/react-query';
 import { AppSettings } from '../../Constants/Constants';
+import { fetchJSON } from '../../Auth/fetchJSON';
 import { TbDots, TbInfoCircle, TbPassword, TbTrash, TbUserPause } from 'react-icons/tb';
 import { useDisclosure } from '@mantine/hooks';
 import axios from 'axios';
@@ -31,17 +32,7 @@ export function ListUsers({localAuthDisabled}:Props) {
     const [passwordUpdated, setPasswordUpdated] = useState(false);
     const { isPending, error, data } = useQuery({
         queryKey: ['users'],
-        queryFn: () =>
-          fetch(AppSettings.url + '/users', {
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": "Bearer " + authInfo.token
-            },
-          }).then((res) => {
-            return res.json()
-            }
-            
-          ),
+        queryFn: () => fetchJSON(AppSettings.url + '/users', authInfo.token),
       })
 
     const updateUser = useMutation({
