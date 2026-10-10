@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { screen, waitFor } from '@testing-library/react'
+import { Route, Routes } from 'react-router'
 import { Home } from './Home'
 import { renderWithProviders, installFetchMock } from '../../test-utils'
 
@@ -27,5 +28,27 @@ describe('Home', () => {
     renderWithProviders(<Home />, { authInfo: { role: 'user' }, route: '/' })
     // "user" role is redirected to /connection, so the status title never renders
     expect(screen.queryByText('VPN Status')).not.toBeInTheDocument()
+  })
+
+  it('redirects regular users to /connection on the vpn server', async () => {
+    renderWithProviders(
+      <Routes>
+        <Route path="/" element={<Home serverType="vpn" />} />
+        <Route path="/connection" element={<div>connection page</div>} />
+      </Routes>,
+      { authInfo: { role: 'user' }, route: '/' }
+    )
+    expect(await screen.findByText('connection page')).toBeInTheDocument()
+  })
+
+  it('redirects regular users to /logs on the observability server', async () => {
+    renderWithProviders(
+      <Routes>
+        <Route path="/" element={<Home serverType="observability" />} />
+        <Route path="/logs" element={<div>logs page</div>} />
+      </Routes>,
+      { authInfo: { role: 'user' }, route: '/' }
+    )
+    expect(await screen.findByText('logs page')).toBeInTheDocument()
   })
 })

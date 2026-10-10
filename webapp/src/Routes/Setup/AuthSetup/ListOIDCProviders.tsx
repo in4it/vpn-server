@@ -9,6 +9,9 @@ import { TbCheck, TbCopy, TbTrash } from 'react-icons/tb';
 import { useClipboard } from '@mantine/hooks';
 import axios from 'axios';
 import { useAuthContext } from '../../../Auth/Auth';
+import { getErrorMessage } from '../../../Auth/errorMessage';
+import { ConfirmModal } from '../../../ConfirmModal';
+import { ErrorAlert } from '../../../ErrorAlert';
 
 export function ListOIDCProviders() {
     const queryClient = useQueryClient()
@@ -16,6 +19,7 @@ export function ListOIDCProviders() {
     const clipboard = useClipboard();
     const [scrolled, setScrolled] = useState(false);
     const [activeRow, setActiveRow] = useState<string>("")
+    const [providerToDelete, setProviderToDelete] = useState<OIDCProvider | null>(null)
     const { isPending, error, data } = useQuery({
         queryKey: ['oidc'],
         queryFn: () => fetchJSON(AppSettings.url + '/oidc', authInfo.token),
@@ -30,7 +34,10 @@ export function ListOIDCProviders() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['oidc'] })
-        }
+        },
+        onSettled: () => {
+            setProviderToDelete(null)
+        },
       })
     const clipboardCopy = (rowID:string, redirectURI:string) => {
       setActiveRow(rowID)
@@ -103,16 +110,24 @@ export function ListOIDCProviders() {
               </Tooltip>
             </Table.Td>
             <Table.Td>{row.scope}</Table.Td>
-            <Table.Td><Button onClick={() => mutation.mutate(row.id)}><TbTrash size={15} /></Button></Table.Td>
+            <Table.Td><Button aria-label={"Delete OIDC provider " + row.name} onClick={() => setProviderToDelete(row)}><TbTrash size={15} /></Button></Table.Td>
         </Table.Tr>
     ));
 
   
     return (
         <>
-        {mutation.isError ? (
-            <div>An error occurred while deleting: {mutation.error.message}</div>
-          ) : null}
+        <ConfirmModal
+            opened={providerToDelete !== null}
+            title="Delete OIDC connection"
+            confirmLabel="Delete"
+            loading={mutation.isPending}
+            onClose={() => setProviderToDelete(null)}
+            onConfirm={() => providerToDelete && mutation.mutate(providerToDelete.id)}
+        >
+            Are you sure you want to delete the OIDC connection "{providerToDelete?.name}"? Users will no longer be able to log in with this provider.
+        </ConfirmModal>
+        {mutation.isError ? <ErrorAlert message={"An error occurred while deleting: " + getErrorMessage(mutation.error)} /> : null}
         <ScrollArea h={300} onScrollPositionChange={({ y }) => setScrolled(y !== 0)}>
             <Table miw={700}>
             <Table.Thead className={cx(classes.header, { [classes.scrolled]: scrolled })}>

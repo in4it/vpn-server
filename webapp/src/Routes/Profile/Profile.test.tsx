@@ -23,6 +23,14 @@ describe('Profile', () => {
 
   it('shows no profile info for OIDC users', () => {
     renderWithProviders(<Profile />, { authInfo: { login: 'jane', userType: 'oidc' } })
-    expect(screen.getByText('No profile information available for OIDC users.')).toBeInTheDocument()
+    expect(screen.getByText('No profile information available for OIDC or SAML users.')).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Change Password' })).not.toBeInTheDocument()
+  })
+
+  it('does not offer password change or MFA to SAML users', () => {
+    renderWithProviders(<Profile />, { authInfo: { login: 'sam', userType: 'saml' } })
+    expect(screen.queryByRole('heading', { name: 'Change Password' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'New Factor (MFA)' })).not.toBeInTheDocument()
+    expect(screen.getByText('No profile information available for OIDC or SAML users.')).toBeInTheDocument()
   })
 })

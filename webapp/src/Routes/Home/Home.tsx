@@ -8,28 +8,25 @@ import { useQuery } from '@tanstack/react-query';
 import { UpgradeAlert } from './UpgradeAlert';
 import { TbPaperBag } from 'react-icons/tb';
 import { UserStats } from './UserStats';
+import { fetchJSON } from '../../Auth/fetchJSON';
 
-export function Home() {
+type Props = {
+  serverType?: string
+};
+
+export function Home({serverType = "vpn"}: Props) {
   const {authInfo} = useAuthContext()
   const { isPending, error, data } = useQuery({
     queryKey: ['license'],
-    queryFn: () =>
-      fetch(AppSettings.url + '/license', {
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer " + authInfo.token
-        },
-      }).then((res) => {
-        return res.json()
-        }
-        
-      ),
+    queryFn: () => fetchJSON(AppSettings.url + '/license', authInfo.token),
       enabled: authInfo.role === "admin",
   })
   if(authInfo.role === "user") {
-    return <Navigate to={"/connection"} />
+    // regular users have no status page: send them to their landing page,
+    // which differs per server type (/connection only exists on the vpn server)
+    return <Navigate to={serverType === "observability" ? "/logs" : "/connection"} />
   }
-  if (error) return 'cannot retrieve licensed users'
+  if (error) return 'cannot retrieve licensed users: ' + error.message
 
   return (
     <Container my={45} size="45rem">

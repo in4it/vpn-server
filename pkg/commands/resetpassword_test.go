@@ -99,3 +99,42 @@ func TestResetPasswordExistingAdminResetMFA(t *testing.T) {
 		t.Fatalf("found MFA for admin user")
 	}
 }
+
+// TestResetPasswordExistingNonAdminRole: when the admin user's role gets restored, the password change must
+// not be overwritten with the stale user record (PasswordChangedAt must be kept, so older sessions are expired)
+func TestResetPasswordExistingNonAdminRole(t *testing.T) {
+	storage := &memorystorage.MockMemoryStorage{}
+	userStore, err := users.NewUserStore(storage, -1)
+	if err != nil {
+		t.Fatalf("userstore initialization error: %s", err)
+	}
+	_, err = userStore.AddUser(users.User{Login: "admin", Role: "user", Password: "oldpassword"})
+	if err != nil {
+		t.Fatalf("could not add user: %s", err)
+	}
+
+	adminCreated, err := ResetPassword(storage, "mytestpassword")
+	if err != nil {
+		t.Fatalf("reset password error: %s", err)
+	}
+	if adminCreated {
+		t.Fatalf("expected admin user to already exist")
+	}
+	userStore, err = users.NewUserStore(storage, -1) // user store is not in sync anymore with the file
+	if err != nil {
+		t.Fatalf("userstore initialization error: %s", err)
+	}
+	if _, authOK := userStore.AuthUser("admin", "mytestpassword"); !authOK {
+		t.Fatalf("couldn't authenticate admin")
+	}
+	user, err := userStore.GetUserByLogin("admin")
+	if err != nil {
+		t.Fatalf("get user by login error: %s", err)
+	}
+	if user.Role != "admin" {
+		t.Fatalf("expected role admin, got: %s", user.Role)
+	}
+	if user.PasswordChangedAt.IsZero() {
+		t.Fatalf("PasswordChangedAt was not set (stale user record written back)")
+	}
+}

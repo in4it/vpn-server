@@ -23,14 +23,15 @@ export function Profile() {
             Profile
           </Title>
     
-          {authInfo.userType == "local" ?
+          {/* only local users have a password/MFA managed here (not oidc, saml or provisioned users) */}
+          {authInfo.userType === "local" ?
             <>
               <ChangePassword />
               <ListFactors />
               <Button onClick={() => setShowNewFactor(true)}>New Factor (MFA)</Button>
             </>
             :
-            <Text>No profile information available for OIDC users.</Text>
+            <Text>No profile information available for OIDC or SAML users.</Text>
           }
 
         </Container>

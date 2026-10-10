@@ -46,7 +46,7 @@ export default function App() {
                     <AppShell.Main>     
                         <ErrorBoundary>     
                         <Routes>
-                          <Route path="/" element={<Home />} />
+                          <Route path="/" element={<Home serverType="vpn" />} />
                           <Route path="/users" element={<CheckRole role="admin"><Users /></CheckRole>} />
                           <Route path="/setup" element={<CheckRole role="admin"><Setup /></CheckRole>} />
                           <Route path="/setup/:page" element={<CheckRole role="admin"><Setup /></CheckRole>} />
@@ -59,6 +59,7 @@ export default function App() {
                           <Route path="/callback/:callbacktype/:id" element={<Navigate to={"/"} />} />
                           <Route path="/connection" element={<Connections />} />
                           <Route path="/profile" element={<Profile />} />
+                          <Route path="*" element={<Navigate to={"/"} />} />
                         </Routes>
                     </ErrorBoundary>
                     </AppShell.Main>
@@ -81,7 +82,7 @@ export default function App() {
                     <AppShell.Main>     
                         <ErrorBoundary>     
                         <Routes>
-                          <Route path="/" element={<Home />} />
+                          <Route path="/" element={<Home serverType="observability" />} />
                           <Route path="/users" element={<CheckRole role="admin"><Users /></CheckRole>} />
                           <Route path="/setup" element={<CheckRole role="admin"><Setup /></CheckRole>} />
                           <Route path="/setup/:page" element={<CheckRole role="admin"><Setup /></CheckRole>} />
@@ -93,6 +94,7 @@ export default function App() {
                           <Route path="/login/:logintype/:id" element={<Navigate to={"/"} />} />
                           <Route path="/callback/:callbacktype/:id" element={<Navigate to={"/"} />} />
                           <Route path="/profile" element={<Profile />} />
+                          <Route path="*" element={<Navigate to={"/"} />} />
                         </Routes>
                     </ErrorBoundary>
                     </AppShell.Main>

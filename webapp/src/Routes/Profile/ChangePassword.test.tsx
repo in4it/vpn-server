@@ -7,9 +7,10 @@ import axios from 'axios'
 import { ChangePassword } from './ChangePassword'
 
 // Hoisted mocks so they can be referenced from the vi.mock factories below.
-const { setAuthInfoMock, setCookieMock } = vi.hoisted(() => ({
+const { setAuthInfoMock, setCookieMock, removeCookieMock } = vi.hoisted(() => ({
   setAuthInfoMock: vi.fn(),
   setCookieMock: vi.fn(),
+  removeCookieMock: vi.fn(),
 }))
 
 vi.mock('axios', () => ({
@@ -24,9 +25,9 @@ vi.mock('../../Auth/Auth', () => ({
   }),
 }))
 
-// Capture cookie writes so we can assert the token is cleared on logout.
+// Capture cookie writes so we can assert the token is removed on logout.
 vi.mock('react-cookie', () => ({
-  useCookies: () => [{}, setCookieMock, vi.fn()],
+  useCookies: () => [{}, setCookieMock, removeCookieMock],
 }))
 
 const postMock = vi.mocked(axios.post)
@@ -70,6 +71,7 @@ describe('ChangePassword', () => {
     const user = userEvent.setup()
     renderChangePassword()
 
+    await user.type(screen.getByPlaceholderText('Current Password'), 'oldpass1!')
     await user.type(screen.getByPlaceholderText('New Password'), 'newpass1!')
     await user.type(screen.getByPlaceholderText('Repeat Password'), 'different1!')
     await user.click(screen.getByRole('button', { name: 'Change Password' }))
@@ -82,6 +84,7 @@ describe('ChangePassword', () => {
     const user = userEvent.setup()
     renderChangePassword()
 
+    await user.type(screen.getByPlaceholderText('Current Password'), 'oldpass1!')
     await user.type(screen.getByPlaceholderText('New Password'), 'newpass1')
     await user.type(screen.getByPlaceholderText('Repeat Password'), 'newpass1')
     await user.click(screen.getByRole('button', { name: 'Change Password' }))
@@ -95,6 +98,7 @@ describe('ChangePassword', () => {
     const user = userEvent.setup()
     renderChangePassword()
 
+    await user.type(screen.getByPlaceholderText('Current Password'), 'oldpass1!')
     await user.type(screen.getByPlaceholderText('New Password'), 'newpass1!')
     await user.type(screen.getByPlaceholderText('Repeat Password'), 'newpass1!')
     await user.click(screen.getByRole('button', { name: 'Change Password' }))
@@ -103,7 +107,7 @@ describe('ChangePassword', () => {
     await waitFor(() => expect(postMock).toHaveBeenCalledTimes(1))
     expect(postMock).toHaveBeenCalledWith(
       '/api/profile/password',
-      { password: 'newpass1!' },
+      { password: 'newpass1!', currentPassword: 'oldpass1!' },
       { headers: { Authorization: 'Bearer test-token' } }
     )
 
@@ -117,7 +121,9 @@ describe('ChangePassword', () => {
     // after the short delay the session is torn down and the app reloads to login
     await waitFor(
       () => {
-        expect(setCookieMock).toHaveBeenCalledWith('token', '', { path: '/' })
+        // the cookie is removed (not set to an empty value)
+        expect(removeCookieMock).toHaveBeenCalledWith('token', { path: '/' })
+        expect(setCookieMock).not.toHaveBeenCalled()
         expect(setAuthInfoMock).toHaveBeenCalledWith({
           login: '',
           role: '',
@@ -128,5 +134,35 @@ describe('ChangePassword', () => {
       },
       { timeout: 3000 }
     )
+  })
+
+  it('requires the current password', async () => {
+    const user = userEvent.setup()
+    renderChangePassword()
+
+    await user.type(screen.getByPlaceholderText('New Password'), 'newpass1!')
+    await user.type(screen.getByPlaceholderText('Repeat Password'), 'newpass1!')
+    await user.click(screen.getByRole('button', { name: 'Change Password' }))
+
+    expect(screen.getByText('current password is empty')).toBeInTheDocument()
+    expect(postMock).not.toHaveBeenCalled()
+  })
+
+  it('shows the backend error (e.g. wrong current password) and stays logged in', async () => {
+    postMock.mockRejectedValue({
+      message: 'Request failed with status code 403',
+      response: { status: 403, data: { error: 'current password is incorrect' } },
+    })
+    const user = userEvent.setup()
+    renderChangePassword()
+
+    await user.type(screen.getByPlaceholderText('Current Password'), 'wrong1!')
+    await user.type(screen.getByPlaceholderText('New Password'), 'newpass1!')
+    await user.type(screen.getByPlaceholderText('Repeat Password'), 'newpass1!')
+    await user.click(screen.getByRole('button', { name: 'Change Password' }))
+
+    expect(await screen.findByText('current password is incorrect')).toBeInTheDocument()
+    expect(screen.queryByText(/Password updated\. You will be logged out/i)).not.toBeInTheDocument()
+    expect(removeCookieMock).not.toHaveBeenCalled()
   })
 })

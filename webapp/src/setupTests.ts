@@ -31,3 +31,6 @@ Object.defineProperty(window, 'matchMedia', {
     dispatchEvent: vi.fn(),
   }),
 })
+
+// Mantine's Combobox (Select) scrolls the selected option into view; jsdom has no impl.
+Element.prototype.scrollIntoView = vi.fn()

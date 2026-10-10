@@ -1,5 +1,9 @@
 [Unit]
 Description=vpn configmanager
+# the vpn config (external interface for NAT, endpoint) is detected at first
+# boot, so wait for the network to be configured
+Wants=network-online.target
+After=network-online.target
 StartLimitIntervalSec=500
 StartLimitBurst=5
 

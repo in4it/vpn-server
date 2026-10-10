@@ -105,7 +105,7 @@ export function NavBar({serverType}: Props) {
         {links}
       </div>
       <div className={classes.footer}>
-        {authInfo.userType == "local" ?
+        {authInfo.userType === "local" ?
           <NavLink to="/profile" className={classes.link} onClick={() => { setActive("/profile"); }} data-active={"/profile" === active || undefined}>
             <TbUserCircle className={classes.linkIcon} />
             <span>Profile</span>

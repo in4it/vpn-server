@@ -1,22 +1,14 @@
 import { useQuery } from "@tanstack/react-query"
 import { useAuthContext } from "../Auth/Auth"
 import { AppSettings } from "../Constants/Constants"
+import { fetchJSON } from "../Auth/fetchJSON"
 
 export function Version() {
     const {authInfo} = useAuthContext()
     const { isPending, error, data } = useQuery({
       queryKey: ['version'],
       queryFn: () =>
-        fetch(AppSettings.url + '/vpn/version', {
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": "Bearer " + authInfo.token
-          },
-        }).then((res) => {
-          return res.json()
-          }
-          
-        ),
+        fetchJSON(AppSettings.url + '/vpn/version', authInfo.token),
     })
     if (isPending) return ''
     if (error) return ''

@@ -46,6 +46,7 @@ func processPeerConfig(storage storage.Iface, peerConfig wireguard.PeerConfig) e
 	if !available {
 		return fmt.Errorf("wireguard linux client not available")
 	}
+	defer c.Close() //nolint:errcheck
 	device, err := c.Device(wireguard.VPN_INTERFACE_NAME)
 	if err != nil {
 		return fmt.Errorf("wireguard linux device 'vpn' not found: %s", err)
@@ -82,6 +83,7 @@ func processDeleteOfPeerConfig(peerConfig wireguard.PeerConfig) error {
 	if !available {
 		return fmt.Errorf("wireguard linux client not available")
 	}
+	defer c.Close() //nolint:errcheck
 	device, err := c.Device(wireguard.VPN_INTERFACE_NAME)
 	if err != nil {
 		return fmt.Errorf("wireguard linux device 'vpn' not found: %s", err)

@@ -3,6 +3,7 @@ import classes from './Setup.module.css';
 import { useEffect, useState } from "react";
 import { TbInfoCircle } from "react-icons/tb";
 import { AppSettings } from "../../Constants/Constants";
+import { fetchJSON } from "../../Auth/fetchJSON";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuthContext } from "../../Auth/Auth";
 import { useForm } from '@mantine/form';
@@ -24,19 +25,10 @@ export function GeneralSetup() {
     const [saveError, setSaveError] = useState("")
     const {authInfo} = useAuthContext();
     const queryClient = useQueryClient()
-    const { isPending, error, data, isSuccess } = useQuery({
+    const { isPending, error, data, dataUpdatedAt } = useQuery({
       queryKey: ['general-setup'],
       queryFn: () =>
-        fetch(AppSettings.url + '/setup/general', {
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": "Bearer " + authInfo.token
-          },
-        }).then((res) => {
-          return res.json()
-          }
-          
-        ),
+        fetchJSON(AppSettings.url + '/setup/general', authInfo.token),
     })
     const form = useForm({
       mode: 'uncontrolled',
@@ -60,6 +52,8 @@ export function GeneralSetup() {
       onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: ['users'] })
           queryClient.invalidateQueries({ queryKey: ['general-setup'] })
+          // the saved values are the new baseline: let the refetch update the form
+          form.resetDirty()
           setSaved(true)
           setSaveError("")
           window.scrollTo(0, 0)
@@ -75,11 +69,15 @@ export function GeneralSetup() {
     })
 
 
+    // load the server values into the form, and again whenever they change
+    // (refetch after saving, another admin changed them), unless the user has
+    // unsaved edits in the form
     useEffect(() => {
-      if (isSuccess) {
+      if (data !== undefined && !form.isDirty()) {
+        form.setInitialValues({ ...data });
         form.setValues({ ...data });
       }
-    }, [isSuccess]); 
+    }, [data, dataUpdatedAt]);
   
 
     const hostnameTooltip = (

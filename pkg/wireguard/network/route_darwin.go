@@ -2,6 +2,8 @@
 
 package network
 
+// GetInterfaceDefaultGw is not implemented on darwin (development only). It
+// returns a valid interface name, so the server config can be rendered.
 func GetInterfaceDefaultGw() (string, error) {
-	return "notsupported(Darwin)", nil
+	return "en0", nil
 }

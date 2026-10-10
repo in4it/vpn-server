@@ -2,6 +2,7 @@ import { Container, Button, Alert, Textarea, Space } from "@mantine/core";
 import { useEffect, useState } from "react";
 import { TbInfoCircle } from "react-icons/tb";
 import { AppSettings } from "../../Constants/Constants";
+import { fetchJSON } from "../../Auth/fetchJSON";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuthContext } from "../../Auth/Auth";
 import { useForm } from '@mantine/form';
@@ -20,19 +21,10 @@ export function TemplateSetup() {
     const [saveError, setSaveError] = useState("")
     const {authInfo} = useAuthContext();
     const queryClient = useQueryClient()
-    const { isPending, error, data, isSuccess } = useQuery({
+    const { isPending, error, data, dataUpdatedAt } = useQuery({
       queryKey: ['templates-setup'],
       queryFn: () =>
-        fetch(AppSettings.url + '/vpn/setup/templates', {
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": "Bearer " + authInfo.token
-          },
-        }).then((res) => {
-          return res.json()
-          }
-          
-        ),
+        fetchJSON(AppSettings.url + '/vpn/setup/templates', authInfo.token),
     })
     const form = useForm({
       mode: 'uncontrolled',
@@ -51,6 +43,8 @@ export function TemplateSetup() {
         })
       },
       onSuccess: () => {
+          // the saved values are the new baseline: let the refetch update the form
+          form.resetDirty()
           setSaved(true)
           setSaveError("")
           queryClient.invalidateQueries({ queryKey: ['templates-setup'] })
@@ -67,11 +61,15 @@ export function TemplateSetup() {
     })
 
 
+    // load the server values into the form, and again whenever they change
+    // (refetch after saving, another admin changed them), unless the user has
+    // unsaved edits in the form
     useEffect(() => {
-      if (isSuccess) {
+      if (data !== undefined && !form.isDirty()) {
+        form.setInitialValues({ ...data });
         form.setValues({ ...data });
       }
-    }, [isSuccess]); 
+    }, [data, dataUpdatedAt]);
   
 
     if(isPending) return "Loading..."
