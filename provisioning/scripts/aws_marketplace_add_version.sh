@@ -24,11 +24,15 @@
 #   <ami-id>         The new AMI to publish, e.g. ami-0123456789abcdef0
 #   [version-title]  Optional. Defaults to the contents of ./latest. Must be
 #                    unique within the product.
-#   [release-notes]  Optional. Defaults to "Version <version-title>".
+#   [release-notes]  Optional. Defaults to the release notes of the GitHub
+#                    release <version-title> (in4it/vpn-server), without the
+#                    "What's Changed" list of pull requests. Falls back to
+#                    "Version <version-title>" if the release can't be found.
 #
 # Environment:
 #   AWS_REGION       Defaults to us-east-1
 #   ASSUME_YES=1     Skip the confirmation prompt (for automation).
+#   GITHUB_TOKEN     Optional. Used for the GitHub API request (rate limits).
 #
 set -euo pipefail
 
@@ -43,6 +47,26 @@ die() { echo "error: $*" >&2; exit 1; }
 
 command -v aws >/dev/null 2>&1 || die "aws cli not found in PATH"
 command -v jq  >/dev/null 2>&1 || die "jq not found in PATH"
+command -v curl >/dev/null 2>&1 || die "curl not found in PATH"
+
+GITHUB_REPO="in4it/vpn-server"
+MAX_RELEASE_NOTES_LENGTH=30000
+
+# github_release_notes <tag>: prints the notes of the GitHub release as plain
+# text: the part before "What's Changed", markdown links and code formatting
+# removed. Prints nothing when the release can't be retrieved.
+github_release_notes() {
+  local tag="$1" auth=()
+  [ -n "${GITHUB_TOKEN:-}" ] && auth=(-H "Authorization: Bearer ${GITHUB_TOKEN}")
+  curl -fsSL --max-time 15 "${auth[@]}" \
+    -H "Accept: application/vnd.github+json" \
+    "https://api.github.com/repos/${GITHUB_REPO}/releases/tags/${tag}" 2>/dev/null \
+  | jq -r '.body // empty' \
+  | tr -d '\r' \
+  | awk '/^#+ *What.s Changed/ {exit} {print}' \
+  | sed -E 's/\[([^]]+)\]\(([^)]+)\)/\1 (\2)/g; s/`//g; s/^\* /- /' \
+  | sed -e :a -e '/^[[:space:]]*$/{$d;N;ba' -e '}'
+}
 
 # --- arguments ---------------------------------------------------------------
 PRODUCT="${1:-}"
@@ -77,7 +101,17 @@ if [ -z "$NEW_TITLE" ]; then
   NEW_TITLE="$(tr -d '[:space:]' < "${REPO_ROOT}/latest")"
 fi
 [ -n "$NEW_TITLE" ] || die "empty version title"
-[ -n "$NEW_NOTES" ] || NEW_NOTES="Version ${NEW_TITLE}"
+if [ -z "$NEW_NOTES" ]; then
+  echo "==> Getting release notes from the GitHub release ${NEW_TITLE} ..." >&2
+  NEW_NOTES="$(github_release_notes "$NEW_TITLE")"
+  if [ -z "$NEW_NOTES" ]; then
+    echo "warning: no GitHub release notes found for ${NEW_TITLE}, using \"Version ${NEW_TITLE}\"" >&2
+    NEW_NOTES="Version ${NEW_TITLE}"
+  fi
+fi
+if [ "${#NEW_NOTES}" -gt "$MAX_RELEASE_NOTES_LENGTH" ]; then
+  NEW_NOTES="${NEW_NOTES:0:$((MAX_RELEASE_NOTES_LENGTH - 3))}..."
+fi
 
 echo "==> Looking up previous version data for ${PRODUCT} (${PRODUCT_ID}) ..." >&2
 
@@ -174,7 +208,9 @@ About to add a new version to AWS Marketplace:
 
   Previous version:  ${PREV_TITLE}   (AMI ${PREV_AMI})
   New version:       ${NEW_TITLE}   (AMI ${NEW_AMI})
-  Release notes:     ${NEW_NOTES}
+  Release notes:
+${NEW_NOTES}
+
 
 Full start-change-set payload:
 EOF
