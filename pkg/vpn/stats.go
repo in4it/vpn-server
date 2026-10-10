@@ -476,8 +476,12 @@ func scaleCounterDelta(current, last, unitAdjustment int64) float64 {
 var dateRegex = regexp.MustCompile(`^[0-9]{4}-[0-9]{2}-[0-9]{2}$`)
 var uuidRegex = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
 
-// isValidPacketLogUserID: the user id is used in a file path, so it must be a uuid or an existing user id
+// isValidPacketLogUserID: the user id is used in a file path, so it must be a uuid or an existing user id.
+// "all" is what the webapp requests when no user is selected yet.
 func (v *VPN) isValidPacketLogUserID(userID string) bool {
+	if userID == "all" {
+		return true
+	}
 	if userID == "" || strings.ContainsAny(userID, `./\`) {
 		return false
 	}
