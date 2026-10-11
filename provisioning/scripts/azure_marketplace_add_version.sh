@@ -46,7 +46,7 @@
 set -euo pipefail
 
 API="https://graph.microsoft.com/rp/product-ingestion"
-SCHEMA_VERSION="2022-03-01-preview3"
+SCHEMA_VERSION="2022-03-01-preview6"
 TECH_CONFIG_SCHEMA="https://schema.mp.microsoft.com/schema/virtual-machine-plan-technical-configuration"
 CONFIGURE_SCHEMA="https://schema.mp.microsoft.com/schema/configure/2022-03-01-preview2"
 SUBMISSION_SCHEMA="https://schema.mp.microsoft.com/schema/submission/2022-03-01-preview2"
@@ -140,13 +140,19 @@ TOKEN="$(
 )" || die "could not get an access token (check AZURE_PARTNER_* settings)"
 [ -n "$TOKEN" ] || die "could not get an access token (check AZURE_PARTNER_* settings)"
 
-api() { # api <method> <path> [body]
-  local method="$1" path="$2" body="${3:-}"
-  if [ -n "$body" ]; then
-    curl -fsS --max-time 60 -X "$method" -H "Authorization: Bearer ${TOKEN}" -H "Content-Type: application/json" "${API}/${path}" --data "$body"
-  else
-    curl -fsS --max-time 60 -X "$method" -H "Authorization: Bearer ${TOKEN}" "${API}/${path}"
+api() { # api <method> <path> [body]; on an http error, prints the response body to stderr and fails
+  local method="$1" path="$2" body="${3:-}" out status
+  local args=(-sS --max-time 60 -X "$method" -H "Authorization: Bearer ${TOKEN}" -w '\n%{http_code}')
+  [ -n "$body" ] && args+=(-H "Content-Type: application/json" --data "$body")
+  out="$(curl "${args[@]}" "${API}/${path}")" || return 1
+  status="${out##*$'\n'}"
+  out="${out%$'\n'*}"
+  if [ "$status" -ge 400 ]; then
+    echo "error: ${method} ${path%%\?*} returned HTTP ${status}:" >&2
+    jq . <<<"$out" >&2 2>/dev/null || echo "$out" >&2
+    return 1
   fi
+  printf '%s' "$out"
 }
 
 # --- offers --------------------------------------------------------------------
@@ -177,8 +183,9 @@ wait_for_job() {
   job_id="$(jq -r '.jobId // empty' <<<"$1")"
   [ -n "$job_id" ] || die "$2: unexpected configure response: $1"
   echo "==> $2: job ${job_id} submitted, waiting for the result ..." >&2
-  for _ in $(seq 1 120); do
-    status="$(api GET "configure/${job_id}/status?\$version=${SCHEMA_VERSION}")"
+  for _ in $(seq 1 360); do
+    # a failed status request (e.g. a network timeout) is retried, the job keeps running
+    status="$(api GET "configure/${job_id}/status?\$version=${SCHEMA_VERSION}")" || { sleep 10; continue; }
     if [ "$(jq -r '.jobStatus' <<<"$status")" = "completed" ]; then
       if [ "$(jq -r '.jobResult' <<<"$status")" = "succeeded" ]; then
         echo "==> $2: succeeded." >&2
@@ -189,7 +196,7 @@ wait_for_job() {
     fi
     sleep 10
   done
-  die "$2: job ${job_id} is still running, check Partner Center"
+  die "$2: job ${job_id} is still running after an hour, check Partner Center"
 }
 
 submission_payload() { # submission_payload <product-id> <targetType> [resources-json-array]
@@ -215,7 +222,8 @@ fi
 AZ_ERR="$(mktemp)"
 trap 'rm -f "$AZ_ERR"' EXIT
 az account show >/dev/null 2>&1 || die "the az cli isn't logged in, run: az login"
-PAYLOADS=()     # "<offer id>\t<payload>" per offer with changes
+EDITS=()     # "<offer id>\t<configure payload>": draft changes per offer
+PUBLISH=()   # "<product id> <offer id>": offers to publish to preview
 SUMMARY=""
 for offer in "${OFFERS[@]}"; do
   product_id="${offer%% *}"; offer_id="${offer#* }"
@@ -223,8 +231,14 @@ for offer in "${OFFERS[@]}"; do
   tech_configs="$(api GET "resource-tree/${product_id}?\$version=${SCHEMA_VERSION}" \
     | jq -c --arg s "$TECH_CONFIG_SCHEMA" '[.resources[] | select(."$schema" | startswith($s))]')" \
     || die "could not read offer ${offer_id}"
+  # plans that have the version in preview already (to know whether the draft still needs publishing)
+  preview_plans="$(api GET "resource-tree/${product_id}?targetType=preview&\$version=${SCHEMA_VERSION}" 2>/dev/null \
+    | jq -c --arg s "$TECH_CONFIG_SCHEMA" --arg v "$VERSION_NUMBER" \
+      '[.resources[] | select(."$schema" | startswith($s)) | select(any(.vmImageVersions[]?; .versionNumber == $v)) | .plan]')" \
+    || preview_plans="[]"
   SUMMARY+="  offer ${offer_id}:"$'\n'
   updated_configs="[]"
+  publish=0
   while read -r tech_config; do
     [ -n "$tech_config" ] || continue
     plan="$(jq -r '.plan' <<<"$tech_config")"
@@ -234,7 +248,12 @@ for offer in "${OFFERS[@]}"; do
     fi
     updated="$(add_image_version "$tech_config" "$VERSION_NUMBER")" || die "${offer_id} ${plan}: could not add version ${VERSION_NUMBER}"
     if [ -z "$updated" ]; then
-      SUMMARY+="    ${plan}: already has ${VERSION_NUMBER}, skipped"$'\n'
+      if jq -e --arg p "$plan" 'index($p) != null' <<<"$preview_plans" >/dev/null; then
+        SUMMARY+="    ${plan}: ${VERSION_NUMBER} already in preview, skipped"$'\n'
+      else
+        SUMMARY+="    ${plan}: ${VERSION_NUMBER} already in draft, publish to preview"$'\n'
+        publish=1
+      fi
       continue
     fi
     while read -r resource_id; do
@@ -246,30 +265,38 @@ for offer in "${OFFERS[@]}"; do
         die "${offer_id} ${plan}: gallery image version ${resource_id##*/galleries/} not found, build it with make install-azure / make install-azure-arm64"
       fi
       [ "$state" = "Succeeded" ] || die "${offer_id} ${plan}: gallery image version ${resource_id} is ${state}"
-      SUMMARY+="    ${plan}: add ${VERSION_NUMBER} (${resource_id##*/galleries/})"$'\n'
+      SUMMARY+="    ${plan}: add ${VERSION_NUMBER} (${resource_id##*/galleries/}) and publish to preview"$'\n'
     done < <(jq -r --arg v "$VERSION_NUMBER" '.vmImageVersions[] | select(.versionNumber == $v) | .vmImages[].source.sharedImage.resourceId' <<<"$updated")
     updated_configs="$(jq -c --argjson r "$updated" '. + [$r]' <<<"$updated_configs")"
+    publish=1
   done < <(jq -c '.[]' <<<"$tech_configs")
   if [ "$(jq length <<<"$updated_configs")" -gt 0 ]; then
-    PAYLOADS+=("${offer_id}"$'\t'"$(submission_payload "$product_id" preview "$updated_configs")")
+    EDITS+=("${offer_id}"$'\t'"$(jq -n --arg schema "$CONFIGURE_SCHEMA" --argjson r "$updated_configs" '{"$schema": $schema, resources: $r}')")
   fi
+  [ "$publish" = "1" ] && PUBLISH+=("${product_id} ${offer_id}")
 done
 
 cat >&2 <<EOF
 
-About to add version ${VERSION_NUMBER} to Azure Marketplace and publish the changed offers to preview:
+About to add version ${VERSION_NUMBER} to Azure Marketplace and publish the offers to preview:
 ${SUMMARY}
 EOF
-[ "${#PAYLOADS[@]}" -gt 0 ] || { echo "Nothing to do." >&2; exit 0; }
+[ "${#PUBLISH[@]}" -gt 0 ] || { echo "Nothing to do." >&2; exit 0; }
 
 if [ "${DRY_RUN:-}" = "1" ]; then
-  for p in "${PAYLOADS[@]}"; do echo "--- offer ${p%%$'\t'*}" >&2; jq . <<<"${p#*$'\t'}" >&2; done
+  for p in "${EDITS[@]}"; do echo "--- draft changes for offer ${p%%$'\t'*}" >&2; jq . <<<"${p#*$'\t'}" >&2; done
+  for offer in "${PUBLISH[@]}"; do echo "--- publish offer ${offer#* } to preview" >&2; done
   echo "==> Dry run: not submitted." >&2
   exit 0
 fi
 confirm "Submit and publish to preview?"
-for p in "${PAYLOADS[@]}"; do
+# first save the changes to the draft, then publish the draft (a submission
+# request can't contain other changes)
+for p in "${EDITS[@]}"; do
   wait_for_job "$(api POST "configure?\$version=2022-03-01-preview2" "${p#*$'\t'}")" "${p%%$'\t'*}"
+done
+for offer in "${PUBLISH[@]}"; do
+  wait_for_job "$(api POST "configure?\$version=2022-03-01-preview2" "$(submission_payload "${offer%% *}" preview)")" "${offer#* }"
 done
 cat >&2 <<EOF
 

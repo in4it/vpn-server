@@ -29,6 +29,9 @@
 #   GCP_ZONE                 Optional. Zone for the packer build VM (default us-east4-c).
 #   SKIP_BUILD=1             Skip building the webapp and binaries.
 #   ASSUME_YES=1             Skip the confirmation prompts.
+#   DRY_RUN=1                Don't build anything: check the configuration, gcloud
+#                            access, project, zone, license and packer template,
+#                            and show the image that would be built.
 #
 # Authentication: packer uses Application Default Credentials, so run
 #   gcloud auth login && gcloud auth application-default login
@@ -91,6 +94,55 @@ if [ "${SKIP_BUILD:-}" != "1" ]; then
   for cmd in make go npm; do
     command -v "$cmd" >/dev/null 2>&1 || die "$cmd not found in PATH"
   done
+fi
+
+if [ "${DRY_RUN:-}" = "1" ]; then
+  FAILED=0
+  check() { # check <description> <command...>
+    local desc="$1"; shift
+    local out
+    if out="$("$@" 2>&1)"; then
+      echo "  ok    ${desc}" >&2
+    else
+      echo "  FAIL  ${desc}" >&2
+      [ -n "$out" ] && sed 's/^/          /' <<<"$out" | tail -5 >&2
+      FAILED=1
+    fi
+  }
+  LICENSE_PROJECT="$(cut -d/ -f2 <<<"$GCP_MARKETPLACE_LICENSE")"
+  LICENSE_NAME="${GCP_MARKETPLACE_LICENSE##*/}"
+  IMAGE_VERSION="$(tr '[:upper:].' '[:lower:]-' <<<"$VERSION")"
+  echo "==> Dry run: checking the configuration (nothing is built) ..." >&2
+  check "gcloud is logged in ($(gcloud auth list --filter=status:ACTIVE --format='value(account)' 2>/dev/null | head -1))" \
+    sh -c 'gcloud auth list --filter=status:ACTIVE --format="value(account)" | grep -q .'
+  check "application default credentials (used by packer)" gcloud auth application-default print-access-token
+  check "project ${GCP_PROJECT_ID} exists" gcloud projects describe "$GCP_PROJECT_ID" --format="value(projectId)"
+  check "Compute Engine API is enabled in ${GCP_PROJECT_ID}" \
+    sh -c "gcloud services list --enabled --project '$GCP_PROJECT_ID' --filter='config.name:compute.googleapis.com' --format='value(config.name)' | grep -q compute"
+  check "zone ${GCP_ZONE} exists" gcloud compute zones describe "$GCP_ZONE" --project "$GCP_PROJECT_ID" --format="value(name)"
+  # gcloud has no licenses command, use the Compute API (licenses.get)
+  check "license ${LICENSE_NAME} exists in ${LICENSE_PROJECT}" \
+    sh -c "curl -fsS --max-time 30 -H \"Authorization: Bearer \$(gcloud auth print-access-token)\" \
+      'https://compute.googleapis.com/compute/v1/projects/${LICENSE_PROJECT}/global/licenses/${LICENSE_NAME}' >/dev/null"
+  check "packer plugins (packer init)" sh -c "cd '$PROVISIONING_DIR' && packer init packer-gcp-amd64.pkr.hcl"
+  if [ -f "${REPO_ROOT}/restserver-linux-amd64" ] && [ -f "${REPO_ROOT}/configmanager-linux-amd64" ] && [ -f "${REPO_ROOT}/reset-admin-password-linux-amd64" ]; then
+    check "packer template is valid" sh -c "cd '$PROVISIONING_DIR' && packer validate -var 'image_version=${VERSION}' -var 'zone=${GCP_ZONE}' packer-gcp-amd64.pkr.hcl"
+  else
+    check "packer template syntax (binaries not built yet, full check runs during the release)" \
+      sh -c "cd '$PROVISIONING_DIR' && packer validate -syntax-only packer-gcp-amd64.pkr.hcl"
+  fi
+  cat >&2 <<EOF
+
+Would build:
+  Image:     in4it-vpn-server-ubuntu2404-x86-64-${IMAGE_VERSION}-<timestamp> (family in4it-vpn-server)
+  Project:   ${GCP_PROJECT_ID}, build VM in ${GCP_ZONE}
+  License:   ${GCP_MARKETPLACE_LICENSE}
+  Binaries:  $([ "${SKIP_BUILD:-}" = "1" ] && echo "existing (SKIP_BUILD=1)" || echo "built with make build-webapp build-amd64")
+and then make the image public (roles/compute.imageUser for allAuthenticatedUsers).
+EOF
+  [ "$FAILED" = "0" ] || die "dry run: some checks failed"
+  echo "==> Dry run: all checks passed, nothing was built." >&2
+  exit 0
 fi
 
 gcloud auth application-default print-access-token >/dev/null 2>&1 \

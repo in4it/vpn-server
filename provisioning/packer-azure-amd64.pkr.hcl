@@ -24,7 +24,7 @@ source "azure-arm" "vpn-server" {
     image_version  = replace(var.image_version, "v", "")
   }
   use_azure_cli_auth = true
-  vm_size            = "Standard_DC1s_v2"
+  vm_size            = "Standard_D2s_v3"
   public_ip_sku      = "Standard"
 }
 
