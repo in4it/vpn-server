@@ -1,5 +1,9 @@
 # Release Notes
 
+## Version v1.1.22
+* Security: Go 1.26.10, which fixes a vulnerability in certificate verification (crypto/x509, GO-2026-6809)
+* Dependency updates (go-jose v4.1.6, mdlayher/socket v0.8.0)
+
 ## Version v1.1.21
 * UI: confirmation before deleting users, connections, OIDC/SAML providers and MFA factors, and before regenerating the SCIM token
 * UI: error messages for failed actions, and better handling of expired sessions

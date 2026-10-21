@@ -24,6 +24,28 @@ jobs:
         with:
           version: latest
           only-new-issues: true
+  govulncheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Go (toolchain from go.mod)
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Go generate
+        run: |
+          go generate ./...
+          touch cmd/rest-server/static/placeholder # we're not building frontend, so we put a placeholder
+      - name: govulncheck
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck ./...
+      - name: Check for disallowed packages
+        run: |
+          if go list -deps ./... | grep 'golang.org/x/crypto/openpgp'; then
+            echo "golang.org/x/crypto/openpgp is unmaintained and must not be used (GO-2026-5932)"
+            exit 1
+          fi
   build:
     runs-on: ubuntu-latest
     steps:
