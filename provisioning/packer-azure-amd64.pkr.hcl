@@ -57,9 +57,12 @@ build {
   }
 
   provisioner "shell" {
-    execute_command = "{{ .Vars }} sudo -E sh '{{ .Path }}'"
-    pause_before    = "10s"
-    scripts         = ["scripts/install_vpn.sh"]
+    # needrestart only lists the services to restart: restarting walinuxagent and
+    # systemd-networkd after the upgrade drops the packer SSH session on Azure
+    environment_vars = ["NEEDRESTART_MODE=l"]
+    execute_command  = "{{ .Vars }} sudo -E sh '{{ .Path }}'"
+    pause_before     = "10s"
+    scripts          = ["scripts/install_vpn.sh"]
   }
 
   provisioner "shell" {
