@@ -36,4 +36,7 @@ mv /tmp/vpn-rest-server.service /etc/systemd/system/vpn-rest-server.service
 systemctl enable vpn-configmanager
 systemctl enable vpn-rest-server
 
+# log the installed package versions, to compare against marketplace security scans
+dpkg-query -W
+
 apt-get clean
