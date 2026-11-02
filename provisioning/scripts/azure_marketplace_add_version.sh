@@ -129,24 +129,32 @@ confirm() {
 }
 
 # --- Partner Center API -------------------------------------------------------
-echo "==> Getting a Partner Center access token ..." >&2
-TOKEN="$(
+get_token() {
   curl -fsS --max-time 30 "https://login.microsoftonline.com/${AZURE_PARTNER_TENANT_ID}/oauth2/v2.0/token" \
     --data-urlencode "grant_type=client_credentials" \
     --data-urlencode "client_id=${AZURE_PARTNER_CLIENT_ID}" \
     --data-urlencode "client_secret=${AZURE_PARTNER_CLIENT_SECRET}" \
     --data-urlencode "scope=https://graph.microsoft.com/.default" \
   | jq -r '.access_token // empty'
-)" || die "could not get an access token (check AZURE_PARTNER_* settings)"
+}
+
+echo "==> Getting a Partner Center access token ..." >&2
+TOKEN="$(get_token)" || die "could not get an access token (check AZURE_PARTNER_* settings)"
 [ -n "$TOKEN" ] || die "could not get an access token (check AZURE_PARTNER_* settings)"
 
 api() { # api <method> <path> [body]; on an http error, prints the response body to stderr and fails
-  local method="$1" path="$2" body="${3:-}" out status
-  local args=(-sS --max-time 60 -X "$method" -H "Authorization: Bearer ${TOKEN}" -w '\n%{http_code}')
-  [ -n "$body" ] && args+=(-H "Content-Type: application/json" --data "$body")
-  out="$(curl "${args[@]}" "${API}/${path}")" || return 1
-  status="${out##*$'\n'}"
-  out="${out%$'\n'*}"
+  local method="$1" path="$2" body="${3:-}" out status attempt args new_token
+  for attempt in 1 2; do
+    args=(-sS --max-time 60 -X "$method" -H "Authorization: Bearer ${TOKEN}" -w '\n%{http_code}')
+    [ -n "$body" ] && args+=(-H "Content-Type: application/json" --data "$body")
+    out="$(curl "${args[@]}" "${API}/${path}")" || return 1
+    status="${out##*$'\n'}"
+    out="${out%$'\n'*}"
+    [ "$status" = "401" ] && [ "$attempt" = "1" ] || break
+    # the token expired (publishing to preview can take longer than its lifetime): get a new one
+    new_token="$(get_token)" && [ -n "$new_token" ] || break
+    TOKEN="$new_token"
+  done
   if [ "$status" -ge 400 ]; then
     echo "error: ${method} ${path%%\?*} returned HTTP ${status}:" >&2
     jq . <<<"$out" >&2 2>/dev/null || echo "$out" >&2
