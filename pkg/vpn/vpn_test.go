@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"net"
 	"net/http"
 	"net/http/httptest"
 	"path"
@@ -38,10 +37,7 @@ func TestSCIMCreateUserConnectionDeleteUserFlow(t *testing.T) {
 	}
 	s := scim.New(storage, userStore, "token")
 
-	l, err := net.Listen("tcp", wireguard.CONFIGMANAGER_URI)
-	if err != nil {
-		t.Fatal(err)
-	}
+	l := listenConfigManager(t)
 
 	ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
@@ -169,10 +165,7 @@ func TestCreateUserConnectionSuspendUserFlow(t *testing.T) {
 	}
 	s := scim.New(storage, userStore, "token")
 
-	l, err := net.Listen("tcp", wireguard.CONFIGMANAGER_URI)
-	if err != nil {
-		t.Fatal(err)
-	}
+	l := listenConfigManager(t)
 
 	ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
@@ -303,10 +296,7 @@ func TestCreateUserConnectionSuspendUserFlow(t *testing.T) {
 }
 
 func TestCreateUserConnectionDeleteUserFlow(t *testing.T) {
-	l, err := net.Listen("tcp", wireguard.CONFIGMANAGER_URI)
-	if err != nil {
-		t.Fatal(err)
-	}
+	l := listenConfigManager(t)
 
 	ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
