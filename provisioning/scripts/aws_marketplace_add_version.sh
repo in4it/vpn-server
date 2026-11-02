@@ -162,7 +162,8 @@ fi
 [ -n "$NEW_TITLE" ] || die "empty version title"
 if [ -z "$NEW_NOTES" ]; then
   echo "==> Getting release notes from the GitHub release ${NEW_TITLE} ..." >&2
-  NEW_NOTES="$(github_release_notes "$NEW_TITLE")"
+  # || true: a failed lookup shouldn't exit here (set -e, pipefail), the fallback below handles it
+  NEW_NOTES="$(github_release_notes "$NEW_TITLE" || true)"
   if [ -z "$NEW_NOTES" ]; then
     echo "warning: no GitHub release notes found for ${NEW_TITLE}, using \"Version ${NEW_TITLE}\"" >&2
     NEW_NOTES="Version ${NEW_TITLE}"
