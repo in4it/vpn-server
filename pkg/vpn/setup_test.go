@@ -177,10 +177,7 @@ func TestVPNSetupValidation(t *testing.T) {
 
 // TestRestartVPNHandlerUpstreamError: an upstream (configmanager) failure must return 502 with the upstream response
 func TestRestartVPNHandlerUpstreamError(t *testing.T) {
-	l, err := net.Listen("tcp", wireguard.CONFIGMANAGER_URI)
-	if err != nil {
-		t.Fatal(err)
-	}
+	l := listenConfigManager(t)
 	ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost && r.RequestURI == "/restart-vpn" {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -208,4 +205,18 @@ func TestRestartVPNHandlerUpstreamError(t *testing.T) {
 	if !strings.Contains(string(body), "wg-quick failed") {
 		t.Fatalf("expected upstream response in error, got: %s", body)
 	}
+}
+
+// listenConfigManager listens on a free port and points the configmanager client at it for the
+// duration of the test: go test runs packages in parallel, and pkg/wireguard's tests use the default port
+func listenConfigManager(t *testing.T) net.Listener {
+	t.Helper()
+	l, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	uri := wireguard.ConfigManagerURI
+	wireguard.ConfigManagerURI = l.Addr().String()
+	t.Cleanup(func() { wireguard.ConfigManagerURI = uri })
+	return l
 }

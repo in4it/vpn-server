@@ -1,5 +1,10 @@
 # Release Notes
 
+## Version v1.1.23
+* Security: rebuilt images with the latest Ubuntu security updates, including brotli (USN-8956-1, CVE-2026-111497)
+* Security: golang.org/x/net v0.62.0 (GO-2026-6860, GO-2026-6866) and follow-redirects 1.16.2 (GHSA-mrwp-f3q8-3g9p)
+* Dependency updates (go-jose v4.1.7 and npm packages)
+
 ## Version v1.1.22
 * Security: Go 1.26.10, which fixes a vulnerability in certificate verification (crypto/x509, GO-2026-6809)
 * Dependency updates (go-jose v4.1.6, mdlayher/socket v0.8.0)

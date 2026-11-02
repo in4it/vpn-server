@@ -11,7 +11,7 @@ import (
 
 // variables so tests can override them
 var (
-	configManagerURI       = CONFIGMANAGER_URI
+	ConfigManagerURI       = CONFIGMANAGER_URI
 	configManagerTransport http.RoundTripper // nil: http.DefaultTransport
 )
 
@@ -30,7 +30,7 @@ func notifyConfigManager(uri string, payload any) error {
 		}
 		body = bytes.NewReader(payloadBytes)
 	}
-	resp, err := client.Post("http://"+configManagerURI+uri, "application/json", body)
+	resp, err := client.Post("http://"+ConfigManagerURI+uri, "application/json", body)
 	if err != nil {
 		return fmt.Errorf("configmanager post error: %s", err)
 	}

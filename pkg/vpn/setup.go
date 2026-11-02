@@ -304,7 +304,7 @@ func (v *VPN) restartVPNHandler(w http.ResponseWriter, r *http.Request) {
 	client := http.Client{
 		Timeout: 10 * time.Second,
 	}
-	req, err := http.NewRequest(r.Method, "http://"+wireguard.CONFIGMANAGER_URI+"/restart-vpn", nil)
+	req, err := http.NewRequest(r.Method, "http://"+wireguard.ConfigManagerURI+"/restart-vpn", nil)
 	if err != nil {
 		v.returnError(w, fmt.Errorf("restart request error: %s", err), http.StatusBadRequest)
 		return
