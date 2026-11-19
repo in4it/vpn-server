@@ -2,9 +2,9 @@
 
 ## Version v1.1.24
 * Security: Go 1.26.11, which fixes an HTTP server crash (net/http, GO-2026-6859)
-* Security: AWS and Google Cloud images rebuilt with the Ubuntu kernel security update for CVE-2026-98432. The Azure images follow once Ubuntu releases the fix for its Azure kernel
+* Security: images rebuilt with the Ubuntu kernel security update for CVE-2026-98432
 * Security: golang.org/x/crypto v0.59.0, which removes the unmaintained openpgp package (GO-2026-5932)
-* Dependency updates (go-jose v4.1.9, gopacket v1.7.7, golang.org/x packages and npm packages)
+* Dependency updates (go-jose v4.1.9, gopacket v1.7.7, golang.org/x/net v0.63.0 and other golang.org/x packages, npm packages)
 
 ## Version v1.1.23
 * Security: rebuilt images with the latest Ubuntu security updates, including brotli (USN-8956-1, CVE-2026-111497)
